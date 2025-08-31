@@ -1,7 +1,14 @@
 package boatsimulator;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 import edu.macalester.graphics.Image;
 import edu.macalester.graphics.Point;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public abstract class Boat {
     private final short MAX_WHEEL_TURN = 360;
@@ -20,6 +27,7 @@ public abstract class Boat {
 
     private final byte ANCHOR_RAISE_SPEED = 20; // 5 seconds to raise
     private final byte ANCHOR_LOWER_SPEED = 25; // 4 seconds to lower
+    private final double ANCHOR_DECELERATION = 0.01; // deceleration when anchor is down
     private final double ACCELERATION_INCREMENT = 0.0008; // acceleration and deceleration (not sure if correct but made decision); need to do test
     private final double FRICTION_INCREMENT = 0.0002;
     private final double MAX_SHIP_VELOCITY = 0.21780408801;
@@ -41,9 +49,11 @@ public abstract class Boat {
     private double windBillowAmount;
     protected Image shipShape;
     private boolean isAnchorDrown = false;
-    private double anchorProgress = 0;
+    private double anchorProgress = 100; // 0 = fully down, 100 = fully up
     private boolean isActionBeingDone = false;
     protected String name;
+    private ScheduledExecutorService anchorExecutor = Executors.newSingleThreadScheduledExecutor();
+    private volatile boolean anchorTaskRunning = false;
 
     /**
      * Gives if the ship is currently alive or sunk
@@ -192,15 +202,18 @@ public abstract class Boat {
     }
 
     /**
-     * Updates the ship's velocity incrementally / decremtnally to a certain cap based on the current ship status
-     * Statuses include: sail amount, apparent wind, mast status, and anchor status
+     * Updates the ship's velocity incrementally / decrementally to a certain cap based on the current ship status
+     * Statuses include: sail amount, apparent wind, and mast status
      */
     public void updateShipVelocity(){ // TODO: test this and add code
+        if (isAnchorDrown && shipVelocity > 0) { // if anchor is down, decelerate to 0
+            shipVelocity -= ANCHOR_DECELERATION;
+            return;
+        }
         maxSpeedGivenStatus = MAX_SHIP_VELOCITY * // calculates max speed given the current circumstances
                               ((double) sailAmount / (double) MAX_SAIL_LENGTH) * 
                             //   ((double) windBillowAmount / (double) MAX_BILLOW_AMOUNT) *
-                              (isMastRaised ? 1 : 0) *
-                              (isAnchorDrown ? 0 : 1);
+                              (isMastRaised ? 1 : 0);
         // System.out.println("Max Speed Given Status: " + maxSpeedGivenStatus);
         // System.out.println("Sail Amount: " + sailAmount);
         // System.out.println("Velocity " + shipVelocity);
@@ -316,24 +329,60 @@ public abstract class Boat {
         }
     }
 
+    /*
+     * Sets the ship's status to be sunk (not alive)
+     */
     public void killShip() {
         this.shipAlive = false;
     }
 
+    /*
+     * Buckets water out of the ship-- increasing the ship's health (not having it sink)
+     */
     public void bucketShip() {
         this.shipHealth += MAX_BUCKET_AMOUNT;
     }
 
+public void toggleAnchor() {
+    if (anchorTaskRunning) return; // Prevent multiple tasks
+    anchorTaskRunning = true;
+
+    if (!isAnchorDrown) {
+        anchorExecutor.scheduleAtFixedRate(() -> {
+            dropAnchor();
+            if (anchorProgress <= 0) {
+                anchorTaskRunning = false;
+                anchorExecutor.shutdownNow();
+                anchorExecutor = Executors.newSingleThreadScheduledExecutor(); // Reset for next use
+            }
+        }, 0, 100, TimeUnit.MILLISECONDS); // adjust interval as needed
+    } else {
+        anchorExecutor.scheduleAtFixedRate(() -> {
+            raiseAnchor();
+            if (anchorProgress >= 100) {
+                anchorTaskRunning = false;
+                anchorExecutor.shutdownNow();
+                anchorExecutor = Executors.newSingleThreadScheduledExecutor(); // Reset for next use
+            }
+        }, 0, 100, TimeUnit.MILLISECONDS);
+    }
+}
+
     public void dropAnchor() {
         // add incrementation (time for it to drop)
-        this.isAnchorDrown = true;
-        this.shipVelocity = 0; // if anchor is down, ship cannot move
+        anchorProgress -= ANCHOR_LOWER_SPEED;
+        if (anchorProgress <= 0 && !isAnchorDrown) {
+            anchorProgress = 0;
+            isAnchorDrown = true;
+        }
     }
 
     public void raiseAnchor() {
-        // add incrementation
-        this.isAnchorDrown = false;
-        // this.shipVelocity = 0; // if anchor is up, ship can move
+        anchorProgress += ANCHOR_LOWER_SPEED;
+        if (anchorProgress >= 100 && isAnchorDrown) {
+            anchorProgress = 100;
+            isAnchorDrown = false;
+        }
     }
 
     public double probabilityHitCannon(double distanceToTarget) {
@@ -374,6 +423,9 @@ public abstract class Boat {
         return distanceToTarget;
     }
 
+    /*
+     * Scales the ship image by the SHIP_SCALE constant and a given scale factor (for zooming purposes)
+     */
     public void scaleShipShape(double scaleFactor) {
         this.shipShape.setScale(SHIP_SCALE * scaleFactor);
     }

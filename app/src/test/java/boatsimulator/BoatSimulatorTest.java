@@ -16,9 +16,6 @@ class BoatSimulatorTest {
         // BoatSimulator sim = new BoatSimulator();
 
     }
-
-
-    
     
     public void testImageRotation(){
         CanvasWindow canvas = new CanvasWindow("please", 800, 800);

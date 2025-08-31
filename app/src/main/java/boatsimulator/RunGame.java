@@ -89,7 +89,7 @@ public class RunGame{
         controlMap.put("UP_ARROW", () -> player.raiseSail());
         controlMap.put("DOWN_ARROW", () -> player.lowerSailOrRaiseMast());
 
-        // controlMap.put("X", () -> player.toggleAnchor());
+        controlMap.put("X", () -> player.toggleAnchor());
         // controlMap.put("B", () -> player.bucketWater());
         // controlMap.put("R", () -> player.repairHole());
         // controlMap.put("M", () -> player.repairMast());
