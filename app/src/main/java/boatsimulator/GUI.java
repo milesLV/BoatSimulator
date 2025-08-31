@@ -63,9 +63,12 @@ public class GUI extends GraphicsGroup{
     }
 
     private Color getWheelColor(double wheelTurn) {
+        // Clamp wheelTurn between -360 and 360
+        wheelTurn = Math.max(-360, Math.min(360, wheelTurn));
         if (wheelTurn < 0) {
             // Red to White
             float ratio = (float)((wheelTurn + 360f) / 360f); // -360 -> 0: 0 -> 1
+            ratio = Math.max(0f, Math.min(1f, ratio));
             int red = 255;
             int green = (int)(255 * ratio);
             int blue = (int)(255 * ratio);
@@ -73,6 +76,7 @@ public class GUI extends GraphicsGroup{
         } else {
             // White to Green
             float ratio = (float)(wheelTurn / 360f); // 0 -> 360: 0 -> 1
+            ratio = Math.max(0f, Math.min(1f, ratio));
             int red = (int)(255 * (1 - ratio));
             int green = 255;
             int blue = (int)(255 * (1 - ratio));
