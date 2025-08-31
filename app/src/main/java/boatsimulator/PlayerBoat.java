@@ -7,6 +7,6 @@ public class PlayerBoat extends Boat {
         super.shipShape = new Image("SloopScaled.png");
         super.scaleShipShape(1);
         super.name = "Player";
-        super.shipHeading = 270; // initial is upwards
+        super.shipHeading = 270; // initial is facing upwards
     }
 }

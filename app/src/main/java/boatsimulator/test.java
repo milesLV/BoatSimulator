@@ -16,7 +16,7 @@ public class test {
     private static final double DEFAULT_GRID_SIZE = 700;
     private static final int NUM_CELLS = 26;
     public static final Point PLAYER_STARTING_POINT = new Point(CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2); // putting player in center of the screen
-    private static final short ENEMY_SPAWN_DISTANCE = 500;
+    private static final short ENEMY_SPAWN_DISTANCE = 550;
 
     public CanvasWindow canvas;
     private GraphicsGroup worldGroup;

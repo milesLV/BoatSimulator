@@ -17,4 +17,7 @@ public class GUI extends GraphicsGroup{
      *  Something quick and small to indicate that cannon hit (like actual SOT, also in the middle of the screen)
      *  Text to say that enemy mast is down
      */
+    public GUI(){
+        
+    }
 }

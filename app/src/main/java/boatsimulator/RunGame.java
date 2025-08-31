@@ -150,7 +150,6 @@ public class RunGame{
 
     // FUTURE MAYBE ADDITIONS:
     /*
-    * Option to say if solo / duo (just changes actions available and makes some actions faster))
     * Wind direction and speed (affects ship speed and turning radius)
     * Boarding mechanics:
     *   Either probability of success of boarding or make a system where camera centers on a large dot (the player) 

@@ -56,8 +56,6 @@ public class MapTable {
         player.setShipPosition(PLAYER_STARTING_POINT.getX(), PLAYER_STARTING_POINT.getY());
         playerShip.setCenter(PLAYER_STARTING_POINT);
 
-        // worldGroup.add(enemyShip);
-        // enemy.setShipPosition(PLAYER_STARTING_POINT.getX() + 400, PLAYER_STARTING_POINT.getY()); // offsetting enemy for now, in future do randomly
         spawnEnemyRandomly();
         canvas.add(rock);
 
@@ -69,9 +67,7 @@ public class MapTable {
 
     /**
      * Adds grid lines to the canvas for better visualization of the gaming map.
-     * The grid lines are spaced according to the DEFAULT_GRID_SIZE constant.
-     * Vertical lines are drawn at every DEFAULT_GRID_SIZE interval along the x-axis,
-     * and horizontal lines are drawn at every DEFAULT_GRID_SIZE interval along the y-axis.
+     * Grid lines are spaced based on DEFAULT_GRID_SIZE and cover an area defined by NUM_CELLS.
      */
     private void setUpGridLines() {
         int halfCells = NUM_CELLS / 2;
@@ -88,6 +84,13 @@ public class MapTable {
         }
     }
 
+    /**
+     * Creates a single grid line on the canvas and adds it to the world group.
+     * @param x1 Beginning x coordinate of the line
+     * @param y1 Beginning y coordinate of the line
+     * @param x2 Ending x coordinate of the line
+     * @param y2 Ending y coordinate of the line
+     */
     private void makeGridLine(double x1, double y1, double x2, double y2) {
         Line line = new Line(x1, y1, x2, y2);
         line.setStrokeColor(Color.LIGHT_GRAY);
@@ -95,6 +98,11 @@ public class MapTable {
         worldGroup.add(line);
     }
 
+    /**
+     * Spawns the enemy ship at a random location in a fixed circle around the player
+     * Adds enemy ship to the world group and sets its initial position and heading (to face player)
+     * 
+     */
     private void spawnEnemyRandomly() {
         double randomRadians = random.nextDouble(0,2*Math.PI);
         System.out.println("Random number: " + randomRadians);
@@ -105,11 +113,21 @@ public class MapTable {
         enemyShip.setRotation(enemy.getShipHeading());
     }
 
+    /**
+     * Zooms the map in or out by scaling the world group and adjusting the player's ship size.
+     * @param zoomFactor how much to scale the world (to give zoom effect)
+     */
     public void doZoom(double zoomFactor) {
         this.worldGroup.setScale(zoomFactor);
         player.scaleShipShape(zoomFactor); // enemy ship doesn't need to be scaled because it's in the worldGroup which is being scaled
     }
 
+    /**
+     * Scrolls the map by adjusting the position of the world group and the player's ship.
+     * Controlled by dragging the mouse.
+     * @param deltaX scroll change in x direction
+     * @param deltaY scroll change in y direction
+     */
     public void doScroll(short deltaX, short deltaY) {
         scrollX += deltaX;
         scrollY += deltaY;
@@ -117,6 +135,10 @@ public class MapTable {
         playerShip.setPosition(136 + scrollX, -97 + scrollY); // for some reason 136, -97 keep the player in place
     }
 
+    /**
+     * Rubberbands the map back to be centered on the player.
+     * Controlled by pressing the space bar.
+     */
     public void resetScroll() {
         scrollX = 0;
         scrollY = 0;
@@ -124,16 +146,19 @@ public class MapTable {
         playerShip.setPosition(136 + scrollX, -97 + scrollY); // for some reason (136, -97) keep the player in place
     }
     
+    /**
+     * Animates the canvas with an anonymous function to update the display.
+     * @param action the anonymous function to run
+     */
     public void animate(Runnable action) {
         canvas.animate(action);
     }
 
     /*
      * Function that handles: 
-     *  - Rotating everything around the player
-     *  - Moving everything relative to the player
-     *  - Moving enemy ship relative to the player + own movement
-     *  - Making grid lines endless (until a certain point?)
+     *  - Moving the world so the player stays centered
+     *  - Rotating the player ship
+     *  - Moving enemy ship relative to the player ship + its own movement
      */
     public void updateMap() {
         centeredPlayerPositionX = PLAYER_STARTING_POINT.getX() - player.getShipX();
@@ -151,9 +176,5 @@ public class MapTable {
         rock.setPosition(player.getShipX(), player.getShipY());
 
         // System.out.println("Player Position: " + player.getShipX() + ", " + player.getShipY());
-    }
-
-    public void draw() {
-        canvas.draw();
     }
 }
