@@ -87,6 +87,10 @@ public abstract class Boat {
         return shipHeading;
     }
 
+    public double getWheelTurn() {
+        return wheelTurnAmount;
+    }
+
     /**
      * Gives ship's current health
      * @return returns the ship's current health

@@ -11,6 +11,7 @@ public class RunGame{
     private test map;
     private PlayerBoat player;
     private SkeleShip enemy;
+    private GUI gui;
 
     private double currentZoom = 1.6;
 
@@ -18,6 +19,7 @@ public class RunGame{
         this.player = new PlayerBoat();
         this.enemy = new SkeleShip();
         this.map = new test(player, enemy);
+        this.gui = new GUI(player, map.canvas);
 
         // map.addToMap(player.getShipShape());
         // map.addToMap(enemy.getShipShape());
@@ -56,6 +58,8 @@ public class RunGame{
                 player.updateHeading();
                 player.updateShipVelocity();
                 player.updatePosition();
+                gui.updateGUIStates();
+
                 // enemy.updateHeading();
                 // enemy.updateShipVelocity();
                 // enemy.updatePosition();
