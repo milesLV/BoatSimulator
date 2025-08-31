@@ -1,13 +1,20 @@
 package boatsimulator;
 
 import edu.macalester.graphics.GraphicsGroup;
+import edu.macalester.graphics.GraphicsObject;
 import edu.macalester.graphics.Image;
 
 import java.awt.Color;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import edu.macalester.graphics.CanvasWindow;
 
 public class GUI extends GraphicsGroup{
+    final static byte PADDING = 15;
+    final static byte WHEEL_ADJUSTMENT = 20;
+
     Image wheel;
     Image sail;
     Image shipHealth;
@@ -29,9 +36,16 @@ public class GUI extends GraphicsGroup{
         this.player = player;
         this.canvas = canvas;
         this.wheel = new Image("wheelGUI.png");
+        List<GraphicsObject> images = Arrays.asList(wheel); // add all gui components here
         this.add(wheel);
+        double totalWidth = 0;
+        for (GraphicsObject img : images) {
+            totalWidth += img.getWidth();
+        }
 
-        canvas.add(this, canvas.getWidth() - 200, canvas.getHeight() - 70);
+        double horizontalAdjustment = totalWidth + PADDING * (images.size() + 1); //+ (allObjects + 1) * PADDING;
+
+        canvas.add(this, canvas.getWidth() - horizontalAdjustment, canvas.getHeight() - 70);
     }
 
     public void updateGUIStates(){
@@ -40,7 +54,7 @@ public class GUI extends GraphicsGroup{
 
     private void wheelTurn(){
         this.remove(wheel);
-        double wheelTurn = player.getWheelTurn();
+        double wheelTurn = player.getWheelTurn() + WHEEL_ADJUSTMENT;
 
         Color wheelColor = getWheelColor(wheelTurn);
         this.wheel = tintWheelImage(wheelColor, wheel);
@@ -51,14 +65,14 @@ public class GUI extends GraphicsGroup{
     private Color getWheelColor(double wheelTurn) {
         if (wheelTurn < 0) {
             // Red to White
-            float ratio = (float)((wheelTurn + 360f) / 360f); // -360→0: 0→1
+            float ratio = (float)((wheelTurn + 360f) / 360f); // -360 -> 0: 0 -> 1
             int red = 255;
             int green = (int)(255 * ratio);
             int blue = (int)(255 * ratio);
             return new Color(red, green, blue);
         } else {
             // White to Green
-            float ratio = (float)(wheelTurn / 360f); // 0→360: 0→1
+            float ratio = (float)(wheelTurn / 360f); // 0 -> 360: 0 -> 1
             int red = (int)(255 * (1 - ratio));
             int green = 255;
             int blue = (int)(255 * (1 - ratio));
@@ -68,9 +82,9 @@ public class GUI extends GraphicsGroup{
 
     /**
      * Applies a color tint to the wheel image and makes the background transparent.
-     * @param color The color to apply as a tint.
-     * @param wheelImage The image of the wheel.
-     * @return A new Image with the tint applied and background transparent.
+     * @param color The color to apply as a tint to the wheel
+     * @param wheelImage The image of the wheel
+     * @return A new Image with the tint applied + transparent background
      */
     private Image tintWheelImage(Color color, Image wheelImage) {
         float[] ARGB = wheelImage.toFloatArray(Image.PixelFormat.ARGB);
@@ -98,22 +112,6 @@ public class GUI extends GraphicsGroup{
     private boolean isTransparentPixel(float[] pixelARGB){
         // pixelARGB[0] is the alpha channel (0.0 = fully transparent, 1.0 = fully opaque)
         return pixelARGB[0] < 0.1f;
-    }
-
-    /**
-     * Tells if a float array contains all of the same values or not
-     * @param RGB the RGB components of a pixel
-     * @param epsilon the threshold for determining if 2 floats are equal or not (done to avoid floating point error)
-     * @return Returns a boolean if all of the RGB values are the same (i.e (1.0, 1.0, 1.0)
-     *         or if there's at least one difference i.e. (1.0, 1.0, 0.5)
-     */
-    private boolean equalList(float[] RGB, double epsilon){
-        for (Float RGBComponent : RGB) {
-            if (Math.abs(RGB[0] - RGBComponent) > epsilon) { // if the R in RGB component is the same as the rest
-                return false; // if any of the RGB components are not the same, return false
-            }
-        }
-        return true;
     }
 
 }
