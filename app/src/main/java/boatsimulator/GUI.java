@@ -3,6 +3,9 @@ package boatsimulator;
 import edu.macalester.graphics.GraphicsGroup;
 import edu.macalester.graphics.GraphicsObject;
 import edu.macalester.graphics.Image;
+import edu.macalester.graphics.Path;
+import edu.macalester.graphics.Point;
+import edu.macalester.graphics.Rectangle;
 
 import java.awt.Color;
 import java.util.ArrayList;
@@ -14,12 +17,14 @@ import edu.macalester.graphics.CanvasWindow;
 public class GUI extends GraphicsGroup{
     final static byte PADDING = 15;
     final static byte WHEEL_ADJUSTMENT = 20;
+    final Point GUI_POSITION;
 
     Image wheel;
     Image sail;
     Image shipHealth;
     PlayerBoat player;
     CanvasWindow canvas;
+    Rectangle waterLevel;
     /*
      * GUI
      *  Health bar (ship facing right profile view being filled up with water) (maybe add anchor to top right of this)
@@ -36,20 +41,27 @@ public class GUI extends GraphicsGroup{
         this.player = player;
         this.canvas = canvas;
         this.wheel = new Image("wheelGUI.png");
-        List<GraphicsObject> images = Arrays.asList(wheel); // add all gui components here
-        this.add(wheel);
+        this.shipHealth = new Image("sloopHealthGUI.png");
+        List<GraphicsObject> images = Arrays.asList(wheel, shipHealth); // add all gui components here
+
+        // waterLevel = new Rectangle(0,0,0,0);
+
+        shipHealth.setScale(0.25);
+        this.add(wheel,0, -wheel.getHeight());
+        this.add(shipHealth, -3.2*wheel.getWidth() + PADDING, -shipHealth.getHeight() * 0.515);
         double totalWidth = 0;
         for (GraphicsObject img : images) {
-            totalWidth += img.getWidth();
+            totalWidth += img.getWidth() * img.getScaleX();
         }
 
-        double horizontalAdjustment = totalWidth + PADDING * (images.size() + 1); //+ (allObjects + 1) * PADDING;
-
-        canvas.add(this, canvas.getWidth() - horizontalAdjustment, canvas.getHeight() - 70);
+        double horizontalAdjustment = totalWidth + PADDING * (images.size() + 1);
+        GUI_POSITION = new Point(canvas.getWidth() - horizontalAdjustment, canvas.getHeight() - 70);
+        canvas.add(this, GUI_POSITION.getX(), GUI_POSITION.getY());
     }
 
     public void updateGUIStates(){
         wheelTurn();
+        updateShipHealth();
     }
 
     private void wheelTurn(){
@@ -78,9 +90,8 @@ public class GUI extends GraphicsGroup{
             float ratio = (float)(wheelTurn / 360f); // 0 -> 360: 0 -> 1
             ratio = Math.max(0f, Math.min(1f, ratio));
             int red = (int)(255 * (1 - ratio));
-            int green = 255;
             int blue = (int)(255 * (1 - ratio));
-            return new Color(red, green, blue);
+            return new Color(red, 255, blue);
         }
     }
 
@@ -93,12 +104,12 @@ public class GUI extends GraphicsGroup{
     private Image tintWheelImage(Color color, Image wheelImage) {
         float[] ARGB = wheelImage.toFloatArray(Image.PixelFormat.ARGB);
         float[] RGB = color.getComponents(null);
-        float COLOR_VIBRANCY = 1.1f;
+        float COLOR_VIBRANCY = 0.95f;
 
         for (int i = 0; i < ARGB.length; i += 4) {
         float[] pixelARGB = new float[] {ARGB[i], ARGB[i + 1], ARGB[i + 2], ARGB[i + 3]};
-        if (isTransparentPixel(pixelARGB)) {
-            ARGB[i] = 0.0f; // make background transparent
+        if (pixelARGB[0] < 0.1f) {
+            ARGB[i] = 0.0f; // make background transparent by making all nearly-transparent pixels fully transparent
         } else {
             for (int j = 0; j < 3; j++) { // R, G, B
                 ARGB[i + 1 + j] = (RGB[j] * COLOR_VIBRANCY + ARGB[i + 1 + j]) / 2;
@@ -108,14 +119,27 @@ public class GUI extends GraphicsGroup{
         return new Image(wheelImage.getImageWidth(), wheelImage.getImageHeight(), ARGB, Image.PixelFormat.ARGB);
     }
 
-    /**
-     * Senses which pixels in the image are transparent / the background (98% successrate)
-     * @param pixels the RGB components of the pixel that is currently under review
-     * @return: if the pixel is transparent or not
-     */
-    private boolean isTransparentPixel(float[] pixelARGB){
-        // pixelARGB[0] is the alpha channel (0.0 = fully transparent, 1.0 = fully opaque)
-        return pixelARGB[0] < 0.1f;
+    private void updateShipHealth() {
+        // this.remove(waterLevel);
+        double health = 0;
+        // System.out.println(GUI_POSITION);
+        waterLevel = new Rectangle(1.7*wheel.getWidth(), //  +  +  
+                                   20,  // +  + 
+                                   shipHealth.getWidth() * shipHealth.getScaleX(), 
+                                   shipHealth.getHeight() /2 * shipHealth.getScaleY() * health
+                                   );
+        // Path path = new Path(null, false); // get CoPilot's help with this but steps:
+        /*
+         * Goal is to first find the "corners" of boat -- top left, bottom left, top right, bottom right
+         * Then find slope of left and find function that works with right
+         * Then, make function that takes in y from health and # of points to interpolate and calculates y = mx + b and y = ab^x
+         * and then iterpolates along that with # of points
+         * Might be a bit of a headache but I think it would be cool
+         */
+        waterLevel.setFillColor(new Color(253, 0, 0, 0));
+        waterLevel.setFilled(true);
+        // this.add(waterLevel);
+
     }
 
 }

@@ -79,6 +79,10 @@ public abstract class Boat {
         return shipY;
     }
 
+    public Point getShipPosition(){
+        return new Point(shipX, shipY);
+    }
+
     /**
      * Gives ship's current heading in degrees
      * @return returns the ship's heading (in degrees)
@@ -95,8 +99,8 @@ public abstract class Boat {
      * Gives ship's current health
      * @return returns the ship's current health
      */
-    public short getShipHealth() {
-        return shipHealth;
+    public double getShipHealthPercentage() {
+        return shipHealth / MAX_HEALTH;
     }
 
     /**

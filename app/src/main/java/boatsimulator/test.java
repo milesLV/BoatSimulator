@@ -1,6 +1,9 @@
 package boatsimulator;
 
+import java.util.List;
+import java.util.ArrayList;
 import java.awt.Color;
+import java.awt.Paint;
 import java.util.Random;
 
 import edu.macalester.graphics.CanvasWindow;
@@ -8,7 +11,9 @@ import edu.macalester.graphics.Ellipse;
 import edu.macalester.graphics.GraphicsGroup;
 import edu.macalester.graphics.Image;
 import edu.macalester.graphics.Line;
+import edu.macalester.graphics.Path;
 import edu.macalester.graphics.Point;
+import edu.macalester.graphics.Polygon;
 
 public class test {
     public static final short CANVAS_WIDTH = 1440;
@@ -63,6 +68,8 @@ public class test {
         enemyShip.setRotation(enemy.getShipHeading());
         centeredPlayerPositionX = PLAYER_STARTING_POINT.getX() - player.getShipX();
         centeredPlayerPositionY = PLAYER_STARTING_POINT.getY() - player.getShipY();
+
+        // makeCannons(player.get);
     }
 
     /**
@@ -176,5 +183,53 @@ public class test {
         rock.setPosition(player.getShipX(), player.getShipY());
 
         // System.out.println("Player Position: " + player.getShipX() + ", " + player.getShipY());
+    }
+
+    public void makeCannons(double shipHeading, Point cannonPosition){
+        byte cannonDistance = 20;
+        List<Byte> allAngles = makeAngles(15);
+        List<Double> tangents = allAngles.stream().map(this::calculateTangent).toList();
+        List<Double> adjustedTangents = tangents.stream().map(tan -> tan + shipHeading).toList();
+        Path leftCannon = makeCannon(cannonPosition, adjustedTangents, cannonDistance, this.canvas); 
+    }
+
+    private List<Byte> makeAngles(int angle) {
+        List<Byte> angleList = new ArrayList<>();
+        byte[] perpendiculars = {90, -90};
+        byte[] signs = {1, -1};
+
+        for (int perp : perpendiculars) {
+            for (int sign : signs) {
+                angleList.add((byte) (perp + angle * sign));
+            }
+        }
+        return angleList;
+    }
+
+    private double calculateTangent(byte angle) {
+        return Math.tan(Math.toRadians(angle));
+    }
+
+    /**
+     * 
+     * @param cannonPosition
+     * @param tangents
+     * @param cannonDistance
+     * @param visualObject A CanvasWindow or Graphics Group that has add() (for adding to player or enemy boats)
+     * @return
+     */
+    private Path makeCannon(Point cannonPosition, List<Double> tangents, byte cannonDistance, CanvasWindow visualObject) {
+        Path cannon = new Path(List.of(cannonPosition,
+                                       new Point(cannonPosition.getX() + cannonDistance * Math.cos(Math.toRadians(tangents.get(0))), 
+                                                 cannonPosition.getY() + cannonDistance * Math.sin(Math.toRadians(tangents.get(0)))),
+                                       new Point(cannonPosition.getX() + cannonDistance * Math.cos(Math.toRadians(tangents.get(1))), 
+                                                 cannonPosition.getY() + cannonDistance * Math.sin(Math.toRadians(tangents.get(1))))
+                                       ));
+        cannon.setFillColor(Color.RED);
+        cannon.setFilled(true);
+        System.out.println(cannon.isClosed());
+        visualObject.add(cannon);
+
+        return cannon;
     }
 }
