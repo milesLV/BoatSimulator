@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.awt.Color;
 import java.awt.Paint;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 import edu.macalester.graphics.CanvasWindow;
 import edu.macalester.graphics.Ellipse;
@@ -69,7 +70,7 @@ public class test {
         centeredPlayerPositionX = PLAYER_STARTING_POINT.getX() - player.getShipX();
         centeredPlayerPositionY = PLAYER_STARTING_POINT.getY() - player.getShipY();
 
-        // makeCannons(player.get);
+        makeCannons(player.getShipHeading(), PLAYER_STARTING_POINT);
     }
 
     /**
@@ -185,28 +186,32 @@ public class test {
         // System.out.println("Player Position: " + player.getShipX() + ", " + player.getShipY());
     }
 
-    public void makeCannons(double shipHeading, Point cannonPosition){
-        byte cannonDistance = 20;
-        List<Byte> allAngles = makeAngles(15);
+    public void makeCannons(double shipHeading, Point shipPosition){
+        short cannonDistance = 200;
+        List<Integer> allAngles = makeAngles(30); // List.of(30,-30);// 
         List<Double> tangents = allAngles.stream().map(this::calculateTangent).toList();
         List<Double> adjustedTangents = tangents.stream().map(tan -> tan + shipHeading).toList();
-        Path leftCannon = makeCannon(cannonPosition, adjustedTangents, cannonDistance, this.canvas); 
-    }
+        System.out.println(adjustedTangents);
+        
+        Path leftCannon = makeCannon(shipPosition, adjustedTangents, cannonDistance, this.canvas); 
+        Path rightCannon = makeCannon(shipPosition, adjustedTangents.stream().
+                                                                        map(x -> x * -1).
+                                                                        collect(Collectors.toList()), cannonDistance, this.canvas); 
+    }   
 
-    private List<Byte> makeAngles(int angle) {
-        List<Byte> angleList = new ArrayList<>();
+    private List<Integer> makeAngles(int angle) {
+        List<Integer> angleList = new ArrayList<>();
         byte[] perpendiculars = {90, -90};
-        byte[] signs = {1, -1};
 
         for (int perp : perpendiculars) {
-            for (int sign : signs) {
-                angleList.add((byte) (perp + angle * sign));
-            }
+            angleList.add((perp + angle));
+
         }
+        // System.out.println(angleList);
         return angleList;
     }
 
-    private double calculateTangent(byte angle) {
+    private double calculateTangent(int angle) {
         return Math.tan(Math.toRadians(angle));
     }
 
@@ -218,7 +223,7 @@ public class test {
      * @param visualObject A CanvasWindow or Graphics Group that has add() (for adding to player or enemy boats)
      * @return
      */
-    private Path makeCannon(Point cannonPosition, List<Double> tangents, byte cannonDistance, CanvasWindow visualObject) {
+    private Path makeCannon(Point cannonPosition, List<Double> tangents, short cannonDistance, CanvasWindow visualObject) {
         Path cannon = new Path(List.of(cannonPosition,
                                        new Point(cannonPosition.getX() + cannonDistance * Math.cos(Math.toRadians(tangents.get(0))), 
                                                  cannonPosition.getY() + cannonDistance * Math.sin(Math.toRadians(tangents.get(0)))),
