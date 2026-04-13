@@ -8,13 +8,12 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 import edu.macalester.graphics.CanvasWindow;
-import edu.macalester.graphics.Ellipse;
 import edu.macalester.graphics.GraphicsGroup;
 import edu.macalester.graphics.Image;
 import edu.macalester.graphics.Line;
 import edu.macalester.graphics.Path;
 import edu.macalester.graphics.Point;
-import edu.macalester.graphics.Polygon;
+import edu.macalester.graphics.Ellipse;
 
 public class test {
     public static final short CANVAS_WIDTH = 1440;
@@ -37,6 +36,9 @@ public class test {
     private double centeredPlayerPositionY;
     private short scrollX = 0;
     private short scrollY = 0;
+
+    private Path playerLeftCannon;
+    private Path playerRightCannon;
     
     public test(PlayerBoat player, SkeleShip enemy){
         this.player = player;
@@ -62,15 +64,16 @@ public class test {
         player.setShipPosition(PLAYER_STARTING_POINT.getX(), PLAYER_STARTING_POINT.getY());
         playerShip.setCenter(PLAYER_STARTING_POINT);
 
-        spawnEnemyRandomly();
+        spawnEnemyRandomly(random.nextDouble(0,2*Math.PI));
         canvas.add(rock);
 
         playerShip.setRotation(player.getShipHeading());
         enemyShip.setRotation(enemy.getShipHeading());
         centeredPlayerPositionX = PLAYER_STARTING_POINT.getX() - player.getShipX();
         centeredPlayerPositionY = PLAYER_STARTING_POINT.getY() - player.getShipY();
+        this.playerLeftCannon = makeCannons(player.getShipHeading(), PLAYER_STARTING_POINT, 0);
+        this.playerRightCannon = makeCannons(player.getShipHeading(), PLAYER_STARTING_POINT, 1);
 
-        makeCannons(player.getShipHeading(), PLAYER_STARTING_POINT);
     }
 
     /**
@@ -109,10 +112,8 @@ public class test {
     /**
      * Spawns the enemy ship at a random location in a fixed circle around the player
      * Adds enemy ship to the world group and sets its initial position and heading (to face player)
-     * 
      */
-    private void spawnEnemyRandomly() {
-        double randomRadians = random.nextDouble(0,2*Math.PI);
+    private void spawnEnemyRandomly(double randomRadians) {
         System.out.println("Random number: " + randomRadians);
         Point enemySpawnPoint = new Point(PLAYER_STARTING_POINT.getX() + ENEMY_SPAWN_DISTANCE * Math.cos(randomRadians), PLAYER_STARTING_POINT.getY() + ENEMY_SPAWN_DISTANCE * Math.sin(randomRadians));
         worldGroup.add(enemyShip, enemySpawnPoint.getX(), enemySpawnPoint.getY());
@@ -178,41 +179,31 @@ public class test {
 
         // Rotate the player ship image to match heading
         playerShip.setRotation(player.getShipHeading());
+        this.playerLeftCannon.setRotation(player.getShipHeading() + 90);
+        this.playerRightCannon.setRotation(player.getShipHeading() + 90);
+        this.playerLeftCannon.setCenter(PLAYER_STARTING_POINT);
+        this.playerRightCannon.setCenter(PLAYER_STARTING_POINT);
 
+        
         // Draw the red point at the player's logical position (should now be at center)
         point.setPosition(PLAYER_STARTING_POINT); 
         rock.setPosition(player.getShipX(), player.getShipY());
-
+        System.out.println(playerLeftCannon.testHitInLocalCoordinates(enemyShip.getX(), enemyShip.getY()));
         // System.out.println("Player Position: " + player.getShipX() + ", " + player.getShipY());
     }
 
-    public void makeCannons(double shipHeading, Point shipPosition){
-        short cannonDistance = 200;
-        List<Integer> allAngles = makeAngles(30); // List.of(30,-30);// 
-        List<Double> tangents = allAngles.stream().map(this::calculateTangent).toList();
-        List<Double> adjustedTangents = tangents.stream().map(tan -> tan + shipHeading).toList();
-        System.out.println(adjustedTangents);
-        
-        Path leftCannon = makeCannon(shipPosition, adjustedTangents, cannonDistance, this.canvas); 
-        Path rightCannon = makeCannon(shipPosition, adjustedTangents.stream().
-                                                                        map(x -> x * -1).
-                                                                        collect(Collectors.toList()), cannonDistance, this.canvas); 
-    }   
+    public Path makeCannons(double shipHeading, Point shipPosition, int cannonIndex) {
+        int perpendicular = -90 * (cannonIndex == 0 ? 1 : -1); // Left cannon is -90°, right cannon is +90°
+        int cannonDistance = 250;
+        // 1. Get the side cannon directions, ±90° relative to ship heading
+        List<Double> allAngles = makeAngles(shipHeading - perpendicular, 45);
 
-    private List<Integer> makeAngles(int angle) {
-        List<Integer> angleList = new ArrayList<>();
-        byte[] perpendiculars = {90, -90};
-
-        for (int perp : perpendiculars) {
-            angleList.add((perp + angle));
-
-        }
-        // System.out.println(angleList);
-        return angleList;
+        // 2. Build each cannon (left/right) using the correct angular offsets
+        return(constructCannon(shipPosition, allAngles, cannonDistance, this.canvas));
     }
 
-    private double calculateTangent(int angle) {
-        return Math.tan(Math.toRadians(angle));
+    private List<Double> makeAngles(double shipPerpendicular, double centralAngleBisect) {
+        return List.of(shipPerpendicular + centralAngleBisect / 2, shipPerpendicular - centralAngleBisect / 2);
     }
 
     /**
@@ -223,16 +214,20 @@ public class test {
      * @param visualObject A CanvasWindow or Graphics Group that has add() (for adding to player or enemy boats)
      * @return
      */
-    private Path makeCannon(Point cannonPosition, List<Double> tangents, short cannonDistance, CanvasWindow visualObject) {
-        Path cannon = new Path(List.of(cannonPosition,
-                                       new Point(cannonPosition.getX() + cannonDistance * Math.cos(Math.toRadians(tangents.get(0))), 
-                                                 cannonPosition.getY() + cannonDistance * Math.sin(Math.toRadians(tangents.get(0)))),
-                                       new Point(cannonPosition.getX() + cannonDistance * Math.cos(Math.toRadians(tangents.get(1))), 
-                                                 cannonPosition.getY() + cannonDistance * Math.sin(Math.toRadians(tangents.get(1))))
-                                       ));
+    private Path constructCannon(Point cannonPosition, List<Double> angles, double cannonDistance, CanvasWindow visualObject) {
+        Point tip1 = new Point(
+            cannonPosition.getX() + cannonDistance * Math.cos(Math.toRadians(angles.get(0))),
+            cannonPosition.getY() + cannonDistance * Math.sin(Math.toRadians(angles.get(0)))
+        );
+
+        Point tip2 = new Point(
+            cannonPosition.getX() + cannonDistance * Math.cos(Math.toRadians(angles.get(1))),
+            cannonPosition.getY() + cannonDistance * Math.sin(Math.toRadians(angles.get(1)))
+        );
+
+        Path cannon = new Path(List.of(cannonPosition, tip1, tip2), true);
         cannon.setFillColor(Color.RED);
         cannon.setFilled(true);
-        System.out.println(cannon.isClosed());
         visualObject.add(cannon);
 
         return cannon;

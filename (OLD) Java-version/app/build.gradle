@@ -17,7 +17,7 @@ repositories {
 }
 
 dependencies {
-    implementation group: 'com.github.mac-comp127', name: 'kilt-graphics', version: '1.+'
+    implementation group: 'com.github.mac-comp127', name: 'kilt-graphics', version: '1.8+'
     // Use JUnit Jupiter for testing.
     testImplementation libs.junit.jupiter
 

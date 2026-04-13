@@ -143,3 +143,9 @@ public class GUI extends GraphicsGroup{
     }
 
 }
+
+/* 
+    Have progress bars be apart of this class (progress for hole repair, mast being raised [which can be its own 
+    separate thing that fades away when hits 0% but stays on screen when not 0%], anchor being raised, anchor being 
+    lowered (same as mast being raised))
+*/

@@ -402,7 +402,7 @@ public void toggleAnchor() {
         // if in 75-100% of max range, 15% chance to hit
         
         // shipSpin factor:
-        // shipSpin should affect it by a sigmoid function, so that the more the ship is spinning, the less likely it is to hit
+        // shipSpin should affect it by a sigmoid function (1/(1+e^(-10x+5.3))), so that the more the ship is spinning, the less likely it is to hit
         // just multiply first probability by shipSpin probability
 
         // dialed in factor:

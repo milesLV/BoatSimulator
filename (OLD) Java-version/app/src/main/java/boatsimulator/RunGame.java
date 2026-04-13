@@ -160,6 +160,10 @@ public class RunGame{
     *   and you can control the dot with WASD and control the boat with arrow keys (shift to swim faster, d to dive with makes
         probability of boarding lower but lowers probability of being seen (which increases failing to take over enemy ship)),
         dying may be hard to do because 30 seconds wait but assumption is doing doubles (this can change?)
+    *   Not necessary but have a GUI where shows what food you have if you press E (have the SOT inventory circles with the food graphics and 
+        little numbers– better the food the higher probability of successful anchoring)
+    *   And have button that press that shows you what your boat is doing
+    *   And have button for mermaid to go back to the boat if further than x distance away (test in game)
     *
     * Different ship types (brigs, galleons, etc)
     *
