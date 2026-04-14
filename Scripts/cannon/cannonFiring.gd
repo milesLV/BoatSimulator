@@ -1,0 +1,84 @@
+extends Node2D
+
+const MAX_ANGLE = deg_to_rad(45)
+
+@onready var pivot = $CannonPivot
+@onready var sprite = $CannonPivot/CannonSprite
+@onready var cannon_mouth = $CannonPivot/CannonSprite/CannonMouth
+
+@onready var sectors = [
+	$CannonRange/RangeSector1,
+	$CannonRange/RangeSector2,
+	$CannonRange/RangeSector3
+]
+
+@onready var range_manager = $CannonRange
+
+var ready_to_fire = true
+var current_target = null
+var current_ring = -1
+
+func _ready():
+	await get_tree().process_frame
+	for sector in sectors:
+		sector.target_entered.connect(_on_target_entered)
+		sector.target_exited.connect(_on_target_exited)
+
+func _on_target_entered(body, ring_index):
+	print("ENTER:", body.name, "ring:", ring_index)
+	if body == get_parent().get_parent():
+		print("IGNORED SELF")
+		return
+	current_target = body
+	current_ring = ring_index
+	if ready_to_fire:
+		call_deferred(&"shoot")
+
+func _on_target_exited(body):
+	if body == current_target:
+		current_target = null
+		current_ring = -1
+
+func _physics_process(_delta):
+	if current_target == null or not is_instance_valid(current_target):
+		current_target = null
+		current_ring = -1
+		return
+
+	var to_target = (current_target.global_position - pivot.global_position).normalized()
+	var forward = Vector2.RIGHT.rotated(pivot.global_rotation)
+
+	var angle_diff = forward.angle_to(to_target)
+	var clamped_diff = clamp(angle_diff, -MAX_ANGLE, MAX_ANGLE)
+
+	sprite.rotation = pivot.rotation + clamped_diff
+
+func shoot():
+	if current_target == null or not is_instance_valid(current_target):
+		return
+	
+	if not ready_to_fire:
+		return
+	
+	ready_to_fire = false
+	$Timer.start()
+	
+	const CANNONBALL = preload("res://Scenes/cannonball.tscn")
+	var new_cannonball = CANNONBALL.instantiate()
+
+	cannon_mouth.add_child(new_cannonball)
+	new_cannonball.global_position = cannon_mouth.global_position
+	new_cannonball.global_rotation = cannon_mouth.global_rotation
+
+	new_cannonball.range_manager = range_manager
+	new_cannonball.setup(get_parent())
+
+func _on_timer_timeout():
+	ready_to_fire = true
+	if current_target == null or not is_instance_valid(current_target):
+		return
+
+	if current_ring == -1: # if enemy has not entered / has exited
+		return
+
+	shoot()

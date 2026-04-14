@@ -1,0 +1,34 @@
+[gd_scene format=3 uid="uid://b5225754qio6p"]
+
+[ext_resource type="Script" uid="uid://ngdmepgbs1p5" path="res://Scripts/ships/sloop.gd" id="1_a2qv3"]
+[ext_resource type="Texture2D" uid="uid://tyo7pmbid6ky" path="res://Assets/sailBlurv2.png" id="2_rxto3"]
+[ext_resource type="PackedScene" uid="uid://crkmlqeea42ws" path="res://Scenes/cannon.tscn" id="2_t7hxb"]
+
+[node name="Sloop" type="CharacterBody2D" unique_id=1141876777]
+collision_layer = 7
+collision_mask = 7
+script = ExtResource("1_a2qv3")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=1725303819]
+visible = false
+rotation = 1.5707964
+scale = Vector2(0.31316808, 0.31316808)
+polygon = PackedVector2Array(96, 0, 86, -56, 35, -155, -2, -273, -34, -155, -92, -61, -102, 1, -98, 61, -91, 122, -87, 181, -56, 242, -1, 258, 51, 240, 79, 183, 78, 124, 90, 60)
+
+[node name="CannonPort1" parent="." unique_id=639124336 instance=ExtResource("2_t7hxb")]
+position = Vector2(14, -13.999999)
+rotation = -1.5707964
+
+[node name="CannonStarboard1" parent="." unique_id=601673758 instance=ExtResource("2_t7hxb")]
+position = Vector2(14, 13)
+rotation = 1.5707964
+
+[node name="MastPoint" type="Marker2D" parent="." unique_id=67253964]
+position = Vector2(-11, -1.7881393e-07)
+rotation = 1.5707964
+scale = Vector2(0.661, 0.661)
+
+[node name="Sail" type="Sprite2D" parent="MastPoint" unique_id=503750216]
+position = Vector2(-7.1525574e-07, -24.20575)
+scale = Vector2(1.1, 1.1)
+texture = ExtResource("2_rxto3")

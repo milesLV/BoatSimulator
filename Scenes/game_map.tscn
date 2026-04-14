@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://dtxxvswsgxa17"]
+
+[ext_resource type="PackedScene" uid="uid://ccc7gafptdtc5" path="res://Scenes/player.tscn" id="2_8wm8v"]
+[ext_resource type="PackedScene" uid="uid://dpa5rjievogo5" path="res://Scenes/enemy.tscn" id="2_c4nuu"]
+
+[node name="GameMap" type="Node2D" unique_id=1463359944]
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1296733608]
+offset_right = 1148.0
+offset_bottom = 643.0
+color = Color(0.49468005, 0.5639828, 0.822795, 1)
+
+[node name="Player" parent="." unique_id=1141876777 instance=ExtResource("2_8wm8v")]
+position = Vector2(475, 464)
+rotation = -1.5707964
+
+[node name="Enemy" parent="." unique_id=1780197833 instance=ExtResource("2_c4nuu")]
+position = Vector2(478, 89)
+rotation = 1.5707964
