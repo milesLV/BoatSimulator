@@ -11,7 +11,7 @@ extends CharacterBody2D
 
 const MAX_WHEEL_ROT := 4 * PI
 const BASE_SAIL_ANGLE = deg_to_rad(90)
-const MAX_SAIL_ANGLE = deg_to_rad(90)
+const MAX_SAIL_ANGLE = deg_to_rad(89)
 
 var wheel_rotation := 0.0
 var sail_length := 0.0

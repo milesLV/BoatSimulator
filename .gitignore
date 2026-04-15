@@ -4,3 +4,5 @@
 # Ignore Gradle build output directory
 build
 /(OLD) Java-version
+/addons
+/addons

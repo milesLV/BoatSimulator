@@ -35,9 +35,17 @@ func _on_target_entered(body, ring_index):
 		call_deferred(&"shoot")
 
 func _on_target_exited(body):
-	if body == current_target:
-		current_target = null
-		current_ring = -1
+	if body != current_target:
+		return
+
+	# Check if the body is STILL inside any sector
+	for sector in sectors:
+		if body in sector.get_overlapping_bodies():
+			return  # Still in another ring → DO NOT clear
+
+	# Only clear if fully out of all sectors
+	current_target = null
+	current_ring = -1
 
 func _physics_process(_delta):
 	if current_target == null or not is_instance_valid(current_target):
