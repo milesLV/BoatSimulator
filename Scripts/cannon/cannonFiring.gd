@@ -2,6 +2,7 @@ extends Node2D
 
 const MAX_ANGLE = deg_to_rad(45)
 const ROTATION_SPEED = deg_to_rad(18) # 18 degrees/sec
+const FIRE_ANGLE_TOLERANCE = deg_to_rad(3) # won't fire until cannon lined up with target with this error
 
 @onready var pivot = $CannonPivot
 @onready var sprite = $CannonPivot/CannonSprite
@@ -18,6 +19,7 @@ const ROTATION_SPEED = deg_to_rad(18) # 18 degrees/sec
 var ready_to_fire = true
 var current_target = null
 var current_ring = -1
+var last_to_target: Vector2 = Vector2.ZERO
 
 func _ready():
 	await get_tree().process_frame
@@ -32,8 +34,6 @@ func _on_target_entered(body, ring_index):
 		return
 	current_target = body
 	current_ring = ring_index
-	if ready_to_fire:
-		call_deferred(&"shoot")
 
 func _on_target_exited(body):
 	if body != current_target:
@@ -114,12 +114,22 @@ func _physics_process(_delta):
 		target_rotation,
 		ROTATION_SPEED * _delta
 	)
+	
+	if ready_to_fire and current_target != null and current_ring != -1:
+		if is_aligned():
+			shoot()
+		
+	last_to_target = to_target
 
 func shoot():
 	if current_target == null or not is_instance_valid(current_target):
 		return
 	
 	if not ready_to_fire:
+		return
+	
+	# alignment check
+	if not is_aligned():
 		return
 	
 	ready_to_fire = false
@@ -137,10 +147,12 @@ func shoot():
 
 func _on_timer_timeout():
 	ready_to_fire = true
-	if current_target == null or not is_instance_valid(current_target):
-		return
-
-	if current_ring == -1: # if enemy has not entered / has exited
-		return
-
-	shoot()
+	
+func is_aligned() -> bool:
+	if last_to_target == Vector2.ZERO:
+		return false
+	
+	var forward = Vector2.RIGHT.rotated(sprite.global_rotation)
+	var angle = forward.angle_to(last_to_target)
+	
+	return abs(angle) <= FIRE_ANGLE_TOLERANCE
