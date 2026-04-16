@@ -17,7 +17,7 @@ position = Vector2(-5.9604645e-08, 1.1920929e-07)
 scale = Vector2(0.03, 0.03)
 texture = ExtResource("1_jmdrc")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=494084805]
+[node name="CollisionCircle" type="CollisionShape2D" parent="." unique_id=494084805]
 visible = false
 shape = SubResource("CircleShape2D_246s8")
 

@@ -5,12 +5,12 @@
 [ext_resource type="Texture2D" uid="uid://coxgunpsds1mx" path="res://Assets/noSailTransparentRefined.png" id="4_fkybt"]
 [ext_resource type="Script" uid="uid://c7axx8vr4dc6a" path="res://Scripts/camera.gd" id="4_n0kdt"]
 
-[node name="player2" unique_id=1141876777 instance=ExtResource("1_cgts5")]
+[node name="PlayerSloop" unique_id=1141876777 instance=ExtResource("1_cgts5")]
 collision_layer = 1
 collision_mask = 6
 script = ExtResource("1_onrkg")
 
-[node name="SloopBody" type="Sprite2D" parent="." index="0" unique_id=1910078389]
+[node name="PlayerSloopBody" type="Sprite2D" parent="." index="0" unique_id=1910078389]
 rotation = 1.5759969
 scale = Vector2(0.660815, 0.660815)
 texture = ExtResource("4_fkybt")

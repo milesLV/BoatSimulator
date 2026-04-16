@@ -1,6 +1,7 @@
 extends Node2D
 
 const MAX_ANGLE = deg_to_rad(45)
+const ROTATION_SPEED = deg_to_rad(18) # 18 degrees/sec
 
 @onready var pivot = $CannonPivot
 @onready var sprite = $CannonPivot/CannonSprite
@@ -59,7 +60,12 @@ func _physics_process(_delta):
 	var angle_diff = forward.angle_to(to_target)
 	var clamped_diff = clamp(angle_diff, -MAX_ANGLE, MAX_ANGLE)
 
-	sprite.rotation = pivot.rotation + clamped_diff
+	var target_rotation = pivot.rotation + clamped_diff
+	sprite.rotation = move_toward(
+		sprite.rotation,
+		target_rotation,
+		ROTATION_SPEED * _delta
+	)
 
 func shoot():
 	if current_target == null or not is_instance_valid(current_target):

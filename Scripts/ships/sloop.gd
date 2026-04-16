@@ -56,7 +56,7 @@ func _process_movement(delta):
 	velocity = Vector2.RIGHT.rotated(rotation) * current_velocity
 	move_and_slide()
 	
-		# --------------------
+	# --------------------
 	# SAIL ROTATION (LEFT / RIGHT)
 	# --------------------
 	var sail_rotation_input = 0.0

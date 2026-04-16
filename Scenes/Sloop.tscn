@@ -9,7 +9,7 @@ collision_layer = 7
 collision_mask = 7
 script = ExtResource("1_a2qv3")
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="." unique_id=1725303819]
+[node name="SloopCollision" type="CollisionPolygon2D" parent="." unique_id=1725303819]
 visible = false
 rotation = 1.5707964
 scale = Vector2(0.31316808, 0.31316808)
