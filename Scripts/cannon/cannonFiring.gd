@@ -54,7 +54,55 @@ func _physics_process(_delta):
 		current_ring = -1
 		return
 
-	var to_target = (current_target.global_position - pivot.global_position).normalized()
+	var target_pos = current_target.global_position
+	var shooter_pos = pivot.global_position
+
+	var target_velocity = Vector2.ZERO
+
+	# Get velocity safely
+	if current_target.has_method("get_velocity"):
+		target_velocity = current_target.velocity
+	elif "velocity" in current_target:
+		target_velocity = current_target.velocity
+
+	var projectile_speed = 500.0
+
+	var r = target_pos - shooter_pos
+	var v = target_velocity
+
+	# Quadratic coefficients
+	var a = v.dot(v) - projectile_speed * projectile_speed
+	var b = 2.0 * r.dot(v)
+	var c = r.dot(r)
+
+	var t = 0.0
+
+	# Solve quadratic
+	var discriminant = b * b - 4.0 * a * c
+
+	if discriminant < 0 or abs(a) < 0.001:
+		# No valid solution → fallback to direct aim
+		t = r.length() / projectile_speed
+	else:
+		var sqrt_d = sqrt(discriminant)
+
+		var t1 = (-b - sqrt_d) / (2.0 * a)
+		var t2 = (-b + sqrt_d) / (2.0 * a)
+
+		# Pick smallest positive time
+		t = min(t1, t2)
+		if t < 0:
+			t = max(t1, t2)
+
+		if t < 0:
+			# Both negative → fallback
+			t = r.length() / projectile_speed
+
+	# Predicted intercept point
+	var predicted_pos = target_pos + v * t
+
+	# Direction to aim
+	var to_target = (predicted_pos - shooter_pos).normalized()
 	var forward = Vector2.RIGHT.rotated(pivot.global_rotation)
 
 	var angle_diff = forward.angle_to(to_target)
