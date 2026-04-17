@@ -21,6 +21,9 @@ var current_target = null
 var current_ring = -1
 var last_to_target: Vector2 = Vector2.ZERO
 
+var is_active_tracker := false
+var external_target: Node = null
+
 func _ready():
 	await get_tree().process_frame
 	for sector in sectors:
@@ -49,17 +52,46 @@ func _on_target_exited(body):
 	current_ring = -1
 
 func _physics_process(_delta):
+
+	# ----------------------------
+	# NO TARGET IN RANGE
+	# ----------------------------
 	if current_target == null or not is_instance_valid(current_target):
 		current_target = null
 		current_ring = -1
-		return
+
+		# PRE-AIM HERE (THIS WAS NEVER REACHED BEFORE)
+		if is_active_tracker and external_target != null:
+			if not is_instance_valid(external_target):
+				return
+			
+			var to_target = (external_target.global_position - pivot.global_position).normalized()
+			
+			var forward = Vector2.RIGHT.rotated(pivot.global_rotation)
+			var angle_diff = forward.angle_to(to_target)
+			var clamped_diff = clamp(angle_diff, -MAX_ANGLE, MAX_ANGLE)
+
+			var target_rotation = pivot.rotation + clamped_diff
+			
+			# print("Pre-aim active:", is_active_tracker)
+
+			sprite.rotation = move_toward(
+				sprite.rotation,
+				target_rotation,
+				ROTATION_SPEED * _delta
+			)
+
+		return  # IMPORTANT: stop here
+
+	# ----------------------------
+	# TARGET IN RANGE (NORMAL LOGIC)
+	# ----------------------------
 
 	var target_pos = current_target.global_position
 	var shooter_pos = pivot.global_position
 
 	var target_velocity = Vector2.ZERO
 
-	# Get velocity safely
 	if current_target.has_method("get_velocity"):
 		target_velocity = current_target.velocity
 	elif "velocity" in current_target:
@@ -70,55 +102,45 @@ func _physics_process(_delta):
 	var r = target_pos - shooter_pos
 	var v = target_velocity
 
-	# Quadratic coefficients
 	var a = v.dot(v) - projectile_speed * projectile_speed
 	var b = 2.0 * r.dot(v)
 	var c = r.dot(r)
 
 	var t = 0.0
-
-	# Solve quadratic
 	var discriminant = b * b - 4.0 * a * c
 
 	if discriminant < 0 or abs(a) < 0.001:
-		# No valid solution → fallback to direct aim
 		t = r.length() / projectile_speed
 	else:
 		var sqrt_d = sqrt(discriminant)
-
 		var t1 = (-b - sqrt_d) / (2.0 * a)
 		var t2 = (-b + sqrt_d) / (2.0 * a)
 
-		# Pick smallest positive time
 		t = min(t1, t2)
 		if t < 0:
 			t = max(t1, t2)
-
 		if t < 0:
-			# Both negative → fallback
 			t = r.length() / projectile_speed
 
-	# Predicted intercept point
 	var predicted_pos = target_pos + v * t
-
-	# Direction to aim
 	var to_target = (predicted_pos - shooter_pos).normalized()
-	var forward = Vector2.RIGHT.rotated(pivot.global_rotation)
 
+	var forward = Vector2.RIGHT.rotated(pivot.global_rotation)
 	var angle_diff = forward.angle_to(to_target)
 	var clamped_diff = clamp(angle_diff, -MAX_ANGLE, MAX_ANGLE)
 
 	var target_rotation = pivot.rotation + clamped_diff
+
 	sprite.rotation = move_toward(
 		sprite.rotation,
 		target_rotation,
 		ROTATION_SPEED * _delta
 	)
-	
-	if ready_to_fire and current_target != null and current_ring != -1:
+
+	if ready_to_fire and current_ring != -1:
 		if is_aligned():
 			shoot()
-		
+
 	last_to_target = to_target
 
 func shoot():

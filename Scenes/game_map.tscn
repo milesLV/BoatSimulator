@@ -1,9 +1,12 @@
 [gd_scene format=3 uid="uid://dtxxvswsgxa17"]
 
+[ext_resource type="Script" uid="uid://biu83rgarf3is" path="res://Scripts/GlobalShipRegistry.gd" id="1_c4nuu"]
 [ext_resource type="PackedScene" uid="uid://ccc7gafptdtc5" path="res://Scenes/player.tscn" id="2_8wm8v"]
 [ext_resource type="PackedScene" uid="uid://dpa5rjievogo5" path="res://Scenes/enemy.tscn" id="2_c4nuu"]
+[ext_resource type="Script" uid="uid://c7axx8vr4dc6a" path="res://Scripts/camera.gd" id="4_d8w4w"]
 
 [node name="GameMap" type="Node2D" unique_id=1463359944]
+script = ExtResource("1_c4nuu")
 
 [node name="ColorRect" type="ColorRect" parent="." unique_id=1296733608]
 offset_right = 1148.0
@@ -17,3 +20,8 @@ rotation = -1.5707964
 [node name="Enemy" parent="." unique_id=1780197833 instance=ExtResource("2_c4nuu")]
 position = Vector2(478, 89)
 rotation = 1.5707964
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=731039578]
+position = Vector2(-1.3597174, -7.629394e-06)
+scale = Vector2(0.3067729, 0.3067729)
+script = ExtResource("4_d8w4w")

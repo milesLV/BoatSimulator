@@ -1,4 +1,4 @@
-extends "res://Scripts/ships/sloop.gd"
+extends Ship
 
 func _physics_process(delta):
 	turn_input = 0.0
@@ -15,3 +15,4 @@ func _physics_process(delta):
 		sail_input -= 1.0
 
 	_process_movement(delta)
+	update_active_cannon()

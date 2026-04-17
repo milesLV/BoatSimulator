@@ -1,4 +1,4 @@
-extends "res://Scripts/ships/sloop.gd"
+extends Ship
 
 @onready var player = get_node("/root/GameMap/Player")
 
@@ -19,3 +19,4 @@ func _physics_process(delta):
 	sail_input = 1.0
 
 	_process_movement(delta)
+	update_active_cannon()
