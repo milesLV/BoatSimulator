@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://dpd21is3i5ix1"]
+
+[ext_resource type="Script" uid="uid://c2abaq4w6sv6k" path="res://Scripts/crewmateShape.gd" id="1_3j34v"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_3j34v"]
+radius = 1.0
+
+[node name="Crewmate" type="CharacterBody2D" unique_id=1412420956]
+
+[node name="Node2D" type="Node2D" parent="." unique_id=1801773413]
+script = ExtResource("1_3j34v")
+color = Color(0, 0.5529412, 1, 1)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=601992409]
+visible = false
+shape = SubResource("CircleShape2D_3j34v")

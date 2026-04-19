@@ -13,3 +13,57 @@ script = ExtResource("1_onrkg")
 rotation = 1.5759969
 scale = Vector2(0.660815, 0.660815)
 texture = ExtResource("4_fkybt")
+
+[node name="HolePort1" type="Node2D" parent="." index="18" unique_id=1232234786]
+position = Vector2(-64, -7)
+
+[node name="HolePort2" type="Node2D" parent="." index="19" unique_id=119497243]
+position = Vector2(-58, -12)
+
+[node name="HolePort3" type="Node2D" parent="." index="20" unique_id=1436167744]
+position = Vector2(-52, -14)
+
+[node name="HolePort4" type="Node2D" parent="." index="21" unique_id=888689938]
+position = Vector2(-45, -14)
+
+[node name="HolePort5" type="Node2D" parent="." index="22" unique_id=695231227]
+position = Vector2(-34, -15)
+
+[node name="HolePort6" type="Node2D" parent="." index="23" unique_id=1584478063]
+position = Vector2(-11, -16)
+
+[node name="HolePort7" type="Node2D" parent="." index="24" unique_id=1006155009]
+position = Vector2(4, -16)
+
+[node name="HolePort8" type="Node2D" parent="." index="25" unique_id=1024245591]
+position = Vector2(29, -11)
+
+[node name="HoleStarbourd1" type="Node2D" parent="." index="26" unique_id=982284834]
+position = Vector2(-64, 6)
+
+[node name="HoleStarbourd2" type="Node2D" parent="." index="27" unique_id=97444219]
+position = Vector2(-58, 11)
+
+[node name="HoleStarbourd3" type="Node2D" parent="." index="28" unique_id=1170624345]
+position = Vector2(-52, 12)
+
+[node name="HoleStarbourd4" type="Node2D" parent="." index="29" unique_id=1489177062]
+position = Vector2(-45, 13)
+
+[node name="HoleStarbourd5" type="Node2D" parent="." index="30" unique_id=1431988045]
+position = Vector2(-34, 13)
+
+[node name="HoleStarbourd6" type="Node2D" parent="." index="31" unique_id=1365876207]
+position = Vector2(-23, 14)
+
+[node name="HoleStarbourd7" type="Node2D" parent="." index="32" unique_id=252135123]
+position = Vector2(-7, 15)
+
+[node name="HoleStarbourd8" type="Node2D" parent="." index="33" unique_id=1931294874]
+position = Vector2(15, 15)
+
+[node name="HoleStarbourd9" type="Node2D" parent="." index="34" unique_id=657538514]
+position = Vector2(29, 11)
+
+[node name="HoleBow" type="Node2D" parent="." index="35" unique_id=970554690]
+position = Vector2(41, 0)
