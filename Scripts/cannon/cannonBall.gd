@@ -1,8 +1,8 @@
 extends Area2D
 
-const SPEED = 500.0
+const SPEED := 500
 
-var travelled_distance = 0.0
+var travelled_distance := 0.0
 var range_manager = null
 var owner_node: Node = null
 
@@ -14,7 +14,7 @@ func _physics_process(delta):
 		return
 
 	var direction = Vector2.RIGHT.rotated(global_rotation)
-	var max_range = range_manager.max_range
+	var max_range = range_manager.MAX_RANGE
 
 	global_position += SPEED * direction * delta
 	travelled_distance += SPEED * delta

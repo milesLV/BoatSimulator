@@ -1,8 +1,6 @@
-extends Ship
+extends Sloop
 
-@onready var player = get_node("/root/GameMap/Player")
-
-var target: Node2D
+@onready var target = get_node("/root/GameMap/Player")
 
 func _physics_process(delta):
 	if target == null:
@@ -14,9 +12,7 @@ func _physics_process(delta):
 	var angle = forward.angle_to(to_target)
 
 	turn_input = clamp(angle, -1.0, 1.0)
-
-	# Example: always sails full speed
-	sail_input = 1.0
+	#sail_input = 1.0
 
 	_process_movement(delta)
 	update_active_cannon()

@@ -1,22 +1,12 @@
 @tool
 extends CollisionPolygon2D
 
-@export var inner_radius: float = 0.0: set = _set_inner
-@export var outer_radius: float = 400.0: set = _set_outer
-@export var start_angle: float = 45.0: set = _set_start
-@export var step: float = 2.5: set = _set_step
-
-func _enter_tree():
-	if Engine.is_editor_hint():
-		rebuild()
-
-# --- Setters (no recursion issues) ---
-func _set_inner(v): inner_radius = v; rebuild()
-func _set_outer(v): outer_radius = v; rebuild()
-func _set_start(v): start_angle = v; rebuild()
-func _set_step(v): step = v; rebuild()
-
 @onready var segments := []
+
+@export var inner_radius := 0.0
+@export var outer_radius := 400.0
+@export var start_angle := 45.0
+@export var step := 2.5
 
 func _ready():
 	# Grab CollisionPolygon2D inside each Area2D
@@ -28,7 +18,7 @@ func _ready():
 
 	rebuild()
 
-# --- Core builder ---
+# Core builder
 func rebuild(_v = null):
 	if !is_inside_tree():
 		return

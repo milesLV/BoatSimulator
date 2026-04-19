@@ -1,4 +1,4 @@
-extends Ship
+extends Sloop
 
 func _physics_process(delta):
 	turn_input = 0.0

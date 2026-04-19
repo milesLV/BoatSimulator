@@ -1,7 +1,7 @@
 @tool
 extends Area2D
 
-@export var ring_index: int = 0
+var ring_index := 0
 
 signal target_entered(body, ring_index)
 signal target_exited(body, ring_index)
@@ -20,7 +20,7 @@ func _ready():
 		body_exited.connect(_on_body_exited)
 
 func _on_body_entered(body):
-	print(body)
+	print("Body entered:", body)
 	if body == get_parent().get_parent():
 		return
 	target_entered.emit(body, ring_index)

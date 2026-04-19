@@ -1,28 +1,26 @@
 extends Node2D
 
-const MAX_ANGLE = deg_to_rad(45)
-const ROTATION_SPEED = deg_to_rad(18) # 18 degrees/sec
-const FIRE_ANGLE_TOLERANCE = deg_to_rad(3) # won't fire until cannon lined up with target with this error
-
 @onready var pivot = $CannonPivot
 @onready var sprite = $CannonPivot/CannonSprite
 @onready var cannon_mouth = $CannonPivot/CannonSprite/CannonMouth
-
+@onready var range_manager = $CannonRange
 @onready var sectors = [
 	$CannonRange/RangeSector1,
 	$CannonRange/RangeSector2,
 	$CannonRange/RangeSector3
 ]
 
-@onready var range_manager = $CannonRange
+const MAX_ANGLE = deg_to_rad(45)
+const ROTATION_SPEED = deg_to_rad(18) # 18 degrees/sec
+const FIRE_ANGLE_TOLERANCE = deg_to_rad(2) # won't fire until cannon lined up with target with this error
 
 var ready_to_fire = true
 var current_target = null
 var current_ring = -1
-var last_to_target: Vector2 = Vector2.ZERO
+var last_direction_aimed: Vector2 = Vector2.ZERO
 
-var is_active_tracker := false
-var external_target: Node = null
+var is_actively_tracking := false
+var target_global: Node = null
 
 func _ready():
 	await get_tree().process_frame
@@ -31,9 +29,9 @@ func _ready():
 		sector.target_exited.connect(_on_target_exited)
 
 func _on_target_entered(body, ring_index):
-	print("ENTER:", body.name, "ring:", ring_index)
+	print("ENTER:", body.name, ";Ring:", ring_index)
 	if body == get_parent().get_parent():
-		print("IGNORED SELF")
+		print("Ship detected itself (not good)")
 		return
 	current_target = body
 	current_ring = ring_index
@@ -45,103 +43,104 @@ func _on_target_exited(body):
 	# Check if the body is STILL inside any sector
 	for sector in sectors:
 		if body in sector.get_overlapping_bodies():
-			return  # Still in another ring → DO NOT clear
+			return
 
 	# Only clear if fully out of all sectors
 	current_target = null
 	current_ring = -1
 
-func _physics_process(_delta):
+func _physics_process(delta):
 
-	# ----------------------------
-	# NO TARGET IN RANGE
-	# ----------------------------
+	# validate target
 	if current_target == null or not is_instance_valid(current_target):
 		current_target = null
 		current_ring = -1
 
-		# PRE-AIM HERE (THIS WAS NEVER REACHED BEFORE)
-		if is_active_tracker and external_target != null:
-			if not is_instance_valid(external_target):
-				return
-			
-			var to_target = (external_target.global_position - pivot.global_position).normalized()
-			
-			var forward = Vector2.RIGHT.rotated(pivot.global_rotation)
-			var angle_diff = forward.angle_to(to_target)
-			var clamped_diff = clamp(angle_diff, -MAX_ANGLE, MAX_ANGLE)
+		# fallback to external tracking
+		if not is_actively_tracking or target_global == null or not is_instance_valid(target_global):
+			return
 
-			var target_rotation = pivot.rotation + clamped_diff
-			
-			# print("Pre-aim active:", is_active_tracker)
+		aim_at_position(target_global.global_position, Vector2.ZERO, delta)
+		return
 
-			sprite.rotation = move_toward(
-				sprite.rotation,
-				target_rotation,
-				ROTATION_SPEED * _delta
-			)
+	# if target in range...
+	var shooter_position = pivot.global_position
+	var target_position = current_target.global_position
+	var target_velocity = get_target_velocity(current_target)
 
-		return  # IMPORTANT: stop here
+	var intercept_position = calculate_intercept_position(
+		shooter_position,
+		target_position,
+		target_velocity,
+		500.0
+	)
 
-	# ----------------------------
-	# TARGET IN RANGE (NORMAL LOGIC)
-	# ----------------------------
+	aim_at_position(intercept_position, target_velocity, delta)
 
-	var target_pos = current_target.global_position
-	var shooter_pos = pivot.global_position
+	# ...shoot!
+	if ready_to_fire and current_ring != -1 and is_aligned():
+		shoot()
 
-	var target_velocity = Vector2.ZERO
+func aim_at_position(target_position: Vector2, target_velocity: Vector2, delta: float):
 
-	if current_target.has_method("get_velocity"):
-		target_velocity = current_target.velocity
-	elif "velocity" in current_target:
-		target_velocity = current_target.velocity
+	var shooter_position = pivot.global_position
+	var aim_direction = (target_position - shooter_position).normalized()
 
-	var projectile_speed = 500.0
+	last_direction_aimed = aim_direction
 
-	var r = target_pos - shooter_pos
-	var v = target_velocity
+	var current_forward = Vector2.RIGHT.rotated(pivot.global_rotation)
+	var angle_to_target = current_forward.angle_to(aim_direction)
+	var clamped_angle = clamp(angle_to_target, -MAX_ANGLE, MAX_ANGLE)
 
-	var a = v.dot(v) - projectile_speed * projectile_speed
-	var b = 2.0 * r.dot(v)
-	var c = r.dot(r)
-
-	var t = 0.0
-	var discriminant = b * b - 4.0 * a * c
-
-	if discriminant < 0 or abs(a) < 0.001:
-		t = r.length() / projectile_speed
-	else:
-		var sqrt_d = sqrt(discriminant)
-		var t1 = (-b - sqrt_d) / (2.0 * a)
-		var t2 = (-b + sqrt_d) / (2.0 * a)
-
-		t = min(t1, t2)
-		if t < 0:
-			t = max(t1, t2)
-		if t < 0:
-			t = r.length() / projectile_speed
-
-	var predicted_pos = target_pos + v * t
-	var to_target = (predicted_pos - shooter_pos).normalized()
-
-	var forward = Vector2.RIGHT.rotated(pivot.global_rotation)
-	var angle_diff = forward.angle_to(to_target)
-	var clamped_diff = clamp(angle_diff, -MAX_ANGLE, MAX_ANGLE)
-
-	var target_rotation = pivot.rotation + clamped_diff
+	var desired_rotation = pivot.rotation + clamped_angle
 
 	sprite.rotation = move_toward(
 		sprite.rotation,
-		target_rotation,
-		ROTATION_SPEED * _delta
+		desired_rotation,
+		ROTATION_SPEED * delta
 	)
 
-	if ready_to_fire and current_ring != -1:
-		if is_aligned():
-			shoot()
+func calculate_intercept_position(
+	shooter_position: Vector2,
+	target_position: Vector2,
+	target_velocity: Vector2,
+	projectile_speed: float
+) -> Vector2:
 
-	last_to_target = to_target
+	var dist_to_target = target_position - shooter_position
+	
+	# solving intercept equation
+	# (target_velocity^2 - project_speed^2) * time^2 + 2*distance_between_ships*target_velocity)*time + distance_between_ships^2
+	var a = target_velocity.dot(target_velocity) - projectile_speed * projectile_speed
+	var b = 2.0 * dist_to_target.dot(target_velocity)
+	var c = dist_to_target.dot(dist_to_target)
+
+	var discriminant = b*b - 4.0*a*c # quadratic eq. discriminant
+
+	var intercept_time: float
+
+	if discriminant < 0.0 or abs(a) < 0.001:
+		# fallback: direct shot
+		intercept_time = dist_to_target.length() / projectile_speed
+	else:
+		var sqrt_d = sqrt(discriminant) # solving quadratic equation here
+		var t1 = (-b - sqrt_d) / (2.0 * a)
+		var t2 = (-b + sqrt_d) / (2.0 * a)
+
+		intercept_time = min(t1, t2)
+		if intercept_time < 0.0:
+			intercept_time = max(t1, t2)
+		if intercept_time < 0.0:
+			intercept_time = dist_to_target.length() / projectile_speed
+
+	return target_position + target_velocity * intercept_time
+
+func get_target_velocity(target: Node) -> Vector2:
+	if target.has_method("get_velocity"):
+		return target.velocity
+	elif "velocity" in target:
+		return target.velocity
+	return Vector2.ZERO
 
 func shoot():
 	if current_target == null or not is_instance_valid(current_target):
@@ -171,10 +170,10 @@ func _on_timer_timeout():
 	ready_to_fire = true
 	
 func is_aligned() -> bool:
-	if last_to_target == Vector2.ZERO:
+	if last_direction_aimed == Vector2.ZERO:
 		return false
 	
 	var forward = Vector2.RIGHT.rotated(sprite.global_rotation)
-	var angle = forward.angle_to(last_to_target)
+	var angle = forward.angle_to(last_direction_aimed)
 	
 	return abs(angle) <= FIRE_ANGLE_TOLERANCE

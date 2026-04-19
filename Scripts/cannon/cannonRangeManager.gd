@@ -1,40 +1,11 @@
 @tool
 extends Node2D
 
-var _max_range: float = 1200.0
-@export var max_range: float:
-	get: return _max_range
-	set(value):
-		_max_range = value
-		rebuild()
-
-var _symmetrical_angle: float = 45.0
-@export var symmetrical_angle: float:
-	get: return _symmetrical_angle
-	set(value):
-		_symmetrical_angle = value
-		rebuild()
-
-var _step: float = 2.5
-@export var step: float:
-	get: return _step
-	set(value):
-		_step = value
-		rebuild()
-		
-var _segment_count: int = 3
-@export var segment_count: int:
-	get: return _segment_count
-	set(value):
-		_segment_count = value
-		rebuild()
-
-var _gap: float = 0.01
-@export var gap: float:
-	get: return _gap
-	set(value):
-		_gap = value
-		rebuild()
+const MAX_RANGE := 1200.0
+const SYMMETRICAL_ANGLE := 45.0
+const STEP := 2.5
+const SEGMENT_COUNT := 3
+const GAP := 0.01
 
 var segments: Array = []
 
@@ -61,7 +32,7 @@ func rebuild():
 	if segments.is_empty():
 		return
 
-	var seg_size := max_range / segment_count
+	var seg_size := MAX_RANGE / SEGMENT_COUNT
 
 	for i in range(segments.size()):
 		var seg = segments[i]
@@ -71,14 +42,11 @@ func rebuild():
 
 		# Apply gap ONLY to inner (except first segment)
 		if i > 0:
-			inner += gap
+			inner += GAP
 
-		seg.set("inner_radius", inner)
-		seg.set("outer_radius", outer)
-		seg.set("start_angle", symmetrical_angle)
-		seg.set("step", step)
+		seg.set("INNER_RADIUS", inner)
+		seg.set("OUTER_RADIUS", outer)
+		seg.set("START_ANGLE", SYMMETRICAL_ANGLE)
+		seg.set("STEP", STEP)
 
 		seg.rebuild()
-
-func get_max_range() -> float:
-	return _max_range
