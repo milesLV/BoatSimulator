@@ -6,8 +6,8 @@ var travelled_distance := 0.0
 var range_manager = null
 var owner_node: Node = null
 
-func setup(owner: Node):
-	owner_node = owner
+func setup(cannon: Node):
+	owner_node = cannon
 
 func _physics_process(delta):
 	if range_manager == null:

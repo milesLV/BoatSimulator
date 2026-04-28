@@ -7,7 +7,7 @@ extends CharacterBody2D
 	$"CannonStarboard1"
 ]
 
-const MAX_WHEEL_TURN := 4 * PI
+const MAX_WHEEL_TURN := 2 * TAU
 const WHEEL_TURN_SPEED := 2.0
 const BOAT_TURN_SPEED := 1.5
 
@@ -26,6 +26,7 @@ var current_velocity := 0.0
 # Inputs (set externally)
 var turn_input := 0.0
 var sail_input := 0.0
+var sail_rotation_input := 0.0
 
 var other_ships: Array = []
 var targetShip: Node = null
@@ -76,15 +77,6 @@ func _process_movement(delta):
 	move_and_slide()
 	
 	# SAIL ROTATION (LEFT / RIGHT)
-	
-	var sail_rotation_input = 0.0
-
-	if Input.is_action_pressed("adjustSailLeft"):
-		sail_rotation_input -= 1.0
-	if Input.is_action_pressed("adjustSailRight"):
-		sail_rotation_input += 1.0
-
-	# Apply input
 	sail_pivot.rotation += sail_rotation_input * SAIL_TURN_SPEED * delta
 
 	# Clamp relative to base angle

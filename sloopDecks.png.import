@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c2vc38acf161g"
-path="res://.godot/imported/sailBlur.png-a6164407e93deab121909b1146a5fae6.ctex"
+uid="uid://c21lyarckcit"
+path="res://.godot/imported/sloopDecks.png-02575ccfbb2f22e4e2f43af649e34461.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/sailBlur.png"
-dest_files=["res://.godot/imported/sailBlur.png-a6164407e93deab121909b1146a5fae6.ctex"]
+source_file="res://sloopDecks.png"
+dest_files=["res://.godot/imported/sloopDecks.png-02575ccfbb2f22e4e2f43af649e34461.ctex"]
 
 [params]
 

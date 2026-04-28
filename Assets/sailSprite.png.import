@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dgv5ntq5ul1qy"
-path="res://.godot/imported/Sloop.png-987282647d6d0bbb2dba89caccef6230.ctex"
+uid="uid://tyo7pmbid6ky"
+path="res://.godot/imported/sailSprite.png-027183f5541edb76314cd58fa3e1bb3b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/Sloop.png"
-dest_files=["res://.godot/imported/Sloop.png-987282647d6d0bbb2dba89caccef6230.ctex"]
+source_file="res://Assets/sailSprite.png"
+dest_files=["res://.godot/imported/sailSprite.png-027183f5541edb76314cd58fa3e1bb3b.ctex"]
 
 [params]
 

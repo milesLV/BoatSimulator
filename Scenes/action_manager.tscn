@@ -1,0 +1,90 @@
+[gd_scene format=3 uid="uid://c0o5nnvdif60m"]
+
+[node name="ActionManager" type="Node2D" unique_id=826780228]
+
+[node name="Wheel" type="Node2D" parent="." unique_id=166828998]
+position = Vector2(-30, 0)
+
+[node name="Anchor" type="Node2D" parent="." unique_id=242392689]
+position = Vector2(-40, 1)
+
+[node name="SailAdjustP" type="Node2D" parent="." unique_id=1710896094]
+position = Vector2(-37, -14)
+
+[node name="SailAdjustS" type="Node2D" parent="." unique_id=1332155093]
+position = Vector2(-37, 13)
+
+[node name="SailStuffP" type="Node2D" parent="." unique_id=2092131010]
+position = Vector2(-32, -14)
+
+[node name="SailStuffS" type="Node2D" parent="." unique_id=817478453]
+position = Vector2(-32, 13)
+
+[node name="Bucket LD" type="Node2D" parent="." unique_id=1431839932]
+position = Vector2(-23, 12)
+
+[node name="Throw water" type="Node2D" parent="." unique_id=1916470929]
+position = Vector2(-27, 0)
+
+[node name="Upper2Mid" type="Node2D" parent="." unique_id=1268038806]
+position = Vector2(-27, 0)
+
+[node name="Mid2Upper" type="Node2D" parent="." unique_id=1940341627]
+position = Vector2(-22, 12)
+
+[node name="Mid2Lower" type="Node2D" parent="." unique_id=271745513]
+position = Vector2(-25, 12)
+
+[node name="HolePort1" type="Node2D" parent="." unique_id=1146361328]
+position = Vector2(-64, -7)
+
+[node name="HolePort2" type="Node2D" parent="." unique_id=1575015028]
+position = Vector2(-58, -12)
+
+[node name="HolePort3" type="Node2D" parent="." unique_id=1429598291]
+position = Vector2(-52, -14)
+
+[node name="HolePort4" type="Node2D" parent="." unique_id=983778655]
+position = Vector2(-45, -14)
+
+[node name="HolePort5" type="Node2D" parent="." unique_id=810356369]
+position = Vector2(-34, -15)
+
+[node name="HolePort6" type="Node2D" parent="." unique_id=568758648]
+position = Vector2(-11, -16)
+
+[node name="HolePort7" type="Node2D" parent="." unique_id=1543339638]
+position = Vector2(4, -16)
+
+[node name="HolePort8" type="Node2D" parent="." unique_id=1456309514]
+position = Vector2(29, -11)
+
+[node name="HoleStarbourd1" type="Node2D" parent="." unique_id=1687727632]
+position = Vector2(-64, 6)
+
+[node name="HoleStarbourd2" type="Node2D" parent="." unique_id=440680486]
+position = Vector2(-58, 11)
+
+[node name="HoleStarbourd3" type="Node2D" parent="." unique_id=204221428]
+position = Vector2(-52, 12)
+
+[node name="HoleStarbourd4" type="Node2D" parent="." unique_id=1174996297]
+position = Vector2(-45, 13)
+
+[node name="HoleStarbourd5" type="Node2D" parent="." unique_id=1874617540]
+position = Vector2(-34, 13)
+
+[node name="HoleStarbourd6" type="Node2D" parent="." unique_id=510741945]
+position = Vector2(-23, 14)
+
+[node name="HoleStarbourd7" type="Node2D" parent="." unique_id=1122165063]
+position = Vector2(-7, 15)
+
+[node name="HoleStarbourd8" type="Node2D" parent="." unique_id=394222111]
+position = Vector2(15, 15)
+
+[node name="HoleStarbourd9" type="Node2D" parent="." unique_id=902706822]
+position = Vector2(29, 11)
+
+[node name="HoleBow" type="Node2D" parent="." unique_id=249998796]
+position = Vector2(41, 0)

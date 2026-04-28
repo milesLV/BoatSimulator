@@ -60,7 +60,7 @@ func _physics_process(delta):
 		if not is_actively_tracking or target_global == null or not is_instance_valid(target_global):
 			return
 
-		aim_at_position(target_global.global_position, Vector2.ZERO, delta)
+		aim_at_position(target_global.global_position, delta)
 		return
 
 	# if target in range...
@@ -75,13 +75,13 @@ func _physics_process(delta):
 		500.0
 	)
 
-	aim_at_position(intercept_position, target_velocity, delta)
+	aim_at_position(intercept_position, delta)
 
 	# ...shoot!
 	if ready_to_fire and current_ring != -1 and is_aligned():
 		shoot()
 
-func aim_at_position(target_position: Vector2, target_velocity: Vector2, delta: float):
+func aim_at_position(target_position: Vector2, delta: float):
 
 	var shooter_position = pivot.global_position
 	var aim_direction = (target_position - shooter_position).normalized()

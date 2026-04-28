@@ -1,12 +1,11 @@
-## BoatSimulator
+# BoatSimulator
 
 **A Java-based game meant to improve both my Java and naval skills alike in the game Sea of Thieves.**
 
-This project takes much inspiration from the game *Sea of Thieves* (Rare LTD, 2018), incorporating many time constants from it and 2 images (the boat, from the game itself, and the wheel from the .svg loading icon from [the website](https://seaofthieves.com/)). Its goal is to be as accurate as possible to give an offline experience of player vs. player naval combat for purposes of on-the-go practice.
+This project takes much inspiration from the game *Sea of Thieves* (Rare LTD, 2018), incorporating many resources and in-game measurements. Its goal is to be as accurate as possible to give an offline experience of player vs. player naval combat for purposes of on-the-go practice.
 
 [kilt-graphics](https://github.com/mac-comp127/kilt-graphics/blob/main/README.md) lies at the heart of the project, making it streamlined and nice to work with.
 
-Sloop outline credits: <https://www.seaofthieves.com/community/forums/topic/30448/5-ship-types-for-sea-of-thieves-speculation-graphic/92>
 
 ## Gameplay Tweaks / Quality of Life Features
 
@@ -22,49 +21,50 @@ Since this is a simulation of a game, there are some tweaks that are made to mak
 
 5.  Exact level of water is shown in the ship
 
-6.  All action areas are placed in 3 main zones: 3 main 'zones': upper deck, mid-deck, and lower deck / bilge
+6.  All action areas are placed in 4 main zones: upper deck, main deck, mid-deck, and lower deck / bilge
+
+<img src="sloopDecks.png" width="550" height="350">
 
 7.  An action done in the same area as a previous one has minimal transition time)
 
 ### Actions
 
 \*~~Strike-through~~ means not implemented
-
 | Action | Location | Rate | Source | Can Other Actions be Done During it? | Is Progress Retained When Cancelled Halfway of action starting to being 100% finished (i.e. water barrel being all the way empty to full, sails being all the way up to down)? |
-|------------|------------|------------|------------|------------|------------|
+| --- | --- | --- | --- | --- | --- |
 | Turn wheel | Upper deck | {From center to extreme} 3.041 seconds; 118.38º/sec | Testing in-game | No | Left at exact state |
-| ~~Repair wheel~~ | ~~Upper deck~~ |  |  | ~~No~~ | ~~Not saved~~ |
-| Lower sails | Upper deck | {From 0 to 100%} |  | No | Left at exact state |
-| Raise sails | Upper deck | {From 100% to 0%} |  | No | Left at exact state |
-| Adjust sails | Upper deck | {From center to extreme} |  | No | Left at exact state |
-| Raise mast (when fallen) | Upper deck |  |  | No | Partially {depletes at} \_\_\_ /second |
-| Drop anchor | Upper deck | {Anchor prompt} 0.5 seconds; {Anchor dropping} 4 seconds; -180º/s | Testing in-game | Yes | No |
-| Raise anchor | Upper deck |  |  | No | Partially {depletes at} \_\_\_ /second |
-| ~~Repair anchor~~ | ~~Upper deck~~ |  |  | ~~No~~ | ~~Not saved~~ |
-| Cannon (= reload and fire cannon) | Mid-deck | {Reload} 1.6s; {Fire} 0.4s | Sea of Thieves Youtube Video analysis | No | Partially, have to have it loaded to save progress |
-| Patch mast (= patch all the mast holes) | Mid-deck |  |  | No | Partially, have to patch at least 1-2 holes to save progress |
-| ~~Harpoon player~~ | ~~Main deck~~ |  |  |  | ~~Complete in 1-shot~~ |
-| ~~Reel ship in w/ harpoon~~ | ~~Main deck~~ |  |  |  | ~~Left at exact state~~ |
-| ~~Harpoon turn (= fire harpoon + reel)~~ | ~~Main deck~~ |  |  |  | ~~Left at exact state~~ |
-| ~~Access cannonball barrel~~ | ~~Main deck~~ |  |  |  | ~~Complete in 1-shot (see feature #7 above)~~ |
-| Bucket water (=get water and bail it) | Lower / mid-deck |  |  | No | Partially |
+| ~~Repair wheel (= patch all the wheel spokes)~~ | ~~Upper deck~~ | {Single} 4s; {All} 16s | Testing in-game | ~~No~~ | ~~Not saved~~ |
+| Lower sails | Upper deck | {From 0 to 100%} 2s; 50%/sec | Testing in-game | No | Left at exact state |
+| Raise sails | Upper deck | {(Avg.) from 100% to 0%} 7; = -14.3%/sec | Testing in-game | No | Left at exact state |
+| Adjust sails | Upper deck | {From extreme to extreme} 7.5 | Testing in-game | No | Left at exact state |
+| Raise mast (when fallen) | Upper deck | 10s; 10%/s (REDO WHILE HOLDING A OR D) | Testing in-game | No | Partially {depletes at} /second |
+| Drop anchor | Upper deck | {Anchor prompt} 0.5 seconds; {Anchor dropping} 3.6 seconds; -180º/s | Testing in-game | Yes | No |
+| Raise anchor | Upper deck | 8s | Testing in-game | No | Partially {depletes at} 27.7% /second |
+| ~~Repair anchor~~ | ~~Upper deck~~ | 4s | Testing in-game | ~~No~~ | ~~Not saved~~ |
+| Cannon (= reload and fire cannon) | Main deck | {Reload} 1.6s; {Fire} 0.4s | Sea of Thieves Youtube Video analysis | No | Partially, have to have it loaded to save progress |
+| Patch mast (= patch all the mast holes) | Main deck | {Single} 4s; {All} 12s | Testing in-game | No | Partially, have to patch at least 1-2 holes to save progress |
+| ~~Harpoon [player, ship, ground, loot]~~ | ~~Main deckk~~ |  |  | ~~No~~ | ~~Complete in 1-shot~~ |
+| ~~Reel in harpoon~~ | ~~Main deck~~ |  |  | ~~No~~ | ~~Left at exact state~~ |
+| ~~Access cannonball barrel~~ | ~~Main deck~~ |  |  | ~~No~~ | ~~Complete in 1-shot (see feature #7 above)~~ |
+| Bucket water (=get water and bail it) | Mid / lower deck | {Collect water} 1s; {Throw} 0.8s (REDO WHILE SPAMMING) | Testing in-game | No | Partially, have to collect water |
 | ~~Get ammo~~ | ~~Mid-deck~~ |  |  | ~~No~~ | ~~Complete in 1-shot~~ |
 | ~~Close window~~ | ~~Mid-deck~~ |  |  | ~~No~~ | ~~Not saved~~ |
 | ~~Detach rowboat~~ | ~~Mid-deck~~ |  |  | ~~No~~ | ~~Not saved~~ |
-| Patch tier n hull | Lower / mid-deck |  |  | No | Not saved |
+| Patch tier n hull | Mid / lower deck | time = tierNumber + 1s | Youtube video | No | Not saved |
 | ~~Take water from water barrel~~ | ~~Lower deck~~ |  |  | ~~No~~ | Not saved |
 | ~~Refill water barrel (=pour water in repeatedly)~~ | ~~Lower deck~~ |  |  | ~~No~~ | Partially |
 | ~~Access wood barrel~~ | ~~Lower deck~~ |  |  | ~~No~~ | ~~Complete in 1-shot (see feature #7 above)~~ |
 | ~~Access food barrel~~ | ~~Lower deck~~ |  |  | ~~No~~ | ~~Complete in 1-shot (see feature #7 above)~~ |
-| ~~Sleep~~ | ~~Lower deck~~ |  |  |  | ~~Partially~~ |
+| ~~Sleep~~ | ~~Lower deck~~ |  |  | ~~No~~ | ~~Partially~~ |
 | ~~Cook food (=put on stove and wait until done)~~ | ~~Lower deck~~ |  |  | ~~Yes~~ | ~~Partially, fish has \~10 seconds of being done to have progress saved~~ |
+| ~~Eat food~~ | ~~Upper/main/mid/lower decks~~ |  |  | ~~No~~ | ~~Not saved~~ |
 | ~~Put out fire (= grab water from floor/barrel and throw water repeatedly)~~ | ~~Upper/main/mid/lower decks~~ |  |  | ~~No~~ | ~~Partially~~ |
 | ~~Kill skeletons (= fire weapon repeatedly)~~ | ~~Upper/main/mid decks~~ |  |  | ~~No~~ | ~~Partially~~ |
-| ~~Snipe at other crew (=fire and reload gun and get more ammo every 5)~~ | ~~Upper/main/mid decks~~ |  |  |  | ~~No~~ |
-| ~~Throw throwable at other crew~~ | ~~Upper/main/mid decks~~ |  |  |  | ~~Complete in 1-shot~~ |
-| ~~Ladder guard boarder~~ | ~~Upper (maybe mid?) deck~~ |  |  | ~~No~~ | ~~No~~ |
-| ~~Kill boarder~~ | ~~Upper/mid/lower decks~~ |  |  | ~~No~~ | ~~Partially, can damage boarder~~ |
-| ~~Revive crewmate~~ | ~~Upper/mid/lower decks~~ |  |  | ~~No~~ | ~~No~~ |
+| ~~Snipe at other crew (=fire and reload gun and get more ammo every 5)~~ | ~~Upper/main/mid decks~~ |  |  | ~~No~~ | ~~Complete in 1-shot~~ |
+| ~~Throw throwable at other crew~~ | ~~Upper/main/mid decks~~ |  |  | ~~No~~ | ~~Complete in 1-shot~~ |
+| ~~Ladder guard boarder~~ | ~~Upper (maybe main?) deck~~ |  |  | ~~No~~ | ~~No~~ |
+| ~~Kill boarder~~ | ~~Upper/main/mid/lower decks~~ |  |  | ~~No~~ | ~~Partially, can damage boarder~~ |
+| ~~Revive crewmate~~ | ~~Upper/main/mid/lower decks~~ |  |  | ~~No~~ | ~~No~~ |
 
 : These are the actions that are assumed can be done by the player, along with their location and tested rate (completion by seconds). Included is the source of where the rate comes from.
 
@@ -73,10 +73,8 @@ Since this is a simulation of a game, there are some tweaks that are made to mak
 <https://www.youtube.com/shorts/7lccAB1Pavw>
 
 Guy might have some stuff
-
-|  |  |  |
-|------------------------|------------------------|------------------------|
 | **Constant** | **Value** | **Source** |
+| --- | --- | --- |
 | Ship acceleration |  |  |
 | Ship deceleration (from raising sails) |  |  |
 | Ship deceleration (from fully lowering anchor) |  |  |
@@ -89,18 +87,27 @@ Guy might have some stuff
 | Ship rotational speed | \_\_\_ \* \|degrees wheel rotated\| |  |
 | Wheel rotational speed with n damage | \_\_\_ \* \|degrees wheel rotated\| |  |
 | Ship health | 67 buckets of seawater (57 for death groan) | Testing in-game |
-| Tier 1 hull hole |  |  |
-| Tier 2 hull hole |  |  |
-| Tier 3 hull hole |  |  |
-| Tier 4 hull hole |  |  |
-| Tier 5 hull hole |  |  |
-| Cannonball loading |  |  |
+| Tier 1 hull hole | 2s | https://www.youtube.com/shorts/4k7ZDjENFyc |
+| Tier 2 hull hole | 3s | https://www.youtube.com/shorts/4k7ZDjENFyc |
+| Tier 3 hull hole | 4s | https://www.youtube.com/shorts/4k7ZDjENFyc |
+| Tier 4 hull hole | 5s | https://www.youtube.com/shorts/4k7ZDjENFyc |
+| Tier 5 hull hole | 6s | https://www.youtube.com/shorts/4k7ZDjENFyc |
+| Hull leak strength in calm water (mobile) |  |  |
+| Hull leak strength in calm water (immobile) | 100% | https://www.youtube.com/shorts/s50ipkxiQVA |
+| Hull leak strength in open sea (mobile) | 90% | https://www.youtube.com/shorts/s50ipkxiQVA |
+| Hull leak strength in open sea (immobile) |  |  |
+| Mid-deck hole leak strength in calm water (mobile) |  |  |
+| Mid-deck hole leak strength in calm water (immobile) | 16.6% | https://www.youtube.com/shorts/s50ipkxiQVA |
+| Mid-deck hole leak strength in open sea (mobile) | 33.3% | https://www.youtube.com/shorts/s50ipkxiQVA |
+| Mid-deck hole leak strength in open sea (immobile) |  |  |
+| Cannonball loading | 1.6s | Youtube video analysis |
 | Max cannonball range |  |  |
 | Max cannon horizontal rotation | {Center to extreme} 22.5º | Testing in-game |
 | Respawning from Ferry of the Damned | 10 seconds + 5 \* [Crew Size] | <https://www.seaofthieves.com/community/forums/topic/149197/new-respawn-times/3> |
 | Grid size |  |  |
-| When can bucket from mid-deck |  (how many buckets / what percentage of ship health) |  |
-
+| When can bucket from mid-deck | 31 buckets of seawater; 46% | Testing in-game |
+| When mid-deck starts leaks as much as hull / has water all the way in the back | 37 buckets of seawater; 55% | Testing in-game |
+| Mast time to fall from repaired | 6.6s | Testing in-game |
 ### Cannoning
 
 There is no doubt that firing cannons is a core aspect of this simulation and so it is important that it is at least addressed individually.
@@ -134,29 +141,17 @@ If you have played *Sea of Thieves* before, you will know that there are a total
 \*~~Strike-through~~ means not implemented
 
 -   Cannonball
-
 -   ~~Chainshot~~ (not implemented as of now, but later will be)
-
 -   ~~Cursed cannonballs~~ (*may change with future additions*)
-
     -   Phantom cannonball (Implemented because functionally the same as regular ones)
-
     -   ~~Flame phantom cannonball~~
-
 -   ~~Wraith ball~~ (*may change with future additions*)
-
 -   ~~Scattershot~~ (*may change with future additions*)
-
 -   ~~Hunting spear~~ (*may change with future additions*)
-
 -   ~~Blunderbomb~~
-
 -   ~~Firebomb~~ (*may change with future additions*)
-
 -   ~~Bone caller~~ (*may change with future additions*)
-
 -   ~~Others: Firework / Signal flare / Pet~~
-
 -   ~~Player~~
 
 ### Other Items
@@ -168,12 +163,15 @@ If you have played *Sea of Thieves* before, you will know that there are a total
 -   ~~Skeletons on boat (Bonecaller, Reaper's chest seal)~~
 -   ~~The Burning Blade~~
 
-World
+##### World
 
 -   ~~Megaladon variants~~
-
 -   ~~Storm~~
-
 -   ~~Skeleton ship variants~~
-
 -   ~~Ghost ship haunting~~
+
+## Credits
+
+- *Sea of Thieves* (Rare LTD, 2018)
+- Sloop outline credits: <https://www.seaofthieves.com/community/forums/topic/30448/5-ship-types-for-sea-of-thieves-speculation-graphic/92>
+- The .svg loading icon (used as wheel GUI): https://seaofthieves.com/
