@@ -10,6 +10,51 @@ collision_mask = 6
 script = ExtResource("1_onrkg")
 
 [node name="PlayerSloopBody" type="Sprite2D" parent="." index="0" unique_id=1910078389]
-rotation = 1.5759969
+rotation = 1.5707964
 scale = Vector2(0.660815, 0.660815)
 texture = ExtResource("4_fkybt")
+
+[node name="Helmsman" parent="." index="6" unique_id=1506136118]
+position = Vector2(-45, 0)
+
+[node name="Wheel" parent="." index="8" unique_id=1524088888]
+position = Vector2(-38, 0)
+
+[node name="Anchor" parent="." index="9" unique_id=11466014]
+position = Vector2(-48, 1)
+
+[node name="SailAdjustP" parent="." index="10" unique_id=913489089]
+position = Vector2(-45, -14)
+
+[node name="SailAdjustS" parent="." index="11" unique_id=1940575936]
+position = Vector2(-45, 13)
+
+[node name="SailStuffP" parent="." index="12" unique_id=814871388]
+position = Vector2(-40, -14)
+
+[node name="SailStuffS" parent="." index="13" unique_id=867744164]
+position = Vector2(-40, 13)
+
+[node name="Upper2Mid" parent="." index="16" unique_id=1292509187]
+position = Vector2(-33, 0)
+
+[node name="HolePort3" parent="." index="21" unique_id=728893873]
+position = Vector2(-49, -14)
+
+[node name="HolePort4" parent="." index="22" unique_id=136875343]
+position = Vector2(-37, -14)
+
+[node name="HolePort5" parent="." index="23" unique_id=1213110696]
+position = Vector2(-23, -15)
+
+[node name="HoleStarbourd3" parent="." index="29" unique_id=823087462]
+position = Vector2(-49, 12)
+
+[node name="HoleStarbourd4" parent="." index="30" unique_id=81900410]
+position = Vector2(-37, 13)
+
+[node name="HoleStarbourd5" parent="." index="31" unique_id=385105343]
+position = Vector2(-30, 13)
+
+[node name="HoleStarbourd6" parent="." index="32" unique_id=1555975587]
+position = Vector2(-17, 14)

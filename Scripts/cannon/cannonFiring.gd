@@ -1,22 +1,21 @@
 extends Node2D
 
-@onready var pivot = $CannonPivot
-@onready var sprite = $CannonPivot/CannonSprite
-@onready var cannon_mouth = $CannonPivot/CannonSprite/CannonMouth
-@onready var range_manager = $CannonRange
-@onready var sectors = [
-	$CannonRange/RangeSector1,
-	$CannonRange/RangeSector2,
-	$CannonRange/RangeSector3
-]
+@onready var sprite = $CannonSprite
+@onready var cannon_mouth = $CannonSprite/CannonMouth
+@onready var range_area = $CannonRange
+@onready var range_detection = $CannonRange/CannonDetection
 
+const CANNONBALL = preload("res://Scenes/cannonball.tscn")
 const MAX_ANGLE = deg_to_rad(45)
 const ROTATION_SPEED = deg_to_rad(18) # 18 degrees/sec
 const FIRE_ANGLE_TOLERANCE = deg_to_rad(2) # won't fire until cannon lined up with target with this error
 
+var max_range := 0.0
+var range_step := 0.0
+
 var ready_to_fire = true
 var current_target = null
-var current_ring = -1
+var current_range = -1
 var last_direction_aimed: Vector2 = Vector2.ZERO
 
 var is_actively_tracking := false
@@ -24,47 +23,44 @@ var target_global: Node = null
 
 func _ready():
 	await get_tree().process_frame
-	for sector in sectors:
-		sector.target_entered.connect(_on_target_entered)
-		sector.target_exited.connect(_on_target_exited)
-
-func _on_target_entered(body, ring_index):
-	print("ENTER:", body.name, ";Ring:", ring_index)
-	if body == get_parent().get_parent():
-		print("Ship detected itself (not good)")
-		return
-	current_target = body
-	current_ring = ring_index
-
-func _on_target_exited(body):
-	if body != current_target:
-		return
-
-	# Check if the body is STILL inside any sector
-	for sector in sectors:
-		if body in sector.get_overlapping_bodies():
-			return
-
-	# Only clear if fully out of all sectors
-	current_target = null
-	current_ring = -1
+	max_range = get_max_range()
+	range_step = max_range / 3.0
 
 func _physics_process(delta):
+	var bodies = range_area.get_overlapping_bodies()
 
-	# validate target
-	if current_target == null or not is_instance_valid(current_target):
-		current_target = null
-		current_ring = -1
+	current_target = null
+	current_range = -1
 
-		# fallback to external tracking
+	if bodies.size() > 0:
+		# pick closest valid target
+		var closest_dist = INF
+		
+		for body in bodies:
+			if body == get_parent().get_parent():
+				continue
+			if not is_in_arc(body.global_position):
+				continue
+
+			var dist = global_position.distance_to(body.global_position)
+
+			if dist < closest_dist:
+				closest_dist = dist
+				current_target = body
+
+		if current_target != null:
+			current_range = get_range(closest_dist)
+
+	# fallback to external tracking (UNCHANGED)
+	if current_target == null:
 		if not is_actively_tracking or target_global == null or not is_instance_valid(target_global):
 			return
 
 		aim_at_position(target_global.global_position, delta)
 		return
 
-	# if target in range...
-	var shooter_position = pivot.global_position
+	# intercept + fire (UNCHANGED)
+	var shooter_position = global_position
 	var target_position = current_target.global_position
 	var target_velocity = get_target_velocity(current_target)
 
@@ -77,26 +73,28 @@ func _physics_process(delta):
 
 	aim_at_position(intercept_position, delta)
 
-	# ...shoot!
-	if ready_to_fire and current_ring != -1 and is_aligned():
+	if ready_to_fire and current_range != -1 and is_aligned():
 		shoot()
 
-func aim_at_position(target_position: Vector2, delta: float):
+func is_in_arc(target_pos: Vector2) -> bool:
+	var forward = Vector2.RIGHT.rotated(global_rotation)
+	var to_target = (target_pos - global_position).normalized()
+	var angle = forward.angle_to(to_target)
+	return abs(angle) <= MAX_ANGLE
 
-	var shooter_position = pivot.global_position
+func aim_at_position(target_position: Vector2, delta: float):
+	var shooter_position = global_position
 	var aim_direction = (target_position - shooter_position).normalized()
 
 	last_direction_aimed = aim_direction
 
-	var current_forward = Vector2.RIGHT.rotated(pivot.global_rotation)
+	var current_forward = Vector2.RIGHT.rotated(global_rotation)
 	var angle_to_target = current_forward.angle_to(aim_direction)
 	var clamped_angle = clamp(angle_to_target, -MAX_ANGLE, MAX_ANGLE)
 
-	var desired_rotation = pivot.rotation + clamped_angle
-
 	sprite.rotation = move_toward(
 		sprite.rotation,
-		desired_rotation,
+		clamped_angle,
 		ROTATION_SPEED * delta
 	)
 
@@ -123,7 +121,7 @@ func calculate_intercept_position(
 		# fallback: direct shot
 		intercept_time = dist_to_target.length() / projectile_speed
 	else:
-		var sqrt_d = sqrt(discriminant) # solving quadratic equation here
+		var sqrt_d = sqrt(discriminant) # finding roots via quadratic equation
 		var t1 = (-b - sqrt_d) / (2.0 * a)
 		var t2 = (-b + sqrt_d) / (2.0 * a)
 
@@ -140,31 +138,24 @@ func get_target_velocity(target: Node) -> Vector2:
 		return target.velocity
 	elif "velocity" in target:
 		return target.velocity
+	
+	print("Target doesnt have velocity!")
 	return Vector2.ZERO
 
 func shoot():
-	if current_target == null or not is_instance_valid(current_target):
-		return
-	
-	if not ready_to_fire:
-		return
-	
-	# alignment check
-	if not is_aligned():
+	if current_target == null or not is_instance_valid(current_target) or not ready_to_fire or not is_aligned():
 		return
 	
 	ready_to_fire = false
 	$Timer.start()
 	
-	const CANNONBALL = preload("res://Scenes/cannonball.tscn")
 	var new_cannonball = CANNONBALL.instantiate()
 
 	cannon_mouth.add_child(new_cannonball)
 	new_cannonball.global_position = cannon_mouth.global_position
 	new_cannonball.global_rotation = cannon_mouth.global_rotation
 
-	new_cannonball.range_manager = range_manager
-	new_cannonball.setup(get_parent())
+	new_cannonball.setup(get_parent(), get_max_range())
 
 func _on_timer_timeout():
 	ready_to_fire = true
@@ -177,3 +168,16 @@ func is_aligned() -> bool:
 	var angle = forward.angle_to(last_direction_aimed)
 	
 	return abs(angle) <= FIRE_ANGLE_TOLERANCE
+
+func get_range(dist: float) -> int:
+	if dist < range_step: # short
+		return 0
+	elif dist < range_step * 2.0: # medium
+		return 1
+	elif dist <= max_range: # long
+		return 2
+	
+	return -1 # outside
+
+func get_max_range() -> float:
+	return range_detection.shape.radius

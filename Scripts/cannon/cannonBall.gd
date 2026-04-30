@@ -3,18 +3,15 @@ extends Area2D
 const SPEED := 500
 
 var travelled_distance := 0.0
-var range_manager = null
+var max_range := 0.0
 var owner_node: Node = null
 
-func setup(cannon: Node):
+func setup(cannon: Node, cannonball_range: float):
 	owner_node = cannon
+	max_range = cannonball_range
 
 func _physics_process(delta):
-	if range_manager == null:
-		return
-
 	var direction = Vector2.RIGHT.rotated(global_rotation)
-	var max_range = range_manager.MAX_RANGE
 
 	global_position += SPEED * direction * delta
 	travelled_distance += SPEED * delta

@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://b5225754qio6p"]
 
 [ext_resource type="Script" uid="uid://ngdmepgbs1p5" path="res://Scripts/ships/sloop.gd" id="1_a2qv3"]
-[ext_resource type="Texture2D" uid="uid://tyo7pmbid6ky" path="res://Assets/sailSprite.png" id="2_rxto3"]
+[ext_resource type="Texture2D" uid="uid://udvcbvbkitfu" path="res://Assets/sailSprite.png" id="2_rxto3"]
 [ext_resource type="PackedScene" uid="uid://crkmlqeea42ws" path="res://Scenes/cannon.tscn" id="2_t7hxb"]
 [ext_resource type="PackedScene" uid="uid://dpd21is3i5ix1" path="res://Scenes/crewmate.tscn" id="4_hk5xy"]
 [ext_resource type="PackedScene" uid="uid://c0o5nnvdif60m" path="res://Scenes/action_manager.tscn" id="5_0lvl8"]
@@ -25,15 +25,17 @@ rotation = -1.5707964
 position = Vector2(14, 13)
 rotation = 1.5707964
 
-[node name="MastPoint" type="Marker2D" parent="." unique_id=67253964]
+[node name="Sail" type="Sprite2D" parent="." unique_id=1208718911]
+position = Vector2(-11, 0)
+rotation = 1.5707964
+scale = Vector2(0.6, 0.6)
+texture = ExtResource("2_rxto3")
+centered = false
+offset = Vector2(-37, -31)
+
+[node name="Mast" type="Marker2D" parent="." unique_id=67253964]
 position = Vector2(-11, -1.7881393e-07)
 rotation = 1.5707964
-scale = Vector2(0.661, 0.661)
-
-[node name="Sail" type="Sprite2D" parent="MastPoint" unique_id=503750216]
-position = Vector2(-7.1525574e-07, -24.20575)
-scale = Vector2(1.1, 1.1)
-texture = ExtResource("2_rxto3")
 
 [node name="Cannoneer" parent="." unique_id=1412420956 instance=ExtResource("4_hk5xy")]
 position = Vector2(14, -5)
