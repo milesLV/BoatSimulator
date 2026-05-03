@@ -9,125 +9,48 @@
 [node name="Sloop" type="CharacterBody2D" unique_id=1141876777]
 collision_layer = 7
 collision_mask = 7
+slide_on_ceiling = false
 script = ExtResource("1_a2qv3")
 
 [node name="SloopCollision" type="CollisionPolygon2D" parent="." unique_id=1725303819]
 visible = false
 rotation = 1.5707964
-scale = Vector2(0.31316808, 0.31316808)
+scale = Vector2(0.58, 0.58)
 polygon = PackedVector2Array(96, 0, 86, -56, 35, -155, -2, -273, -34, -155, -92, -61, -102, 1, -98, 61, -91, 122, -87, 181, -56, 242, -1, 258, 51, 240, 79, 183, 78, 124, 90, 60)
 
 [node name="CannonPort1" parent="." unique_id=639124336 instance=ExtResource("2_t7hxb")]
-position = Vector2(14, -13.999999)
+position = Vector2(33, -21)
 rotation = -1.5707964
 
 [node name="CannonStarboard1" parent="." unique_id=601673758 instance=ExtResource("2_t7hxb")]
-position = Vector2(14, 13)
+position = Vector2(33, 20)
 rotation = 1.5707964
 
 [node name="Sail" type="Sprite2D" parent="." unique_id=1208718911]
-position = Vector2(-11, 0)
+position = Vector2(-6, 0.069999695)
 rotation = 1.5707964
-scale = Vector2(0.6, 0.6)
+scale = Vector2(1.11, 1.11)
 texture = ExtResource("2_rxto3")
 centered = false
 offset = Vector2(-37, -31)
 
-[node name="Mast" type="Marker2D" parent="." unique_id=67253964]
-position = Vector2(-11, -1.7881393e-07)
-rotation = 1.5707964
-
 [node name="Cannoneer" parent="." unique_id=1412420956 instance=ExtResource("4_hk5xy")]
-position = Vector2(14, -5)
+position = Vector2(19, 0)
 
 [node name="Helmsman" parent="." unique_id=1506136118 instance=ExtResource("4_hk5xy")]
-position = Vector2(-30, 0)
+position = Vector2(-35, 0)
+
+[node name="WhiteThingEnd" type="Line2D" parent="." unique_id=939732002]
+position = Vector2(-76, -29.963017)
+scale = Vector2(1, 1.0727043)
+points = PackedVector2Array(0, 0, 0, 54)
+width = 1.5
+
+[node name="Balcony" type="Line2D" parent="." unique_id=343976970]
+position = Vector2(-25, -29)
+scale = Vector2(1, 1.0357144)
+points = PackedVector2Array(0, 0, 0, 29.89655, 0, 54)
+width = 1.5
+default_color = Color(0.27450982, 0.21568628, 0.34509805, 1)
 
 [node name="ActionManager" parent="." unique_id=826780228 instance=ExtResource("5_0lvl8")]
-
-[node name="Wheel" type="Node2D" parent="." unique_id=1524088888]
-position = Vector2(-30, 0)
-
-[node name="Anchor" type="Node2D" parent="." unique_id=11466014]
-position = Vector2(-40, 1)
-
-[node name="SailAdjustP" type="Node2D" parent="." unique_id=913489089]
-position = Vector2(-37, -14)
-
-[node name="SailAdjustS" type="Node2D" parent="." unique_id=1940575936]
-position = Vector2(-37, 13)
-
-[node name="SailStuffP" type="Node2D" parent="." unique_id=814871388]
-position = Vector2(-32, -14)
-
-[node name="SailStuffS" type="Node2D" parent="." unique_id=867744164]
-position = Vector2(-32, 13)
-
-[node name="Bucket LD" type="Node2D" parent="." unique_id=747985140]
-position = Vector2(-23, 12)
-
-[node name="Throw water" type="Node2D" parent="." unique_id=1159393570]
-position = Vector2(-27, 0)
-
-[node name="Upper2Mid" type="Node2D" parent="." unique_id=1292509187]
-position = Vector2(-27, 0)
-
-[node name="Mid2Upper" type="Node2D" parent="." unique_id=1599969969]
-position = Vector2(-22, 12)
-
-[node name="Mid2Lower" type="Node2D" parent="." unique_id=1546737979]
-position = Vector2(-25, 12)
-
-[node name="HolePort1" type="Node2D" parent="." unique_id=772286486]
-position = Vector2(-64, -7)
-
-[node name="HolePort2" type="Node2D" parent="." unique_id=495002091]
-position = Vector2(-58, -12)
-
-[node name="HolePort3" type="Node2D" parent="." unique_id=728893873]
-position = Vector2(-52, -14)
-
-[node name="HolePort4" type="Node2D" parent="." unique_id=136875343]
-position = Vector2(-45, -14)
-
-[node name="HolePort5" type="Node2D" parent="." unique_id=1213110696]
-position = Vector2(-34, -15)
-
-[node name="HolePort6" type="Node2D" parent="." unique_id=786258536]
-position = Vector2(-11, -16)
-
-[node name="HolePort7" type="Node2D" parent="." unique_id=1362340907]
-position = Vector2(4, -16)
-
-[node name="HolePort8" type="Node2D" parent="." unique_id=544188435]
-position = Vector2(29, -11)
-
-[node name="HoleStarbourd1" type="Node2D" parent="." unique_id=1267038127]
-position = Vector2(-64, 6)
-
-[node name="HoleStarbourd2" type="Node2D" parent="." unique_id=951214847]
-position = Vector2(-58, 11)
-
-[node name="HoleStarbourd3" type="Node2D" parent="." unique_id=823087462]
-position = Vector2(-52, 12)
-
-[node name="HoleStarbourd4" type="Node2D" parent="." unique_id=81900410]
-position = Vector2(-45, 13)
-
-[node name="HoleStarbourd5" type="Node2D" parent="." unique_id=385105343]
-position = Vector2(-34, 13)
-
-[node name="HoleStarbourd6" type="Node2D" parent="." unique_id=1555975587]
-position = Vector2(-23, 14)
-
-[node name="HoleStarbourd7" type="Node2D" parent="." unique_id=2047280540]
-position = Vector2(-7, 15)
-
-[node name="HoleStarbourd8" type="Node2D" parent="." unique_id=374127034]
-position = Vector2(15, 15)
-
-[node name="HoleStarbourd9" type="Node2D" parent="." unique_id=1473943778]
-position = Vector2(29, 11)
-
-[node name="HoleBow" type="Node2D" parent="." unique_id=465415690]
-position = Vector2(41, 0)

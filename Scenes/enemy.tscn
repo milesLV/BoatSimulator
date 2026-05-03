@@ -11,5 +11,5 @@ script = ExtResource("2_g6ed3")
 
 [node name="EnemySloopBody" type="Sprite2D" parent="." index="0" unique_id=607823416]
 rotation = 1.5707964
-scale = Vector2(0.661, 0.661)
+scale = Vector2(1.23, 1.23)
 texture = ExtResource("3_afpow")

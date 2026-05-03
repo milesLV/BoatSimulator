@@ -44,7 +44,7 @@ texture = SubResource("CanvasTexture_0bf5w")
 
 [node name="CannonSprite" type="Sprite2D" parent="." unique_id=70038304]
 position = Vector2(6, -4.7683716e-07)
-scale = Vector2(0.017476657, 0.017476665)
+scale = Vector2(0.018, 0.018)
 texture = ExtResource("2_5ilg3")
 
 [node name="CannonMouth" type="Marker2D" parent="CannonSprite" unique_id=939446882]
