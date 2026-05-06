@@ -14,5 +14,5 @@ rotation = 1.5707964
 scale = Vector2(1.23, 1.23)
 texture = ExtResource("4_fkybt")
 
-[node name="Helmsman" parent="." index="6" unique_id=1506136118]
-position = Vector2(-45, 0)
+[node name="Helmsman" parent="." index="8" unique_id=1506136118]
+position = Vector2(-66, 0)

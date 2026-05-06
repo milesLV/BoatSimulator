@@ -1,48 +1,39 @@
 class_name Crewmate
 extends Node2D
 
-const OUTLINE_COLOR := Color.WHITE
-const OUTLINE_WIDTH := 1
+const VALID_DECKS := [ # location can only be one of these
+	DeckGraph.UPPER,
+	DeckGraph.MAIN,
+	DeckGraph.MID,
+	DeckGraph.LOWER
+]
+const RUN_SPEED := 100.0
 
-@export var fill_color := Color(0.0, 0.553, 1.0, 1.0)
-var radius := 7.5
-var location = null
+@onready var action_executor = $ActionExecutor
+@onready var ship = get_parent()
+@onready var ship_action_points = ship.get_node("ShipActionPoints")
 
-func _ready():
-	queue_redraw()
+var location: String = ""
 
-func _draw():
-	# Fill
-	draw_circle(Vector2.ZERO, radius, fill_color)
-	
-	# Outline
-	draw_arc(
-		Vector2.ZERO,
-		radius,
-		0,
-		TAU,
-		100, # number of segments (smoothness)
-		OUTLINE_COLOR,
-		OUTLINE_WIDTH
-	)
+func set_location(new_location: String) -> void:
 
-func setColor(color):
-	#* 4 colors:
-		#* Blue = one currently controlling
-		#* Green = ally / one not controlling
-		#* Red = enemy
-		#* Purple = ally on other ship
-	fill_color = color
-
-func setSize(_radius):
-	# want to make it so when going through the transition points, 
-	# change size (Upper2Main = get a little bigger
-	# and then get smaller to simulate jumping, other 2 = linearly 
-	#going up or down in size if going up or down stairs
-	radius = _radius
-
-func setLocation(_location):
-	# location can be one of "Upper deck", "Main deck", "Mid-deck", or "Lower deck"
 	# want to also set the transparency and size to mimic the crewmate
 	# being further away from top of ship (or larger if on Upper deck)
-	location = _location
+	if not VALID_DECKS.has(
+		new_location
+	):
+
+		push_error(
+			"Invalid deck: %s"
+			% new_location
+		)
+
+		return
+
+	location = new_location
+
+func is_on_deck(
+	deck_name: String
+) -> bool:
+
+	return location == deck_name

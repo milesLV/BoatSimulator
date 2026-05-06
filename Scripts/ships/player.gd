@@ -5,6 +5,10 @@ func _physics_process(delta):
 	sail_input = 0.0
 	sail_rotation_input = 0.0
 
+	# Changing crewmates
+	if Input.is_action_just_pressed("changeCrewmate"):
+		_change_crewmate()
+	
 	# Turning wheel
 	if Input.is_action_pressed("turnWheelLeft"):
 		turn_input -= 1.0
@@ -25,3 +29,15 @@ func _physics_process(delta):
 
 	_process_movement(delta)
 	update_active_cannon()
+	
+	if Input.is_action_just_pressed("dropOrRaiseAnchor"): # testing
+
+		var actions = (
+			ActionBuilder.build_go_to_wheel(
+				current_crewmate
+			)
+		)
+
+		current_crewmate.action_executor.queue_actions(
+			actions
+		)

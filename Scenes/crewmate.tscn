@@ -1,8 +1,14 @@
 [gd_scene format=3 uid="uid://dpd21is3i5ix1"]
 
 [ext_resource type="Script" uid="uid://c2abaq4w6sv6k" path="res://Scripts/crewmate.gd" id="1_3j34v"]
+[ext_resource type="Script" uid="uid://bgamps0m61oh8" path="res://Scripts/actions/core/action_executor.gd" id="2_g8oke"]
+[ext_resource type="Script" uid="uid://djpsulefh8rnh" path="res://Scripts/crewmateBody.gd" id="2_vodhv"]
 
 [node name="Crewmate" type="CharacterBody2D" unique_id=1412420956]
 script = ExtResource("1_3j34v")
 
 [node name="Body" type="Node2D" parent="." unique_id=1801773413]
+script = ExtResource("2_vodhv")
+
+[node name="ActionExecutor" type="Node2D" parent="." unique_id=52208370]
+script = ExtResource("2_g8oke")

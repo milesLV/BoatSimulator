@@ -1,15 +1,9 @@
 [gd_scene format=3 uid="uid://c0o5nnvdif60m"]
 
-[ext_resource type="Texture2D" uid="uid://coxgunpsds1mx" path="res://Assets/noSailTransparentRefined.png" id="1_swwg1"]
+[ext_resource type="Script" uid="uid://cvflx5fm2qb7i" path="res://Scripts/actions/core/action_manager.gd" id="1_swwg1"]
 
-[node name="ActionManager" type="Node2D" unique_id=826780228]
-
-[node name="PlayerSloopBody" type="Sprite2D" parent="." unique_id=1075560130]
-visible = false
-position = Vector2(3.0000005, 0)
-rotation = 1.5707964
-scale = Vector2(1.23, 1.23)
-texture = ExtResource("1_swwg1")
+[node name="shipActionPoints" type="Node2D" unique_id=826780228]
+script = ExtResource("1_swwg1")
 
 [node name="Wheel" type="Node2D" parent="." unique_id=1277152012]
 position = Vector2(-30, 0)
@@ -17,35 +11,51 @@ position = Vector2(-30, 0)
 [node name="Anchor" type="Node2D" parent="." unique_id=549389154]
 position = Vector2(-64, 1)
 
-[node name="SailRotationP" type="Node2D" parent="." unique_id=258674217]
+[node name="SailRotationPort" type="Node2D" parent="." unique_id=258674217]
 position = Vector2(-73, -29)
 
-[node name="SailRotationS" type="Node2D" parent="." unique_id=995148771]
+[node name="SailRotationStarb" type="Node2D" parent="." unique_id=995148771]
 position = Vector2(-74, 29)
 
-[node name="SailLengthP" type="Node2D" parent="." unique_id=1747713199]
+[node name="SailLengthPort" type="Node2D" parent="." unique_id=1747713199]
 position = Vector2(-59, -29)
 
-[node name="SailLengthS" type="Node2D" parent="." unique_id=1174625409]
+[node name="SailLengthStarb" type="Node2D" parent="." unique_id=1174625409]
 position = Vector2(-60, 29)
 
-[node name="Bucket LD" type="Node2D" parent="." unique_id=940617351]
-position = Vector2(-19, 26)
+[node name="Mast" type="Node2D" parent="." unique_id=1623574279]
+position = Vector2(0, 0.069999695)
+rotation = 1.5707964
 
-[node name="Throw water" type="Node2D" parent="." unique_id=1527271881]
+[node name="WaterThrowSpot" type="Node2D" parent="." unique_id=1527271881]
 position = Vector2(-34, 25)
 
-[node name="Upper2Main" type="Node2D" parent="." unique_id=1554154436]
-position = Vector2(-24, -8)
+[node name="BucketLD" type="Node2D" parent="." unique_id=940617351]
+position = Vector2(-16, 24)
 
-[node name="Main2Upper" type="Node2D" parent="." unique_id=2144307238]
-position = Vector2(-14, 23)
+[node name="Upper2MainTop" type="Node2D" parent="." unique_id=1554154436]
+position = Vector2(-26, -5)
 
-[node name="Mid2Lower" type="Node2D" parent="." unique_id=1853377769]
-position = Vector2(-24, 24)
+[node name="Upper2MainBottom" type="Node2D" parent="." unique_id=718866033]
+position = Vector2(-19, -5)
 
-[node name="Main2Mid" type="Node2D" parent="." unique_id=755361144]
-position = Vector2(-22, 0)
+[node name="Main2UpperTop" type="Node2D" parent="." unique_id=2144307238]
+position = Vector2(-26, 23)
+
+[node name="Main2UpperBottom" type="Node2D" parent="." unique_id=263497758]
+position = Vector2(-12, 23)
+
+[node name="Main2MidTop" type="Node2D" parent="." unique_id=755361144]
+position = Vector2(-12, 0)
+
+[node name="Main2MidBottom" type="Node2D" parent="." unique_id=1777451013]
+position = Vector2(-27, 0)
+
+[node name="Mid2LowerTop" type="Node2D" parent="." unique_id=1853377769]
+position = Vector2(-26, 24)
+
+[node name="Mid2LowerBottom" type="Node2D" parent="." unique_id=328460940]
+position = Vector2(-16, 24)
 
 [node name="HolePort1" type="Node2D" parent="." unique_id=2117893932]
 position = Vector2(-120, -11)
@@ -100,7 +110,3 @@ position = Vector2(67, 20)
 
 [node name="HoleBow" type="Node2D" parent="." unique_id=854267742]
 position = Vector2(80, 0)
-
-[node name="Mast" type="Marker2D" parent="." unique_id=287514647]
-position = Vector2(0, 0.069999695)
-rotation = 1.5707964

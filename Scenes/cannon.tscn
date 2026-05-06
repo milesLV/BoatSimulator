@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://crkmlqeea42ws"]
 
-[ext_resource type="Script" uid="uid://gnb8l53lkxbk" path="res://Scripts/cannon/cannonFiring.gd" id="1_x6qcg"]
+[ext_resource type="Script" uid="uid://gnb8l53lkxbk" path="res://Scripts/cannon/cannon.gd" id="1_x6qcg"]
 [ext_resource type="Shader" uid="uid://c1hgftlf7tmgw" path="res://Scripts/cannon/visualRangeShader.gdshader" id="2_0bf5w"]
 [ext_resource type="Texture2D" uid="uid://b80l6v5nq1be4" path="res://Assets/cannonSprite.png" id="2_5ilg3"]
 
@@ -49,9 +49,6 @@ texture = ExtResource("2_5ilg3")
 
 [node name="CannonMouth" type="Marker2D" parent="CannonSprite" unique_id=939446882]
 position = Vector2(492.30762, -0.054535866)
-
-[node name="CannonPivot" type="Marker2D" parent="." unique_id=283605501]
-rotation = -0.00018017559
 
 [node name="Timer" type="Timer" parent="." unique_id=1765518132]
 wait_time = 2.0

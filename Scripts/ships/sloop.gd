@@ -2,10 +2,9 @@ class_name Sloop
 extends CharacterBody2D
 
 @onready var sail = $Sail
-@onready var cannons = [
-	$CannonPort1,
-	$CannonStarboard1
-]
+@onready var helmsman = $Helmsman
+@onready var cannoneer = $Cannoneer
+@onready var cannons = get_children().filter(func(n): return n is Cannon)
 
 const MAX_WHEEL_TURN := 2 * TAU
 const WHEEL_TURN_SPEED := 2.0
@@ -23,6 +22,10 @@ var wheel_rotation := 0.0
 var sail_length := 0.0
 var current_velocity := 0.0
 
+var crewmates: Array = []
+var current_crewmate = null
+var selected_index := 0
+
 # Inputs
 var turn_input := 0.0
 var sail_input := 0.0
@@ -34,6 +37,15 @@ var targetShip: Node = null
 func _ready():
 	var game_map = get_tree().current_scene
 	game_map.register_ship(self)
+	crewmates = get_children().filter(func(n): return n is Crewmate)
+	current_crewmate = crewmates[0]
+
+	print(
+		"Selected:",
+		current_crewmate.name
+	)
+	_initialize_crewmates()
+	
 	
 	await get_tree().process_frame
 	
@@ -119,3 +131,28 @@ func update_active_cannon():
 		else:
 			cannon.is_actively_tracking = false
 			cannon.target_global = null
+
+func _initialize_crewmates() -> void:
+
+	helmsman.set_location(
+		DeckGraph.UPPER
+	)
+
+	cannoneer.set_location(
+		DeckGraph.MAIN
+	)
+
+func _change_crewmate() -> void:
+
+	selected_index += 1
+
+	selected_index %= crewmates.size()
+
+	current_crewmate = (
+		crewmates[selected_index]
+	)
+
+	print(
+		"Selected:",
+		current_crewmate.name
+	)
