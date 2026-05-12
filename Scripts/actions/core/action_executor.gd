@@ -5,7 +5,6 @@ class_name ActionExecutor
 signal action_started(instance)
 signal action_completed(instance)
 signal action_interrupted(instance)
-
 signal queue_finished
 
 
@@ -112,26 +111,16 @@ func _physics_process(
 	if current_action == null:
 		return
 
-	if not current_action.started:
-
-		current_action.started = true
-
-		current_action.definition.on_start(
-			actor,
-			current_action
-		)
-
-		action_started.emit(
-			current_action
-		)
 
 	current_action.elapsed += delta
+
 
 	current_action.definition.on_tick(
 		actor,
 		current_action,
 		delta
 	)
+
 
 	if current_action.is_complete():
 
@@ -168,6 +157,21 @@ func _start_next_action() -> void:
 
 		return
 
+
 	current_action = (
 		queued_actions.pop_front()
+	)
+
+
+	current_action.started = true
+
+
+	current_action.definition.on_start(
+		actor,
+		current_action
+	)
+
+
+	action_started.emit(
+		current_action
 	)

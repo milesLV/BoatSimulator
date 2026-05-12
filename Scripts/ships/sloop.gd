@@ -25,6 +25,7 @@ var current_velocity := 0.0
 var crewmates: Array = []
 var current_crewmate = null
 var selected_index := 0
+var station_operators := {}
 
 # Inputs
 var turn_input := 0.0
@@ -66,10 +67,27 @@ func _physics_process(delta):
 
 func _process_movement(delta):
 	# WHEEL CONTROL
-	wheel_rotation += turn_input * WHEEL_TURN_SPEED * delta
-	wheel_rotation = clamp(wheel_rotation, -MAX_WHEEL_TURN, MAX_WHEEL_TURN)
+	if get_operator("Wheel") != null:
 
-	rotation += (wheel_rotation / MAX_WHEEL_TURN) * BOAT_TURN_SPEED * delta
+		wheel_rotation += (
+			turn_input
+			* WHEEL_TURN_SPEED
+			* delta
+		)
+
+		wheel_rotation = clamp(
+			wheel_rotation,
+			-MAX_WHEEL_TURN,
+			MAX_WHEEL_TURN
+		)
+
+
+	# SHIP ROTATION (always)
+	rotation += (
+		(wheel_rotation / MAX_WHEEL_TURN)
+		* BOAT_TURN_SPEED
+		* delta
+	)
 
 	# SAIL CONTROL
 	sail_length += sail_input * SAIL_SPEED * delta
@@ -156,3 +174,71 @@ func _change_crewmate() -> void:
 		"Selected:",
 		current_crewmate.name
 	)
+
+func has_operator(station_id: String) -> bool: # if crewmate crankin' it
+	return station_operators.has(station_id)
+
+
+func get_operator(station_id: String) -> Crewmate:
+	return station_operators.get(station_id)
+
+
+func set_operator(
+	station_id: String,
+	crewmate: Crewmate
+) -> void:
+
+	station_operators[station_id] = crewmate
+
+
+func clear_operator(
+	station_id: String
+) -> void:
+
+	station_operators.erase(station_id)
+
+func request_station_control(
+	station_id: String,
+	operator_deck: String,
+	requested_input: float
+) -> bool:
+
+	var operator = get_operator(
+		station_id
+	)
+
+	# Already occupied.
+	if operator != null:
+		return true
+
+	# No input means no request.
+	if requested_input == 0.0:
+		return false
+	
+	if (
+		current_crewmate.requested_station
+		== station_id
+	):
+		return false
+
+	# Preempt current station.
+	if (
+		current_crewmate.action_executor.current_action
+		!= null
+	):
+
+		current_crewmate.action_executor.interrupt_current()
+
+		current_crewmate.action_executor.clear_queue()
+
+	current_crewmate.requested_station = station_id
+	current_crewmate.action_executor.queue_actions(
+		ActionBuilder.build_station_control(
+			current_crewmate,
+			station_id,
+			operator_deck
+		)
+	)
+
+
+	return false

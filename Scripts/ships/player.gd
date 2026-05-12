@@ -10,34 +10,72 @@ func _physics_process(delta):
 		_change_crewmate()
 	
 	# Turning wheel
+	var wheel_request := 0.0
+
 	if Input.is_action_pressed("turnWheelLeft"):
-		turn_input -= 1.0
+		wheel_request -= 1.0
+
 	if Input.is_action_pressed("turnWheelRight"):
-		turn_input += 1.0
+		wheel_request += 1.0
+
+
+	var wheel_ready = (
+		request_station_control(
+			"Wheel",
+			DeckGraph.UPPER,
+			wheel_request
+		)
+	)
+
+	# Held input persists.
+	if wheel_ready:
+		turn_input = wheel_request
 
 	# Adjusting sail length
+	var sail_request := 0.0
+
 	if Input.is_action_pressed("lowerSailsDown"):
-		sail_input += 1.0
+		sail_request += 1.0
+
 	if Input.is_action_pressed("raiseSailsUp"):
-		sail_input -= 1.0
+		sail_request -= 1.0
+
+
+	var sail_ready = (
+		request_station_control(
+			"SailLengthPort",
+			DeckGraph.UPPER,
+			sail_request
+		)
+	)
+
+
+	if sail_ready:
+		sail_input = sail_request
 	
 	# Adjusting sail rotation
+	var rotation_request := 0.0
+
 	if Input.is_action_pressed("adjustSailLeft"):
-		sail_rotation_input -= 1.0
+		rotation_request -= 1.0
+
 	if Input.is_action_pressed("adjustSailRight"):
-		sail_rotation_input += 1.0
+		rotation_request += 1.0
+
+
+	var rotation_ready = (
+		request_station_control(
+			"SailRotationPort",
+			DeckGraph.UPPER,
+			rotation_request
+		)
+	)
+
+
+	if rotation_ready:
+		sail_rotation_input = rotation_request
 
 	_process_movement(delta)
 	update_active_cannon()
 	
-	if Input.is_action_just_pressed("dropOrRaiseAnchor"): # testing
-
-		var actions = (
-			ActionBuilder.build_go_to_wheel(
-				current_crewmate
-			)
-		)
-
-		current_crewmate.action_executor.queue_actions(
-			actions
-		)
+	#if Input.is_action_just_pressed("dropOrRaiseAnchor"): # testing

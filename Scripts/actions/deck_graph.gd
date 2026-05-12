@@ -1,10 +1,10 @@
 extends RefCounted
 class_name DeckGraph
 
-const UPPER := "Upper deck"
-const MAIN := "Main deck"
-const MID := "Mid-deck"
-const LOWER := "Lower deck"
+const UPPER := "Upper Deck"
+const MAIN := "Main Deck"
+const MID := "Mid Deck"
+const LOWER := "Lower Deck"
 
 const CONNECTIONS := {
 

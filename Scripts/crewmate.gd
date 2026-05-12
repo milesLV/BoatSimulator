@@ -14,6 +14,7 @@ const RUN_SPEED := 100.0
 @onready var ship_action_points = ship.get_node("ShipActionPoints")
 
 var location: String = ""
+var requested_station := ""
 
 func set_location(new_location: String) -> void:
 

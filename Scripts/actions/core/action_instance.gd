@@ -4,15 +4,11 @@ class_name ActionInstance
 
 var definition: ActionDefinition
 
-
-var elapsed := 0.0
-var saved_progress := 0.0
-
 # Cached at creation.
 # Prevents duration changing mid-action.
 var duration := 0.0
-
-
+var elapsed := 0.0
+var saved_progress := 0.0
 var started := false
 var finished := false
 
@@ -42,6 +38,9 @@ func get_progress() -> float:
 
 
 func is_complete() -> bool:
+
+	if duration < 0.0:
+		return false
 
 	return elapsed >= duration
 

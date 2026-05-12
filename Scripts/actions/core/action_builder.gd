@@ -1,18 +1,28 @@
 extends RefCounted
 class_name ActionBuilder
 
-static func build_go_to_wheel(
-	actor
+static func build_station_control(
+	actor,
+	station_id: String,
+	target_deck: String
 ) -> Array[ActionDefinition]:
 
-	var actions = DeckGraph.build_transition_actions(
-		actor.location,
-		DeckGraph.UPPER
+	var actions = (
+		DeckGraph.build_transition_actions(
+			actor.location,
+			target_deck
+		)
 	)
 
 	actions.append(
 		GoToAction.new(
-			"Wheel"
+			station_id
+		)
+	)
+
+	actions.append(
+		StationControlAction.new(
+			station_id
 		)
 	)
 
