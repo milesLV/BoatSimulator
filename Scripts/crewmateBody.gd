@@ -42,7 +42,7 @@ func setSize(_radius):
 	radius = _radius
 
 func setLocation(_location):
-	# location can be one of "Upper deck", "Main deck", "Mid-deck", or "Lower deck"
+	# location must be one of the decks defined by DeckGraph.
 	# want to also set the transparency and size to mimic the crewmate
 	# being further away from top of ship (or larger if on Upper deck)
 	location = _location

@@ -3,26 +3,35 @@ class_name GoToAction
 
 const MOVE_SPEED := Crewmate.RUN_SPEED
 
-var point_id: String
+var point: ShipActionPoint
 var _start_position: Vector2
 var _target_position: Vector2
 
-func _init(new_point_id: String):
+func _init(
+	new_point: ShipActionPoint
+):
 
-	point_id = new_point_id
-	action_id = "go_to_%s" % point_id
-	action_location = point_id
+	point = new_point
+	action_point = point
+
+	if point == null:
+		action_id = "go_to_missing_point"
+		action_location = ""
+		return
+
+	action_id = "go_to_%s" % point.name
+	action_location = String(point.name)
 
 
 func get_duration(actor, _context := {}) -> float:
-
-	var point = actor.ship_action_points.get_point(point_id)
 
 	if point == null:
 		return 0.0
 
 	var distance = actor.position.distance_to(
-		point.position
+		point.get_position_for_actor(
+			actor
+		)
 	)
 
 	return distance / MOVE_SPEED
@@ -30,18 +39,17 @@ func get_duration(actor, _context := {}) -> float:
 
 func on_start(actor, _instance) -> void:
 
-	var point = actor.ship_action_points.get_point(point_id)
-
 	if point == null:
 		push_error(
-			"Action point not found: %s"
-			% point_id
+			"GoToAction has no action point."
 		)
 
 		return
 
 	_start_position = actor.position
-	_target_position = point.position
+	_target_position = point.get_position_for_actor(
+		actor
+	)
 
 
 func on_tick(actor, instance, _delta: float) -> void:
@@ -65,29 +73,13 @@ func on_complete(actor, _instance) -> void:
 	_update_actor_location(
 		actor
 	)
+
+
 func _update_actor_location(actor) -> void:
 
-	if not point_id.contains("2"):
-		print(point_id)
+	if point == null:
 		return
 
-	var parts = point_id.split("2")
-
-	if parts.size() != 2:
-		return
-
-	var from_deck = parts[0]
-	var to_deck = parts[1].trim_suffix("Bottom")
-
-	if point_id.ends_with("Top"):
-
-		actor.set_location(
-			from_deck + " Deck"
-		)
-
-
-	elif point_id.ends_with("Bottom"):
-
-		actor.set_location(
-			to_deck + " Deck"
-		)
+	actor.set_location(
+		point.deck
+	)

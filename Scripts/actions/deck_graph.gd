@@ -1,42 +1,48 @@
 extends RefCounted
 class_name DeckGraph
 
-const UPPER := "Upper Deck"
-const MAIN := "Main Deck"
-const MID := "Mid Deck"
-const LOWER := "Lower Deck"
+enum DECKS {UPPER, MAIN, MID, LOWER}
 
-const CONNECTIONS := {
+static func is_valid_deck(
+	deck: int
+) -> bool:
 
-	UPPER: {
-		MAIN: "Upper2Main"
-	},
+	return DECKS.values().has(
+		deck
+	)
 
-	MAIN: {
-		UPPER: "Main2Upper",
-		MID: "Main2Mid"
-	},
 
-	MID: {
-		MAIN: "Main2Mid",
-		LOWER: "Mid2Lower"
-	},
+static func get_deck_name(
+	deck: int
+) -> String:
 
-	LOWER: {
-		MID: "Mid2Lower"
-	}
-}
+	var deck_key = DECKS.find_key(
+		deck
+	)
+
+	if deck_key == null:
+		return "Unknown Deck"
+
+	return "%s Deck" % String(deck_key).capitalize()
+
 
 static func get_transition_path(
-	start_deck: String,
-	target_deck: String
-) -> Array[String]:
+	connections: Dictionary,
+	start_deck: int,
+	target_deck: int
+) -> Array[int]:
 
-	if start_deck == target_deck:
+	if (
+		not is_valid_deck(start_deck)
+		or not is_valid_deck(target_deck)
+	):
 		return []
 
+	if start_deck == target_deck:
+		return [start_deck]
 
-	# Godot doesn't support Array[Array[String]]
+
+	# Godot doesn't support nested typed arrays.
 	var queue := []
 
 	queue.append(
@@ -58,7 +64,7 @@ static func get_transition_path(
 
 		if current == target_deck:
 
-			var result: Array[String] = []
+			var result: Array[int] = []
 
 			for deck in path:
 				result.append(deck)
@@ -66,13 +72,13 @@ static func get_transition_path(
 			return result
 
 
-		var neighbors = CONNECTIONS.get(
+		var neighbors = connections.get(
 			current,
 			{}
 		)
 
 
-		for neighbor in neighbors:
+		for neighbor in neighbors.keys():
 
 			if visited.has(
 				neighbor
@@ -99,99 +105,3 @@ static func get_transition_path(
 			)
 
 	return []
-
-static func build_transition_actions(
-	start_deck: String,
-	target_deck: String
-) -> Array[ActionDefinition]:
-
-	var deck_path = get_transition_path(
-		start_deck,
-		target_deck
-	)
-
-	if deck_path.size() <= 1:
-		return []
-
-
-	var actions: Array[ActionDefinition] = []
-
-
-	for i in range(
-		deck_path.size() - 1
-	):
-
-		var from_deck = deck_path[i]
-
-		var to_deck = deck_path[i + 1]
-
-
-		var transition = CONNECTIONS[
-			from_deck
-		][
-			to_deck
-		]
-
-
-		var going_up = (
-			_get_level(
-				to_deck
-			)
-			>
-			_get_level(
-				from_deck
-			)
-		)
-
-
-		if going_up:
-
-			actions.append(
-				GoToAction.new(
-					transition + "Bottom"
-				)
-			)
-
-			actions.append(
-				GoToAction.new(
-					transition + "Top"
-				)
-			)
-
-		else:
-
-			actions.append(
-				GoToAction.new(
-					transition + "Top"
-				)
-			)
-
-			actions.append(
-				GoToAction.new(
-					transition + "Bottom"
-				)
-			)
-
-
-	return actions
-
-static func _get_level(
-	deck: String
-) -> int:
-
-	match deck:
-
-		LOWER:
-			return 0
-
-		MID:
-			return 1
-
-		MAIN:
-			return 2
-
-		UPPER:
-			return 3
-
-
-	return -1

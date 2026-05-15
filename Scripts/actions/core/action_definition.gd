@@ -7,8 +7,7 @@ signal completed(context)
 
 @export var action_id: String = ""
 
-# Name of action point in ShipActionPoints
-# Example: "Wheel", "PatchHull", "Anchor"
+var action_point: ShipActionPoint = null
 @export var action_location: String = ""
 
 @export var base_duration: float = 0.0

@@ -26,6 +26,16 @@ rotation = -1.5707964
 position = Vector2(33, 20)
 rotation = 1.5707964
 
+[node name="ShipActionPoints" parent="." unique_id=826780228 instance=ExtResource("5_0lvl8")]
+
+[node name="Balcony" type="Line2D" parent="." unique_id=343976970]
+position = Vector2(-25, -29.223213)
+scale = Vector2(1, 0.8869047)
+points = PackedVector2Array(0, 0, 0, 29.89655, 0, 54.372486)
+closed = true
+width = 1.5
+default_color = Color(0.27450982, 0.21568628, 0.34509805, 1)
+
 [node name="WhiteThingEnd" type="Line2D" parent="." unique_id=939732002]
 position = Vector2(-76, -29.963017)
 scale = Vector2(1, 1.0727043)
@@ -33,13 +43,11 @@ points = PackedVector2Array(0, 0, 0, 54)
 closed = true
 width = 1.5
 
-[node name="Balcony" type="Line2D" parent="." unique_id=343976970]
-position = Vector2(-25, -29.223213)
-scale = Vector2(1, 0.8869047)
-points = PackedVector2Array(0, 0, 0, 29.89655, 0, 54)
-closed = true
-width = 1.5
-default_color = Color(0.27450982, 0.21568628, 0.34509805, 1)
+[node name="Helmsman" parent="." unique_id=1506136118 instance=ExtResource("4_hk5xy")]
+position = Vector2(-32, 0)
+
+[node name="Cannoneer" parent="." unique_id=1412420956 instance=ExtResource("4_hk5xy")]
+position = Vector2(19, 0)
 
 [node name="Sail" type="Sprite2D" parent="." unique_id=1208718911]
 position = Vector2(-6, 0.069999695)
@@ -48,11 +56,3 @@ scale = Vector2(1.11, 1.11)
 texture = ExtResource("2_rxto3")
 centered = false
 offset = Vector2(-37, -31)
-
-[node name="Helmsman" parent="." unique_id=1506136118 instance=ExtResource("4_hk5xy")]
-position = Vector2(-32, 0)
-
-[node name="Cannoneer" parent="." unique_id=1412420956 instance=ExtResource("4_hk5xy")]
-position = Vector2(19, 0)
-
-[node name="ShipActionPoints" parent="." unique_id=826780228 instance=ExtResource("5_0lvl8")]

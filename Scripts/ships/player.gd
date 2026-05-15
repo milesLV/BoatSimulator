@@ -21,8 +21,7 @@ func _physics_process(delta):
 
 	var wheel_ready = (
 		request_station_control(
-			"Wheel",
-			DeckGraph.UPPER,
+			&"Wheel",
 			wheel_request
 		)
 	)
@@ -43,8 +42,7 @@ func _physics_process(delta):
 
 	var sail_ready = (
 		request_station_control(
-			"SailLengthPort",
-			DeckGraph.UPPER,
+			&"SailLengthStarb", # TODO: make so can choose port or starboard size depending on whatever's closest
 			sail_request
 		)
 	)
@@ -65,8 +63,7 @@ func _physics_process(delta):
 
 	var rotation_ready = (
 		request_station_control(
-			"SailRotationPort",
-			DeckGraph.UPPER,
+			&"SailRotationStarb", # TODO: make so can choose port or starboard size depending on whatever's closest
 			rotation_request
 		)
 	)

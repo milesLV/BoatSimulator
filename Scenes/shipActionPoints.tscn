@@ -1,112 +1,228 @@
 [gd_scene format=3 uid="uid://c0o5nnvdif60m"]
 
-[ext_resource type="Script" uid="uid://cvflx5fm2qb7i" path="res://Scripts/actions/core/action_manager.gd" id="1_swwg1"]
+[ext_resource type="Script" uid="uid://16wvw5jsljya" path="res://Scripts/actions/station_point.gd" id="1_cnjvm"]
+[ext_resource type="Script" uid="uid://jgymkhmraq8v" path="res://Scripts/actions/ship_action_point_container.gd" id="2_5lbpi"]
+[ext_resource type="Script" uid="uid://ci0omk7rimasa" path="res://Scripts/actions/transition_deck_point.gd" id="2_b31r2"]
+[ext_resource type="Script" uid="uid://bft7j6jh68rxj" path="res://Scripts/actions/hole_point.gd" id="3_jjglc"]
+[ext_resource type="Script" uid="uid://dlsmaujtp3ish" path="res://Scripts/actions/transition_group.gd" id="4_soy2k"]
 
 [node name="shipActionPoints" type="Node2D" unique_id=826780228]
-script = ExtResource("1_swwg1")
+script = ExtResource("2_5lbpi")
 
 [node name="Wheel" type="Node2D" parent="." unique_id=1277152012]
 position = Vector2(-30, 0)
+script = ExtResource("1_cnjvm")
 
 [node name="Anchor" type="Node2D" parent="." unique_id=549389154]
 position = Vector2(-64, 1)
+script = ExtResource("1_cnjvm")
 
 [node name="SailRotationPort" type="Node2D" parent="." unique_id=258674217]
 position = Vector2(-73, -29)
+script = ExtResource("1_cnjvm")
 
 [node name="SailRotationStarb" type="Node2D" parent="." unique_id=995148771]
 position = Vector2(-74, 29)
+script = ExtResource("1_cnjvm")
 
 [node name="SailLengthPort" type="Node2D" parent="." unique_id=1747713199]
 position = Vector2(-59, -29)
+script = ExtResource("1_cnjvm")
 
 [node name="SailLengthStarb" type="Node2D" parent="." unique_id=1174625409]
 position = Vector2(-60, 29)
-
-[node name="Mast" type="Node2D" parent="." unique_id=1623574279]
-position = Vector2(0, 0.069999695)
-rotation = 1.5707964
+script = ExtResource("1_cnjvm")
 
 [node name="WaterThrowSpot" type="Node2D" parent="." unique_id=1527271881]
 position = Vector2(-34, 25)
+script = ExtResource("1_cnjvm")
+deck = 1
 
 [node name="BucketLD" type="Node2D" parent="." unique_id=940617351]
 position = Vector2(-16, 24)
+script = ExtResource("1_cnjvm")
+deck = 3
 
-[node name="Upper2MainTop" type="Node2D" parent="." unique_id=1554154436]
-position = Vector2(-26, -5)
+[node name="AirsUpper2Main" type="ColorRect" parent="." unique_id=1543027597]
+offset_left = -26.0
+offset_top = -5.0
+offset_right = -19.0
+offset_bottom = -5.0
+color = Color(0.57254905, 0.30588236, 0.25882354, 1)
+script = ExtResource("4_soy2k")
+to_deck = 1
+bidirectional = false
 
-[node name="Upper2MainBottom" type="Node2D" parent="." unique_id=718866033]
-position = Vector2(-19, -5)
+[node name="Upper2MainTop" type="Node2D" parent="AirsUpper2Main" unique_id=1554154436]
+script = ExtResource("2_b31r2")
 
-[node name="Main2UpperTop" type="Node2D" parent="." unique_id=2144307238]
-position = Vector2(-26, 23)
+[node name="Upper2MainBottom" type="Node2D" parent="AirsUpper2Main" unique_id=718866033]
+position = Vector2(7, 0)
+script = ExtResource("2_b31r2")
+deck = 1
 
-[node name="Main2UpperBottom" type="Node2D" parent="." unique_id=263497758]
-position = Vector2(-12, 23)
+[node name="StairsMain2Upper" type="ColorRect" parent="." unique_id=647290471]
+offset_left = -26.0
+offset_top = 19.0
+offset_right = -12.0
+offset_bottom = 27.0
+color = Color(0.57254905, 0.30588236, 0.25882354, 1)
+script = ExtResource("4_soy2k")
+from_deck = 1
 
-[node name="Main2MidTop" type="Node2D" parent="." unique_id=755361144]
-position = Vector2(-12, 0)
+[node name="Main2UpperTop" type="Node2D" parent="StairsMain2Upper" unique_id=2144307238]
+position = Vector2(0, 4)
+script = ExtResource("2_b31r2")
 
-[node name="Main2MidBottom" type="Node2D" parent="." unique_id=1777451013]
-position = Vector2(-27, 0)
+[node name="Main2UpperBottom" type="Node2D" parent="StairsMain2Upper" unique_id=263497758]
+position = Vector2(14, 4)
+script = ExtResource("2_b31r2")
+deck = 1
 
-[node name="Mid2LowerTop" type="Node2D" parent="." unique_id=1853377769]
-position = Vector2(-26, 24)
+[node name="StairsMain2Mid" type="ColorRect" parent="." unique_id=1930076578]
+offset_left = -25.0
+offset_top = -3.0
+offset_right = -12.0
+offset_bottom = 3.0
+color = Color(0.57254905, 0.30588236, 0.25882354, 1)
+script = ExtResource("4_soy2k")
+from_deck = 1
+to_deck = 2
 
-[node name="Mid2LowerBottom" type="Node2D" parent="." unique_id=328460940]
-position = Vector2(-16, 24)
+[node name="Main2MidTop" type="Node2D" parent="StairsMain2Mid" unique_id=755361144]
+position = Vector2(13, 3)
+script = ExtResource("2_b31r2")
+deck = 1
+
+[node name="Main2MidBottom" type="Node2D" parent="StairsMain2Mid" unique_id=1777451013]
+position = Vector2(0, 3)
+script = ExtResource("2_b31r2")
+deck = 2
+
+[node name="StairsMid2Lower" type="ColorRect" parent="." unique_id=1093254988]
+offset_left = -26.0
+offset_top = 22.0
+offset_right = -16.0
+offset_bottom = 26.0
+color = Color(0.57254905, 0.30588236, 0.25882354, 1)
+script = ExtResource("4_soy2k")
+from_deck = 2
+to_deck = 3
+
+[node name="Mid2LowerTop" type="Node2D" parent="StairsMid2Lower" unique_id=1853377769]
+position = Vector2(0, 2)
+script = ExtResource("2_b31r2")
+deck = 2
+
+[node name="Mid2LowerBottom" type="Node2D" parent="StairsMid2Lower" unique_id=328460940]
+position = Vector2(10, 2)
+script = ExtResource("2_b31r2")
+deck = 3
+
+[node name="MastHole1" type="Node2D" parent="." unique_id=1623574279]
+position = Vector2(0, 0.069999695)
+rotation = 1.5707964
+script = ExtResource("3_jjglc")
+deck = 1
+
+[node name="MastHole2" type="Node2D" parent="." unique_id=240302692]
+position = Vector2(-0.069999695, 0.069999695)
+rotation = -3.1415925
+script = ExtResource("3_jjglc")
+deck = 1
+
+[node name="MastHole3" type="Node2D" parent="." unique_id=685284260]
+position = Vector2(-0.06999969, 0)
+rotation = -1.5707963
+script = ExtResource("3_jjglc")
+deck = 1
 
 [node name="HolePort1" type="Node2D" parent="." unique_id=2117893932]
 position = Vector2(-120, -11)
+script = ExtResource("3_jjglc")
+deck = 3
 
 [node name="HolePort2" type="Node2D" parent="." unique_id=968727177]
 position = Vector2(-107, -25)
+script = ExtResource("3_jjglc")
+deck = 3
 
 [node name="HolePort3" type="Node2D" parent="." unique_id=1488942488]
 position = Vector2(-89, -27)
+script = ExtResource("3_jjglc")
+deck = 3
 
 [node name="HolePort4" type="Node2D" parent="." unique_id=1144231039]
 position = Vector2(-63, -27)
+script = ExtResource("3_jjglc")
+deck = 3
 
 [node name="HolePort5" type="Node2D" parent="." unique_id=71173118]
 position = Vector2(-42, -28)
+script = ExtResource("3_jjglc")
+deck = 3
 
 [node name="HolePort6" type="Node2D" parent="." unique_id=1240173887]
 position = Vector2(-32, -28)
+script = ExtResource("3_jjglc")
+deck = 3
 
 [node name="HolePort7" type="Node2D" parent="." unique_id=301704671]
 position = Vector2(4, -16)
+script = ExtResource("3_jjglc")
+deck = 3
 
 [node name="HolePort8" type="Node2D" parent="." unique_id=623495143]
 position = Vector2(67, -20)
+script = ExtResource("3_jjglc")
+deck = 3
 
-[node name="HoleStarbourd1" type="Node2D" parent="." unique_id=1378267736]
+[node name="HoleStarb1" type="Node2D" parent="." unique_id=1378267736]
 position = Vector2(-120, 9)
+script = ExtResource("3_jjglc")
+deck = 3
 
-[node name="HoleStarbourd2" type="Node2D" parent="." unique_id=1934910862]
+[node name="HoleStarb2" type="Node2D" parent="." unique_id=1934910862]
 position = Vector2(-107, 25)
+script = ExtResource("3_jjglc")
+deck = 3
 
-[node name="HoleStarbourd3" type="Node2D" parent="." unique_id=145154696]
+[node name="HoleStarb3" type="Node2D" parent="." unique_id=145154696]
 position = Vector2(-89, 27)
+script = ExtResource("3_jjglc")
+deck = 3
 
-[node name="HoleStarbourd4" type="Node2D" parent="." unique_id=148968436]
+[node name="HoleStarb4" type="Node2D" parent="." unique_id=148968436]
 position = Vector2(-63, 27)
+script = ExtResource("3_jjglc")
+deck = 3
 
-[node name="HoleStarbourd5" type="Node2D" parent="." unique_id=1438123267]
+[node name="HoleStarb5" type="Node2D" parent="." unique_id=1438123267]
 position = Vector2(-45, 28)
+script = ExtResource("3_jjglc")
+deck = 3
 
-[node name="HoleStarbourd6" type="Node2D" parent="." unique_id=1148850925]
+[node name="HoleStarb6" type="Node2D" parent="." unique_id=1148850925]
 position = Vector2(-28, 28)
+script = ExtResource("3_jjglc")
+deck = 3
 
-[node name="HoleStarbourd7" type="Node2D" parent="." unique_id=1009877056]
+[node name="HoleStarb7" type="Node2D" parent="." unique_id=1009877056]
 position = Vector2(-12, 28)
+script = ExtResource("3_jjglc")
+deck = 3
 
-[node name="HoleStarbourd8" type="Node2D" parent="." unique_id=1728718607]
+[node name="HoleStarb8" type="Node2D" parent="." unique_id=1728718607]
 position = Vector2(4, 28)
+script = ExtResource("3_jjglc")
+deck = 3
 
-[node name="HoleStarbourd9" type="Node2D" parent="." unique_id=1964018395]
+[node name="HoleStarb9" type="Node2D" parent="." unique_id=1964018395]
 position = Vector2(67, 20)
+script = ExtResource("3_jjglc")
+deck = 3
 
 [node name="HoleBow" type="Node2D" parent="." unique_id=854267742]
 position = Vector2(80, 0)
+script = ExtResource("3_jjglc")
+deck = 3

@@ -4,6 +4,7 @@ extends CharacterBody2D
 @onready var sail = $Sail
 @onready var helmsman = $Helmsman
 @onready var cannoneer = $Cannoneer
+@onready var action_points: ShipActionPointContainer = $ShipActionPoints
 @onready var cannons = get_children().filter(func(n): return n is Cannon)
 
 const MAX_WHEEL_TURN := 2 * TAU
@@ -67,7 +68,7 @@ func _physics_process(delta):
 
 func _process_movement(delta):
 	# WHEEL CONTROL
-	if get_operator("Wheel") != null:
+	if get_operator_by_name(&"Wheel") != null:
 
 		wheel_rotation += (
 			turn_input
@@ -153,11 +154,11 @@ func update_active_cannon():
 func _initialize_crewmates() -> void:
 
 	helmsman.set_location(
-		DeckGraph.UPPER
+		DeckGraph.DECKS.UPPER
 	)
 
 	cannoneer.set_location(
-		DeckGraph.MAIN
+		DeckGraph.DECKS.MAIN
 	)
 
 func _change_crewmate() -> void:
@@ -175,36 +176,76 @@ func _change_crewmate() -> void:
 		current_crewmate.name
 	)
 
-func has_operator(station_id: String) -> bool: # if crewmate crankin' it
-	return station_operators.has(station_id)
+func has_operator(station: StationPoint) -> bool: # if crewmate crankin' it
+
+	return (
+		station != null
+		and station_operators.has(station)
+	)
 
 
-func get_operator(station_id: String) -> Crewmate:
-	return station_operators.get(station_id)
+func get_operator(station: StationPoint) -> Crewmate:
+
+	if station == null:
+		return null
+
+	return station_operators.get(station)
+
+
+func get_operator_by_name(
+	station_name: StringName
+) -> Crewmate:
+
+	return get_operator(
+		get_station(
+			station_name
+		)
+	)
+
+
+func get_station(
+	station_name: StringName
+) -> StationPoint:
+
+	return action_points.get_station(
+		station_name
+	)
 
 
 func set_operator(
-	station_id: String,
+	station: StationPoint,
 	crewmate: Crewmate
 ) -> void:
 
-	station_operators[station_id] = crewmate
+	if station == null:
+		return
+
+	station_operators[station] = crewmate
 
 
 func clear_operator(
-	station_id: String
+	station: StationPoint
 ) -> void:
 
-	station_operators.erase(station_id)
+	if station == null:
+		return
+
+	station_operators.erase(station)
 
 func request_station_control(
-	station_id: String,
-	operator_deck: String,
+	station_name: StringName,
 	requested_input: float
 ) -> bool:
 
+	var station = get_station(
+		station_name
+	)
+
+	if station == null:
+		return false
+
 	var operator = get_operator(
-		station_id
+		station
 	)
 
 	# Already occupied.
@@ -217,8 +258,16 @@ func request_station_control(
 	
 	if (
 		current_crewmate.requested_station
-		== station_id
+		== station
 	):
+		return false
+
+	var actions = ActionBuilder.build_station_control(
+		current_crewmate,
+		station
+	)
+
+	if actions.is_empty():
 		return false
 
 	# Preempt current station.
@@ -231,14 +280,9 @@ func request_station_control(
 
 		current_crewmate.action_executor.clear_queue()
 
-	current_crewmate.requested_station = station_id
+	current_crewmate.requested_station = station
 	current_crewmate.action_executor.queue_actions(
-		ActionBuilder.build_station_control(
-			current_crewmate,
-			station_id,
-			operator_deck
-		)
+		actions
 	)
-
 
 	return false
