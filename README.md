@@ -27,41 +27,41 @@ Since this is a simulation of a game, there are some tweaks that are made to mak
 ### Actions
 
 \*~~Strike-through~~ means not implemented
-| Location | Rate | Source | Can Other Actions be Done During it? | Is Progress Retained When Cancelled Halfway of action starting to being 100% finished (i.e. water barrel being all the way empty to full, sails being all the way up to down)? |
-| --- | --- | --- | --- | --- |
-| Upper deck | {From center to extreme} 3.041 seconds; 118.38º/sec | Testing in-game | No | Left at exact state |
-| ~~Upper deck~~ | {Single} 4s; {All} 16s | Testing in-game | ~~No~~ | ~~Not saved~~ |
-| Upper deck | {From 0 to 100%} 2s; 50%/sec | Testing in-game | No | Left at exact state |
-| Upper deck | {(Avg.) from 100% to 0%} 7; = -14.3%/sec | Testing in-game | No | Left at exact state |
-| Upper deck | {From extreme to extreme} 7.5 | Testing in-game | No | Left at exact state |
-| Upper deck | 10s; 10%/s (REDO WHILE HOLDING A OR D) | Testing in-game | No | Partially {depletes at} /second |
-| Upper deck | {Anchor prompt} 0.5 seconds; {Anchor dropping} 3.6 seconds; -180º/s | Testing in-game | Yes | No |
-| Upper deck | 8s | Testing in-game | No | Partially {depletes at} 27.7% /second |
-| ~~Upper deck~~ | 4s | Testing in-game | ~~No~~ | ~~Not saved~~ |
-| Main deck | {Reload} 1.6s; {Fire} 0.4s | Sea of Thieves Youtube Video analysis | No | Partially, have to have it loaded to save progress |
-| Main deck | {Single} 4s; {All} 12s | Testing in-game | No | Partially, have to patch at least 1-2 holes to save progress |
-| ~~Main deckk~~ |  |  | ~~No~~ | ~~Complete in 1-shot~~ |
-| ~~Main deck~~ |  |  | ~~No~~ | ~~Left at exact state~~ |
-| ~~Main deck~~ |  |  | ~~No~~ | ~~Complete in 1-shot (see feature #7 above)~~ |
-| Mid / lower deck | {Collect water} 1s; {Throw} 0.8s (REDO WHILE SPAMMING) | Testing in-game | No | Partially, have to collect water |
-| ~~Mid-deck~~ |  |  | ~~No~~ | ~~Complete in 1-shot~~ |
-| ~~Mid-deck~~ |  |  | ~~No~~ | ~~Not saved~~ |
-| ~~Mid-deck~~ |  |  | ~~No~~ | ~~Not saved~~ |
-| Mid / lower deck | time = tierNumber + 1s | Youtube video | No | Not saved |
-| ~~Lower deck~~ |  |  | ~~No~~ | Not saved |
-| ~~Lower deck~~ |  |  | ~~No~~ | Partially |
-| ~~Lower deck~~ |  |  | ~~No~~ | ~~Complete in 1-shot (see feature #7 above)~~ |
-| ~~Lower deck~~ |  |  | ~~No~~ | ~~Complete in 1-shot (see feature #7 above)~~ |
-| ~~Lower deck~~ |  |  | ~~No~~ | ~~Partially~~ |
-| ~~Lower deck~~ |  |  | ~~Yes~~ | ~~Partially, fish has \~10 seconds of being done to have progress saved~~ |
-| ~~Upper/main/mid/lower decks~~ |  |  | ~~No~~ | ~~Not saved~~ |
-| ~~Upper/main/mid/lower decks~~ |  |  | ~~No~~ | ~~Partially~~ |
-| ~~Upper/main/mid decks~~ |  |  | ~~No~~ | ~~Partially~~ |
-| ~~Upper/main/mid decks~~ |  |  | ~~No~~ | ~~Complete in 1-shot~~ |
-| ~~Upper/main/mid decks~~ |  |  | ~~No~~ | ~~Complete in 1-shot~~ |
-| ~~Upper (maybe main?) deck~~ |  |  | ~~No~~ | ~~No~~ |
-| ~~Upper/main/mid/lower decks~~ |  |  | ~~No~~ | ~~Partially, can damage boarder~~ |
-| ~~Upper/main/mid/lower decks~~ |  |  | ~~No~~ | ~~No~~ |
+| Action | Location | Rate | Source | Can Other Actions be Done During it? | Is Progress Retained When Cancelled Halfway of action starting to being 100% finished (i.e. water barrel being all the way empty to full, sails being all the way up to down)? |
+| --- | --- | --- | --- | --- | --- |
+| Turn wheel | Upper deck | {From center to extreme} 3.041 seconds; 118.38º/sec | Testing in-game | No | Left at exact state |
+| ~~Repair wheel (= patch all the wheel spokes)~~ | ~~Upper deck~~ | {Single} 4s; {All} 16s | Testing in-game | ~~No~~ | ~~Not saved~~ |
+| Lower sails | Upper deck | {From 0 to 100%} 2s; 50%/sec | Testing in-game | No | Left at exact state |
+| Raise sails | Upper deck | {(Avg.) from 100% to 0%} 7; = -14.3%/sec | Testing in-game | No | Left at exact state |
+| Adjust sails | Upper deck | {From extreme to extreme} 7.5 | Testing in-game | No | Left at exact state |
+| Raise mast (when fallen) | Upper deck | 10s; 10%/s (REDO WHILE HOLDING A OR D) | Testing in-game | No | Partially {depletes at} /second |
+| Drop anchor | Upper deck | {Anchor prompt} 0.5 seconds; {Anchor dropping} 3.6 seconds; -180º/s | Testing in-game | Yes | No |
+| Raise anchor | Upper deck | 8s | Testing in-game | No | Partially {depletes at} 27.7% /second |
+| ~~Repair anchor~~ | ~~Upper deck~~ | 4s | Testing in-game | ~~No~~ | ~~Not saved~~ |
+| Cannon (= reload and fire cannon) | Main deck | {Reload} 1.6s; {Fire} 0.4s | Sea of Thieves Youtube Video analysis | No | Partially, have to have it loaded to save progress |
+| Patch mast (= patch all the mast holes) | Main deck | {Single} 4s; {All} 12s | Testing in-game | No | Partially, have to patch at least 1-2 holes to save progress |
+| ~~Harpoon [player, ship, ground, loot]~~ | ~~Main deckk~~ |  |  | ~~No~~ | ~~Complete in 1-shot~~ |
+| ~~Reel in harpoon~~ | ~~Main deck~~ |  |  | ~~No~~ | ~~Left at exact state~~ |
+| ~~Access cannonball barrel~~ | ~~Main deck~~ |  |  | ~~No~~ | ~~Complete in 1-shot (see feature #7 above)~~ |
+| Bucket water (=get water and bail it) | Mid / lower deck | {Collect water} 1s; {Throw} 0.8s (REDO WHILE SPAMMING) | Testing in-game | No | Partially, have to collect water |
+| ~~Get ammo~~ | ~~Mid-deck~~ |  |  | ~~No~~ | ~~Complete in 1-shot~~ |
+| ~~Close window~~ | ~~Mid-deck~~ |  |  | ~~No~~ | ~~Not saved~~ |
+| ~~Detach rowboat~~ | ~~Mid-deck~~ |  |  | ~~No~~ | ~~Not saved~~ |
+| Patch tier n hull | Mid / lower deck | time = tierNumber + 1s | Youtube video | No | Not saved |
+| ~~Take water from water barrel~~ | ~~Lower deck~~ |  |  | ~~No~~ | Not saved |
+| ~~Refill water barrel (=pour water in repeatedly)~~ | ~~Lower deck~~ |  |  | ~~No~~ | Partially |
+| ~~Access wood barrel~~ | ~~Lower deck~~ |  |  | ~~No~~ | ~~Complete in 1-shot (see feature #7 above)~~ |
+| ~~Access food barrel~~ | ~~Lower deck~~ |  |  | ~~No~~ | ~~Complete in 1-shot (see feature #7 above)~~ |
+| ~~Sleep~~ | ~~Lower deck~~ |  |  | ~~No~~ | ~~Partially~~ |
+| ~~Cook food (=put on stove and wait until done)~~ | ~~Lower deck~~ |  |  | ~~Yes~~ | ~~Partially, fish has \~10 seconds of being done to have progress saved~~ |
+| ~~Eat food~~ | ~~Upper/main/mid/lower decks~~ |  |  | ~~No~~ | ~~Not saved~~ |
+| ~~Put out fire (= grab water from floor/barrel and throw water repeatedly)~~ | ~~Upper/main/mid/lower decks~~ |  |  | ~~No~~ | ~~Partially~~ |
+| ~~Kill skeletons (= fire weapon repeatedly)~~ | ~~Upper/main/mid decks~~ |  |  | ~~No~~ | ~~Partially~~ |
+| ~~Snipe at other crew (=fire and reload gun and get more ammo every 5)~~ | ~~Upper/main/mid decks~~ |  |  | ~~No~~ | ~~Complete in 1-shot~~ |
+| ~~Throw throwable at other crew~~ | ~~Upper/main/mid decks~~ |  |  | ~~No~~ | ~~Complete in 1-shot~~ |
+| ~~Ladder guard boarder~~ | ~~Upper (maybe main?) deck~~ |  |  | ~~No~~ | ~~No~~ |
+| ~~Kill boarder~~ | ~~Upper/main/mid/lower decks~~ |  |  | ~~No~~ | ~~Partially, can damage boarder~~ |
+| ~~Revive crewmate~~ | ~~Upper/main/mid/lower decks~~ |  |  | ~~No~~ | ~~No~~ |
 
 These are the actions that are assumed can be done by the player, along with their location and tested rate (completion by seconds). Included is the source of where the rate comes from.
 
@@ -137,8 +137,8 @@ If you have played *Sea of Thieves* before, you will know that there are a total
 -   Cannonball
 -   ~~Chainshot~~ (not implemented as of now, but later will be)
 -   ~~Cursed cannonballs~~ (*may change with future additions*)
-    -   Phantom cannonball (Implemented because functionally the same as regular ones)
-    -   ~~Flame phantom cannonball~~
+	-   Phantom cannonball (Implemented because functionally the same as regular ones)
+	-   ~~Flame phantom cannonball~~
 -   ~~Wraith ball~~ (*may change with future additions*)
 -   ~~Scattershot~~ (*may change with future additions*)
 -   ~~Hunting spear~~ (*may change with future additions*)

@@ -8,3 +8,21 @@ func register_ship(ship):
 
 func unregister_ship(ship):
 	ships.erase(ship)
+
+
+func get_player_ship() -> PlayerShip:
+
+	for ship in ships:
+
+		if ship is PlayerShip:
+			return ship
+
+	return null
+
+
+func get_other_ships(ship) -> Array:
+
+	return ships.filter(
+		func(candidate):
+			return candidate != ship
+	)

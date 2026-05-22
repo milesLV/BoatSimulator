@@ -65,6 +65,11 @@ func interrupt_current() -> void:
 	if current_action == null:
 		return
 
+	current_action.definition.apply_interrupt_policy(
+		actor,
+		current_action
+	)
+
 	current_action.definition.on_interrupt(
 		actor,
 		current_action
@@ -82,20 +87,27 @@ func clear_queue() -> void:
 	queued_actions.clear()
 
 
+func cancel_plan() -> void:
+
+	interrupt_current()
+	clear_queue()
+
+
 func get_total_remaining_time() -> float:
 
 	var total := 0.0
 
 	if current_action != null:
 
-		total += (
-			current_action.duration
-			- current_action.elapsed
+		total += current_action.get_remaining_time(
+			actor
 		)
 
 	for action in queued_actions:
 
-		total += action.duration
+		total += action.get_remaining_time(
+			actor
+		)
 
 	return total
 
@@ -163,7 +175,9 @@ func _start_next_action() -> void:
 	)
 
 
-	current_action.started = true
+	current_action.begin(
+		actor
+	)
 
 
 	current_action.definition.on_start(

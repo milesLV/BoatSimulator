@@ -13,3 +13,6 @@ script = ExtResource("2_g6ed3")
 rotation = 1.5707964
 scale = Vector2(1.23, 1.23)
 texture = ExtResource("3_afpow")
+
+[node name="SloopCollision" parent="." index="1" unique_id=1725303819]
+polygon = PackedVector2Array(96, 0, 86, -56, 35, -155, -1.1380035e-05, -260.34485, -34, -155, -92, -61, -102, 1, -98, 61, -91, 122, -87, 181, -56, 242, -1, 258, 51, 240, 79, 183, 78, 124, 90, 60)

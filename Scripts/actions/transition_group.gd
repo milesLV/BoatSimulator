@@ -5,4 +5,7 @@ extends ColorRect
 @export var to_deck: DeckGraph.DECKS
 @export var bidirectional := true
 
-var stairColor = Color("#924e42")
+const STAIR_COLOR = Color("#924e42")
+
+func _ready() -> void:
+	color = STAIR_COLOR

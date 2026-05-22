@@ -51,7 +51,6 @@ offset_bottom = -5.0
 color = Color(0.57254905, 0.30588236, 0.25882354, 1)
 script = ExtResource("4_soy2k")
 to_deck = 1
-bidirectional = false
 
 [node name="Upper2MainTop" type="Node2D" parent="AirsUpper2Main" unique_id=1554154436]
 script = ExtResource("2_b31r2")

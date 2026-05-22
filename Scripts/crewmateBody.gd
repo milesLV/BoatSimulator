@@ -8,10 +8,12 @@ const OUTLINE_WIDTH := 1
 var radius := 7.5
 var location = null
 
-func _ready():
+func _ready() -> void:
+
 	queue_redraw()
 
-func _draw():
+func _draw() -> void:
+
 	# Fill
 	draw_circle(Vector2.ZERO, radius, fill_color)
 	
@@ -26,23 +28,67 @@ func _draw():
 		OUTLINE_WIDTH
 	)
 
-func setColor(color):
+func set_color(color: Color) -> void:
+
 	#* 4 colors:
 		#* Blue = one currently controlling
 		#* Green = ally / one not controlling
 		#* Red = enemy
 		#* Purple = ally on other ship
 	fill_color = color
+	queue_redraw()
 
-func setSize(_radius):
-	# want to make it so when going through the transition points, 
-	# change size (Upper2Main = get a little bigger
-	# and then get smaller to simulate jumping, other 2 = linearly 
-	#going up or down in size if going up or down stairs
-	radius = _radius
+func setColor(color: Color) -> void:
 
-func setLocation(_location):
-	# location must be one of the decks defined by DeckGraph.
-	# want to also set the transparency and size to mimic the crewmate
-	# being further away from top of ship (or larger if on Upper deck)
-	location = _location
+	set_color(
+		color
+	)
+
+
+func set_size(new_radius: float) -> void:
+
+	radius = new_radius
+	queue_redraw()
+
+
+func setSize(new_radius: float) -> void:
+
+	set_size(
+		new_radius
+	)
+
+
+func set_location(new_location: int) -> void:
+
+	if not DeckGraph.is_valid_deck(
+		new_location
+	):
+		return
+
+	location = new_location
+	_apply_deck_visuals()
+	queue_redraw()
+
+
+func setLocation(new_location: int) -> void:
+
+	set_location(
+		new_location
+	)
+
+
+func _apply_deck_visuals() -> void:
+
+	match location:
+		DeckGraph.DECKS.UPPER:
+			radius = 7.5
+			modulate.a = 1.0
+		DeckGraph.DECKS.MAIN:
+			radius = 6.75
+			modulate.a = 0.85
+		DeckGraph.DECKS.MID:
+			radius = 6.0
+			modulate.a = 0.7
+		DeckGraph.DECKS.LOWER:
+			radius = 5.25
+			modulate.a = 0.55

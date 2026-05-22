@@ -1,11 +1,19 @@
 class_name Sloop
 extends CharacterBody2D
 
+@export var action_points_path: NodePath = ^"ShipActionPoints"
+
 @onready var sail = $Sail
 @onready var helmsman = $Helmsman
 @onready var cannoneer = $Cannoneer
-@onready var action_points: ShipActionPointContainer = $ShipActionPoints
+@onready var action_points: ShipActionPointContainer = get_node_or_null(
+	action_points_path
+)
 @onready var cannons = get_children().filter(func(n): return n is Cannon)
+@onready var action_planner: ShipActionPlanner
+@onready var station_controller: ShipStationController
+@onready var cannon_director: ShipCannonDirector
+
 
 const MAX_WHEEL_TURN := 2 * TAU
 const WHEEL_TURN_SPEED := 2.0
@@ -22,23 +30,56 @@ const ACCELERATION := 60.0
 var wheel_rotation := 0.0
 var sail_length := 0.0
 var current_velocity := 0.0
+var current_angular_velocity := 0.0
+var anchor_system: AnchorSystem
 
 var crewmates: Array = []
 var current_crewmate = null
 var selected_index := 0
-var station_operators := {}
 
 # Inputs
 var turn_input := 0.0
 var sail_input := 0.0
 var sail_rotation_input := 0.0
 
-var other_ships: Array = []
-var targetShip: Node = null
-
 func _ready():
 	var game_map = get_tree().current_scene
-	game_map.register_ship(self)
+
+	if action_points == null:
+		push_error(
+			"Sloop requires a ShipActionPointContainer at %s."
+			% action_points_path
+		)
+		return
+
+	anchor_system = AnchorSystem.new(
+		self,
+		MAX_VELOCITY,
+		BOAT_TURN_SPEED
+	)
+
+	action_planner = ShipActionPlanner.new(
+		action_points
+	)
+
+	station_controller = ShipStationController.new(
+		action_points,
+		action_planner
+	)
+
+	cannon_director = ShipCannonDirector.new(
+		self,
+		cannons
+	)
+
+	if (
+		game_map != null
+		and game_map.has_method(
+			"register_ship"
+		)
+	):
+		game_map.register_ship(self)
+
 	crewmates = get_children().filter(func(n): return n is Crewmate)
 	current_crewmate = crewmates[0]
 
@@ -50,25 +91,67 @@ func _ready():
 	
 	
 	await get_tree().process_frame
-	
-	_initialize_other_ships()
-	
-	if other_ships.size() > 0:
-		targetShip = other_ships[0] # initial target
-	else:
-		targetShip = null
+
+	var target_ships: Array = []
+
+	if (
+		game_map != null
+		and game_map.has_method(
+			"get_other_ships"
+		)
+	):
+		target_ships = game_map.get_other_ships(
+			self
+		)
+	elif game_map != null:
+		var ships_property = game_map.get(
+			"ships"
+		)
+
+		if ships_property is Array:
+			target_ships = ships_property
+
+	cannon_director.refresh_targets(
+		target_ships
+	)
 
 func _exit_tree():
 	var game_map = get_tree().current_scene
-	game_map.unregister_ship(self)
+
+	if (
+		game_map != null
+		and game_map.has_method(
+			"unregister_ship"
+		)
+	):
+		game_map.unregister_ship(self)
 
 func _physics_process(delta):
 	_process_movement(delta)
 	update_active_cannon()
 
+func get_action_points() -> ShipActionPointContainer:
+
+	if action_points == null:
+		action_points = get_node_or_null(
+			action_points_path
+		)
+
+	return action_points
+
 func _process_movement(delta):
+	if anchor_system != null:
+		anchor_system.physics_process(
+			delta
+		)
+
 	# WHEEL CONTROL
-	if get_operator_by_name(&"Wheel") != null:
+	if (
+		station_controller.get_operator_by_name(
+			&"Wheel"
+		)
+		!= null
+	):
 
 		wheel_rotation += (
 			turn_input
@@ -83,12 +166,23 @@ func _process_movement(delta):
 		)
 
 
-	# SHIP ROTATION (always)
-	rotation += (
+	var target_angular_velocity = (
 		(wheel_rotation / MAX_WHEEL_TURN)
 		* BOAT_TURN_SPEED
-		* delta
 	)
+
+	if (
+		anchor_system != null
+		and anchor_system.locks_steering()
+	):
+		current_angular_velocity = anchor_system.apply_angular_velocity(
+			current_angular_velocity,
+			delta
+		)
+	else:
+		current_angular_velocity = target_angular_velocity
+
+	rotation += current_angular_velocity * delta
 
 	# SAIL CONTROL
 	sail_length += sail_input * SAIL_SPEED * delta
@@ -97,7 +191,15 @@ func _process_movement(delta):
 	# SPEED CONTROL
 	var target_velocity = (sail_length / 100.0) * MAX_VELOCITY
 
-	if current_velocity < target_velocity:
+	if (
+		anchor_system != null
+		and anchor_system.affects_ship_movement()
+	):
+		current_velocity = anchor_system.apply_velocity(
+			current_velocity,
+			delta
+		)
+	elif current_velocity < target_velocity:
 		current_velocity += ACCELERATION * delta
 	elif current_velocity > target_velocity:
 		current_velocity -= ACCELERATION * delta
@@ -116,40 +218,12 @@ func _process_movement(delta):
 		BASE_SAIL_ANGLE + MAX_SAIL_ANGLE
 	)
 
-func _initialize_other_ships():
-	var game_map = get_tree().current_scene
-	
-	other_ships.clear()
-	
-	for ship in game_map.ships:
-		if ship != self:
-			other_ships.append(ship)
-			
 func update_active_cannon():
 
-	if targetShip == null or not is_instance_valid(targetShip):
+	if cannon_director == null:
 		return
-	
-	var closest_cannon = null
-	var closest_dist = INF
 
-	for cannon in cannons:
-		var dist = cannon.global_position.distance_to(targetShip.global_position)
-		if dist < closest_dist:
-			closest_dist = dist
-			closest_cannon = cannon
-
-	#if closest_cannon != null:
-		#print("Active cannon:", closest_cannon.name)
-
-	# Assigning which cannon is closest
-	for cannon in cannons:
-		if cannon == closest_cannon:
-			cannon.is_actively_tracking = true
-			cannon.target_global = targetShip
-		else:
-			cannon.is_actively_tracking = false
-			cannon.target_global = null
+	cannon_director.update_active_cannon()
 
 func _initialize_crewmates() -> void:
 
@@ -176,113 +250,80 @@ func _change_crewmate() -> void:
 		current_crewmate.name
 	)
 
-func has_operator(station: StationPoint) -> bool: # if crewmate crankin' it
-
-	return (
-		station != null
-		and station_operators.has(station)
-	)
-
-
-func get_operator(station: StationPoint) -> Crewmate:
-
-	if station == null:
-		return null
-
-	return station_operators.get(station)
-
-
-func get_operator_by_name(
-	station_name: StringName
-) -> Crewmate:
-
-	return get_operator(
-		get_station(
-			station_name
-		)
-	)
-
-
-func get_station(
-	station_name: StringName
-) -> StationPoint:
-
-	return action_points.get_station(
-		station_name
-	)
-
-
-func set_operator(
-	station: StationPoint,
-	crewmate: Crewmate
-) -> void:
-
-	if station == null:
-		return
-
-	station_operators[station] = crewmate
-
-
-func clear_operator(
-	station: StationPoint
-) -> void:
-
-	if station == null:
-		return
-
-	station_operators.erase(station)
-
 func request_station_control(
 	station_name: StringName,
 	requested_input: float
 ) -> bool:
 
-	var station = get_station(
-		station_name
-	)
-
-	if station == null:
-		return false
-
-	var operator = get_operator(
-		station
-	)
-
-	# Already occupied.
-	if operator != null:
-		return true
-
-	# No input means no request.
-	if requested_input == 0.0:
-		return false
-	
-	if (
-		current_crewmate.requested_station
-		== station
-	):
-		return false
-
-	var actions = ActionBuilder.build_station_control(
+	return station_controller.request_station_control(
 		current_crewmate,
-		station
+		station_name,
+		requested_input
 	)
 
-	if actions.is_empty():
+
+func request_anchor_drop() -> bool:
+
+	if (
+		current_crewmate == null
+		or action_planner == null
+	):
 		return false
 
-	# Preempt current station.
+	var actions = action_planner.build_drop_anchor(
+		current_crewmate
+	)
+
+	return _queue_current_crewmate_actions(
+		actions
+	)
+
+
+func request_anchor_raise() -> bool:
+
 	if (
-		current_crewmate.action_executor.current_action
-		!= null
+		current_crewmate == null
+		or action_planner == null
 	):
+		return false
 
-		current_crewmate.action_executor.interrupt_current()
+	var actions = action_planner.build_raise_anchor(
+		current_crewmate
+	)
 
-		current_crewmate.action_executor.clear_queue()
+	return _queue_current_crewmate_actions(
+		actions
+	)
 
-	current_crewmate.requested_station = station
+
+func request_anchor_toggle() -> bool:
+
+	if anchor_system == null:
+		return false
+
+	if anchor_system.can_drop():
+		return request_anchor_drop()
+
+	if anchor_system.can_raise():
+		return request_anchor_raise()
+
+	return false
+
+
+func _queue_current_crewmate_actions(
+	actions: Array
+) -> bool:
+
+	if (
+		current_crewmate == null
+		or actions.is_empty()
+	):
+		return false
+
+	current_crewmate.requested_station = null
+	current_crewmate.action_executor.cancel_plan()
 	current_crewmate.action_executor.queue_actions(
 		actions
 	)
 
-	return false
+	return true

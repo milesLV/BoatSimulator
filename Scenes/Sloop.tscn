@@ -16,7 +16,7 @@ script = ExtResource("1_a2qv3")
 visible = false
 rotation = 1.5707964
 scale = Vector2(0.58, 0.58)
-polygon = PackedVector2Array(96, 0, 86, -56, 35, -155, -2, -273, -34, -155, -92, -61, -102, 1, -98, 61, -91, 122, -87, 181, -56, 242, -1, 258, 51, 240, 79, 183, 78, 124, 90, 60)
+polygon = PackedVector2Array(0, 260, 50, 240, 75, 180, 75, 125, 85, 60, 90, 0, 85, -55, 35, -155, 15, -208, 0, -257, -15, -208, -35, -155, -85, -55, -90, 0, -85, 60, -75, 125, -75, 180, -50, 240)
 
 [node name="CannonPort1" parent="." unique_id=639124336 instance=ExtResource("2_t7hxb")]
 position = Vector2(33, -21)
