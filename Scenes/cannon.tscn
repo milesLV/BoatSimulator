@@ -49,8 +49,3 @@ texture = ExtResource("2_5ilg3")
 
 [node name="CannonMouth" type="Marker2D" parent="CannonSprite" unique_id=939446882]
 position = Vector2(492.30762, -0.054535866)
-
-[node name="Timer" type="Timer" parent="." unique_id=1765518132]
-wait_time = 2.0
-
-[connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]

@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://c0o5nnvdif60m"]
 
 [ext_resource type="Script" uid="uid://16wvw5jsljya" path="res://Scripts/actions/station_point.gd" id="1_cnjvm"]
+[ext_resource type="Script" path="res://Scripts/actions/cannon_station_point.gd" id="1_wiifg"]
 [ext_resource type="Script" uid="uid://jgymkhmraq8v" path="res://Scripts/actions/ship_action_point_container.gd" id="2_5lbpi"]
 [ext_resource type="Script" uid="uid://ci0omk7rimasa" path="res://Scripts/actions/transition_deck_point.gd" id="2_b31r2"]
 [ext_resource type="Script" uid="uid://bft7j6jh68rxj" path="res://Scripts/actions/hole_point.gd" id="3_jjglc"]
@@ -32,6 +33,19 @@ script = ExtResource("1_cnjvm")
 [node name="SailLengthStarb" type="Node2D" parent="." unique_id=1174625409]
 position = Vector2(-60, 29)
 script = ExtResource("1_cnjvm")
+
+[node name="CannonPort1Station" type="Node2D" parent="." unique_id=2026051201]
+position = Vector2(13, -21)
+script = ExtResource("1_wiifg")
+deck = 1
+cannon_path = NodePath("../../CannonPort1")
+
+[node name="CannonStarboard1Station" type="Node2D" parent="." unique_id=1350710470]
+position = Vector2(13, 20)
+script = ExtResource("1_wiifg")
+deck = 1
+broadside = 1
+cannon_path = NodePath("../../CannonStarboard1")
 
 [node name="WaterThrowSpot" type="Node2D" parent="." unique_id=1527271881]
 position = Vector2(-34, 25)

@@ -2,7 +2,7 @@ extends TimedInteractAction
 class_name RigAnchorAction
 
 
-const RIG_DURATION := 1.0
+const RIG_DURATION := 0.5
 
 var anchor_point: ShipActionPoint
 

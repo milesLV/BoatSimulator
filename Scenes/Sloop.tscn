@@ -25,6 +25,7 @@ rotation = -1.5707964
 [node name="CannonStarboard1" parent="." unique_id=601673758 instance=ExtResource("2_t7hxb")]
 position = Vector2(33, 20)
 rotation = 1.5707964
+broadside = 1
 
 [node name="ShipActionPoints" parent="." unique_id=826780228 instance=ExtResource("5_0lvl8")]
 
@@ -45,9 +46,11 @@ width = 1.5
 
 [node name="Helmsman" parent="." unique_id=1506136118 instance=ExtResource("4_hk5xy")]
 position = Vector2(-32, 0)
+default_station_name = &"Wheel"
 
 [node name="Cannoneer" parent="." unique_id=1412420956 instance=ExtResource("4_hk5xy")]
 position = Vector2(19, 0)
+defaults_to_cannon_duty = true
 
 [node name="Sail" type="Sprite2D" parent="." unique_id=1208718911]
 position = Vector2(-6, 0.069999695)

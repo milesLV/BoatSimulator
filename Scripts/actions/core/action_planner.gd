@@ -61,6 +61,28 @@ func build_station_control(
 	return actions
 
 
+func build_cannon_station_actions(
+	actor,
+	station: CannonStationPoint
+) -> Array[ActionDefinition]:
+
+	if station == null:
+		return []
+
+	var actions = build_go_to_point(
+		actor,
+		station
+	)
+
+	actions.append(
+		ClaimStationAction.new(
+			station
+		)
+	)
+
+	return actions
+
+
 func build_drop_anchor(
 	actor
 ) -> Array[ActionDefinition]:

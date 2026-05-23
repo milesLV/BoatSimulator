@@ -13,26 +13,21 @@ enum State {
 
 const DROP_DURATION := 3.6
 const RAISE_DURATION := 8.0
+const ANCHOR_DECELERATION := 300.0
+const ANCHOR_ANGULAR_ACELERATION := 1.5
 
 var ship
 var state: State = State.RAISED
 var drop_elapsed := 0.0
 var drop_progress := 0.0
 var is_holding_ship := false
-var max_stopping_speed := 300.0
-var max_stopping_turn_speed := 1.5
 
 
 func _init(
-	new_ship,
-	new_max_stopping_speed := 300.0,
-	new_max_stopping_turn_speed := 1.5
+	new_ship
 ) -> void:
 
 	ship = new_ship
-	max_stopping_speed = new_max_stopping_speed
-	max_stopping_turn_speed = new_max_stopping_turn_speed
-
 
 func can_drop() -> bool:
 
@@ -45,6 +40,11 @@ func can_raise() -> bool:
 		state == State.DROPPING
 		or state == State.DOWN
 	)
+
+
+func is_passive_decay_active() -> bool:
+
+	return state == State.DROPPING
 
 
 func begin_rigging() -> bool:
@@ -118,6 +118,7 @@ func raise_by_delta(
 		0.0,
 		1.0
 	)
+
 	_sync_drop_elapsed_to_progress()
 
 
@@ -169,12 +170,6 @@ func physics_process(
 		1.0
 	)
 
-	print(
-		"Anchor dropping: %.0f%%" % [
-			drop_progress * 100.0
-		]
-	)
-
 	if drop_progress >= 1.0:
 		_set_state(
 			State.DOWN
@@ -223,12 +218,12 @@ func apply_angular_velocity(
 
 func _get_drop_deceleration() -> float:
 
-	return max_stopping_speed / DROP_DURATION
+	return ANCHOR_DECELERATION / DROP_DURATION
 
 
 func _get_drop_angular_deceleration() -> float:
 
-	return max_stopping_turn_speed / DROP_DURATION
+	return ANCHOR_ANGULAR_ACELERATION / DROP_DURATION
 
 
 func _sync_drop_elapsed_to_progress() -> void:

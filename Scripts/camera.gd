@@ -4,6 +4,8 @@ var follow_target: Node2D = null
 
 const ZOOM_STEP = Vector2(0.1, 0.1)
 const KEY_ZOOM_SPEED = Vector2(1.0, 1.0)
+const TRACKPAD_ZOOM_SPEED = Vector2(1.5, 1.5)
+const TRACKPAD_SCROLL_ZOOM_SPEED = Vector2(0.01, 0.01)
 const MIN_ZOOM = Vector2(0.4, 0.4)
 const MAX_ZOOM = Vector2(1.9, 1.9)
 
@@ -36,6 +38,19 @@ func _process(delta: float) -> void:
 		)
 
 func _input(event):
+	if event is InputEventMagnifyGesture:
+		# Pinching out increases the gesture factor, so invert it to match Camera2D zoom.
+		_apply_zoom(
+			TRACKPAD_ZOOM_SPEED * (1.0 - event.factor)
+		)
+		return
+
+	if event is InputEventPanGesture:
+		_apply_zoom(
+			TRACKPAD_SCROLL_ZOOM_SPEED * event.delta.y
+		)
+		return
+
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			_apply_zoom(

@@ -91,6 +91,24 @@ func clear_operator(
 	station_operators.erase(station)
 
 
+func detach_crewmate(
+	crewmate: Crewmate
+) -> bool:
+
+	var station = get_station_operated_by(
+		crewmate
+	)
+
+	if station == null:
+		return false
+
+	clear_operator(
+		station
+	)
+
+	return true
+
+
 func cancel_station_request(
 	crewmate: Crewmate
 ) -> void:
@@ -125,6 +143,12 @@ func request_station_control(
 	)
 
 	if operator != null:
+		if operator == crewmate:
+			_clear_cannon_duty_for_station_control(
+				crewmate,
+				requested_input
+			)
+
 		return operator == crewmate
 
 	if requested_input == 0.0:
@@ -141,6 +165,11 @@ func request_station_control(
 	if actions.is_empty():
 		return false
 
+	_clear_cannon_duty_for_station_control(
+		crewmate,
+		requested_input
+	)
+
 	cancel_station_request(
 		crewmate
 	)
@@ -151,3 +180,26 @@ func request_station_control(
 	)
 
 	return false
+
+
+func _clear_cannon_duty_for_station_control(
+	crewmate: Crewmate,
+	requested_input: float
+) -> void:
+
+	if requested_input == 0.0:
+		return
+
+	if (
+		crewmate == null
+		or crewmate.ship == null
+		or crewmate.ship.cannon_duty_controller == null
+	):
+		return
+
+	if not crewmate.ship.cannon_duty_controller.is_duty_crewmate(
+		crewmate
+	):
+		return
+
+	crewmate.ship.cannon_duty_controller.clear_assignment()

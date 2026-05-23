@@ -87,10 +87,22 @@ func clear_queue() -> void:
 	queued_actions.clear()
 
 
-func cancel_plan() -> void:
+func has_actions() -> bool:
+
+	return (
+		current_action != null
+		or not queued_actions.is_empty()
+	)
+
+
+func cancel_plan() -> bool:
+
+	var had_actions = has_actions()
 
 	interrupt_current()
 	clear_queue()
+
+	return had_actions
 
 
 func get_total_remaining_time() -> float:
@@ -145,47 +157,61 @@ func _physics_process(
 
 func _complete_current() -> void:
 
-	current_action.finished = true
-
-	current_action.definition.on_complete(
-		actor,
-		current_action
-	)
-
-	action_completed.emit(
-		current_action
-	)
-
-	current_action = null
+	_finish_current_action()
 
 	_start_next_action()
 
 
 func _start_next_action() -> void:
 
-	if queued_actions.is_empty():
+	while current_action == null:
 
-		queue_finished.emit()
+		if queued_actions.is_empty():
 
-		return
+			queue_finished.emit()
 
-
-	current_action = (
-		queued_actions.pop_front()
-	)
+			return
 
 
-	current_action.begin(
-		actor
-	)
+		current_action = (
+			queued_actions.pop_front()
+		)
 
 
-	current_action.definition.on_start(
+		current_action.begin(
+			actor
+		)
+
+
+		current_action.definition.on_start(
+			actor,
+			current_action
+		)
+
+
+		action_started.emit(
+			current_action
+		)
+
+		if not current_action.is_complete():
+			return
+
+		_finish_current_action()
+
+
+func _finish_current_action() -> void:
+
+	var completed_action = current_action
+
+	completed_action.finished = true
+
+	completed_action.definition.on_complete(
 		actor,
-		current_action
+		completed_action
 	)
 
-
-	action_started.emit(
-		current_action
+	action_completed.emit(
+		completed_action
 	)
+
+	current_action = null

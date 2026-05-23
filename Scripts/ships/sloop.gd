@@ -1,8 +1,7 @@
 class_name Sloop
 extends CharacterBody2D
 
-@export var action_points_path: NodePath = ^"ShipActionPoints"
-
+@onready var action_points_path: NodePath = ^"ShipActionPoints"
 @onready var sail = $Sail
 @onready var helmsman = $Helmsman
 @onready var cannoneer = $Cannoneer
@@ -13,6 +12,7 @@ extends CharacterBody2D
 @onready var action_planner: ShipActionPlanner
 @onready var station_controller: ShipStationController
 @onready var cannon_director: ShipCannonDirector
+@onready var cannon_duty_controller: ShipCannonDutyController
 
 
 const MAX_WHEEL_TURN := 2 * TAU
@@ -53,9 +53,7 @@ func _ready():
 		return
 
 	anchor_system = AnchorSystem.new(
-		self,
-		MAX_VELOCITY,
-		BOAT_TURN_SPEED
+		self
 	)
 
 	action_planner = ShipActionPlanner.new(
@@ -70,6 +68,14 @@ func _ready():
 	cannon_director = ShipCannonDirector.new(
 		self,
 		cannons
+	)
+
+	cannon_duty_controller = ShipCannonDutyController.new(
+		self,
+		action_points,
+		station_controller,
+		action_planner,
+		cannon_director
 	)
 
 	if (
@@ -223,7 +229,17 @@ func update_active_cannon():
 	if cannon_director == null:
 		return
 
-	cannon_director.update_active_cannon()
+	var tracking_enabled = (
+		cannon_duty_controller != null
+		and cannon_duty_controller.has_duty_crewmate()
+	)
+
+	cannon_director.update_active_cannon(
+		tracking_enabled
+	)
+
+	if cannon_duty_controller != null:
+		cannon_duty_controller.update()
 
 func _initialize_crewmates() -> void:
 
@@ -249,6 +265,13 @@ func _change_crewmate() -> void:
 		"Selected:",
 		current_crewmate.name
 	)
+
+
+func is_crewmate_selected(
+	_crewmate: Crewmate
+) -> bool:
+
+	return false
 
 func request_station_control(
 	station_name: StringName,
@@ -310,6 +333,70 @@ func request_anchor_toggle() -> bool:
 	return false
 
 
+func request_current_cannon_duty() -> bool:
+
+	return request_cannon_duty_for(
+		current_crewmate
+	)
+
+
+func request_cannon_duty_for(
+	crewmate: Crewmate
+) -> bool:
+
+	if (
+		crewmate == null
+		or cannon_duty_controller == null
+	):
+		return false
+
+	return cannon_duty_controller.assign_crewmate(
+		crewmate
+	)
+
+
+func request_cancel_action() -> bool:
+
+	if current_crewmate == null:
+		return false
+
+	if (
+		cannon_duty_controller != null
+		and cannon_duty_controller.is_duty_crewmate(
+			current_crewmate
+		)
+	):
+		var cleared_duty = cannon_duty_controller.clear_assignment()
+
+		if cleared_duty:
+			return true
+
+	current_crewmate.requested_station = null
+
+	if (
+		current_crewmate.action_executor != null
+		and current_crewmate.action_executor.has_actions()
+	):
+		current_crewmate.action_executor.cancel_plan()
+
+		if station_controller != null:
+			station_controller.detach_crewmate(
+				current_crewmate
+			)
+
+		return true
+
+	if station_controller != null:
+		var detached = station_controller.detach_crewmate(
+			current_crewmate
+		)
+
+		if detached:
+			return true
+
+	return _request_passive_decay_cancel()
+
+
 func _queue_current_crewmate_actions(
 	actions: Array
 ) -> bool:
@@ -320,6 +407,8 @@ func _queue_current_crewmate_actions(
 	):
 		return false
 
+	_clear_cannon_duty_for_current_crewmate()
+
 	current_crewmate.requested_station = null
 	current_crewmate.action_executor.cancel_plan()
 	current_crewmate.action_executor.queue_actions(
@@ -327,3 +416,28 @@ func _queue_current_crewmate_actions(
 	)
 
 	return true
+
+
+func _request_passive_decay_cancel() -> bool:
+
+	if (
+		anchor_system != null
+		and anchor_system.is_passive_decay_active()
+	):
+		return request_anchor_raise()
+
+	return false
+
+
+func _clear_cannon_duty_for_current_crewmate() -> void:
+
+	if (
+		current_crewmate == null
+		or cannon_duty_controller == null
+		or not cannon_duty_controller.is_duty_crewmate(
+			current_crewmate
+		)
+	):
+		return
+
+	cannon_duty_controller.clear_assignment()

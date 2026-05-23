@@ -11,16 +11,18 @@ const MAX_ANGLE = deg_to_rad(45)
 const ROTATION_SPEED = deg_to_rad(18) # 18 degrees/sec
 const FIRE_ANGLE_TOLERANCE = deg_to_rad(2) # won't fire until cannon lined up with target with this error
 
+@export var broadside: CannonSide.Value
+
 var max_range := 0.0
 var range_step := 0.0
 
-var ready_to_fire = true
+var loaded := true
 var current_target = null
 var current_range = -1
 var last_direction_aimed: Vector2 = Vector2.ZERO
 
-var is_actively_tracking := false
-var target_global: Node = null
+var tracking_enabled := false
+var tracking_target: Node = null
 
 func _ready():
 	await get_tree().process_frame
@@ -28,6 +30,11 @@ func _ready():
 	range_step = max_range / 3.0
 
 func _physics_process(delta):
+	if not tracking_enabled:
+		current_target = null
+		current_range = -1
+		return
+
 	var bodies = range_area.get_overlapping_bodies()
 
 	current_target = null
@@ -38,7 +45,7 @@ func _physics_process(delta):
 		var closest_dist = INF
 		
 		for body in bodies:
-			if body == get_parent().get_parent():
+			if body == get_parent():
 				continue
 			if not is_in_arc(body.global_position):
 				continue
@@ -52,30 +59,30 @@ func _physics_process(delta):
 		if current_target != null:
 			current_range = get_range(closest_dist)
 
-	# fallback to external tracking (UNCHANGED)
-	if current_target == null:
-		if not is_actively_tracking or target_global == null or not is_instance_valid(target_global):
-			return
+	if current_target != null:
+		var shooter_position = global_position
+		var target_position = current_target.global_position
+		var target_velocity = get_target_velocity(current_target)
 
-		aim_at_position(target_global.global_position, delta)
+		var intercept_position = calculate_intercept_position(
+			shooter_position,
+			target_position,
+			target_velocity,
+			500.0
+		)
+
+		aim_at_position(intercept_position, delta)
 		return
 
-	# intercept + fire (UNCHANGED)
-	var shooter_position = global_position
-	var target_position = current_target.global_position
-	var target_velocity = get_target_velocity(current_target)
+	if current_target == null:
+		if (
+			tracking_target == null
+			or not is_instance_valid(tracking_target)
+		):
+			return
 
-	var intercept_position = calculate_intercept_position(
-		shooter_position,
-		target_position,
-		target_velocity,
-		500.0
-	)
-
-	aim_at_position(intercept_position, delta)
-
-	if ready_to_fire and current_range != -1 and is_aligned():
-		shoot()
+		aim_at_position(tracking_target.global_position, delta)
+		return
 
 func is_in_arc(target_pos: Vector2) -> bool:
 	var forward = Vector2.RIGHT.rotated(global_rotation)
@@ -143,13 +150,55 @@ func get_target_velocity(target: Node) -> Vector2:
 	print("Target doesnt have velocity!")
 	return Vector2.ZERO
 
-func shoot():
-	if current_target == null or not is_instance_valid(current_target) or not ready_to_fire or not is_aligned():
-		return
-	
-	ready_to_fire = false
-	$Timer.start()
-	
+func set_tracking_enabled(
+	enabled: bool
+) -> void:
+
+	tracking_enabled = enabled
+
+
+func set_tracking_target(
+	target_or_null: Node
+) -> void:
+
+	tracking_target = target_or_null
+
+
+func is_loaded() -> bool:
+
+	return loaded
+
+
+func begin_unloaded() -> void:
+
+	loaded = false
+
+
+func finish_reload() -> void:
+
+	loaded = true
+
+
+func can_fire_now() -> bool:
+
+	return (
+		loaded
+		and current_target != null
+		and is_instance_valid(
+			current_target
+		)
+		and current_range != -1
+		and is_aligned()
+	)
+
+
+func fire() -> bool:
+
+	if not can_fire_now():
+		return false
+
+	begin_unloaded()
+
 	var new_cannonball = CANNONBALL.instantiate()
 
 	cannon_mouth.add_child(new_cannonball)
@@ -158,8 +207,7 @@ func shoot():
 
 	new_cannonball.setup(get_parent(), get_max_range())
 
-func _on_timer_timeout():
-	ready_to_fire = true
+	return true
 	
 func is_aligned() -> bool:
 	if last_direction_aimed == Vector2.ZERO:

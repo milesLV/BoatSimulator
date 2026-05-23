@@ -4,6 +4,10 @@ extends Node2D
 signal location_changed(deck)
 
 const RUN_SPEED := 100.0
+const DEFAULT_ACTION_IDLE_DELAY := 3.0
+
+@export var default_station_name: StringName
+@export var defaults_to_cannon_duty := false
 
 @onready var action_executor = $ActionExecutor
 @onready var ship = get_parent()
@@ -14,6 +18,7 @@ const RUN_SPEED := 100.0
 
 var location := -1
 var requested_station: StationPoint = null
+var _idle_time := 0.0
 
 func _ready() -> void:
 
@@ -23,6 +28,29 @@ func _ready() -> void:
 		location_changed.connect(
 			body.set_location
 		)
+
+	call_deferred(
+		"_apply_startup_default_action"
+	)
+
+func _physics_process(
+	delta: float
+) -> void:
+
+	if not _can_run_default_action():
+		_idle_time = 0.0
+		return
+
+	_idle_time += delta
+
+	if _idle_time < DEFAULT_ACTION_IDLE_DELAY:
+		return
+
+	if _default_action_is_satisfied():
+		return
+
+	_request_default_action()
+	_idle_time = 0.0
 
 
 func set_location(
@@ -55,3 +83,107 @@ func is_on_deck(
 ) -> bool:
 
 	return location == deck_id
+
+
+func _can_run_default_action() -> bool:
+
+	if ship == null:
+		return false
+
+	if not _has_default_action():
+		return false
+
+	if (
+		action_executor != null
+		and action_executor.has_actions()
+	):
+		return false
+
+	if ship.has_method(
+		"is_crewmate_selected"
+	) and ship.is_crewmate_selected(self):
+		return false
+
+	return true
+
+
+func _has_default_action() -> bool:
+
+	return (
+		default_station_name != StringName()
+		or defaults_to_cannon_duty
+	)
+
+
+func _default_action_is_satisfied() -> bool:
+
+	if defaults_to_cannon_duty:
+		if (
+			ship != null
+			and ship.cannon_duty_controller != null
+			and ship.cannon_duty_controller.is_duty_crewmate(
+				self
+			)
+		):
+			return true
+
+	if default_station_name != StringName():
+		if (
+			ship != null
+			and ship.station_controller != null
+			and ship.station_controller.get_operator_by_name(
+				default_station_name
+			) == self
+		):
+			return true
+
+	return false
+
+
+func _apply_startup_default_action() -> void:
+
+	await get_tree().process_frame
+
+	if not _has_default_action():
+		return
+
+	if _default_action_is_satisfied():
+		return
+
+	_request_default_action(
+		true
+	)
+	_idle_time = 0.0
+
+
+func _request_default_action(
+	_ignore_selected := false
+) -> void:
+
+	if ship == null:
+		return
+
+	if (
+		not _ignore_selected
+		and ship.has_method(
+			"is_crewmate_selected"
+		)
+		and ship.is_crewmate_selected(self)
+	):
+		return
+
+	if defaults_to_cannon_duty:
+		if ship.has_method(
+			"request_cannon_duty_for"
+		):
+			ship.request_cannon_duty_for(
+				self
+			)
+
+	if default_station_name != StringName():
+		if ship.station_controller != null:
+			ship.station_controller.request_station_control(
+				self,
+				default_station_name,
+				1.0
+			)

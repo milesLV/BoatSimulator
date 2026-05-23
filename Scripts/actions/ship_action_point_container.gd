@@ -3,6 +3,7 @@ class_name ShipActionPointContainer
 
 var points: Dictionary = {}
 var stations: Array[StationPoint] = []
+var cannon_stations: Array[CannonStationPoint] = []
 var holes: Array[ShipHolePoint] = []
 var transitions: Array[DeckTransitionPoint] = []
 var deck_connections: Dictionary = {}
@@ -16,6 +17,7 @@ func _register_points() -> void:
 
 	points.clear()
 	stations.clear()
+	cannon_stations.clear()
 	holes.clear()
 	transitions.clear()
 	deck_connections.clear()
@@ -60,6 +62,11 @@ func _register_recursive(
 
 		if node is StationPoint:
 			stations.append(
+				node
+			)
+
+		if node is CannonStationPoint:
+			cannon_stations.append(
 				node
 			)
 
@@ -330,6 +337,11 @@ func get_station(
 	)
 
 	return null
+
+
+func get_cannon_stations() -> Array[CannonStationPoint]:
+
+	return cannon_stations.duplicate()
 
 
 func get_transition_point(
