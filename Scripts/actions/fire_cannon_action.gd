@@ -4,9 +4,7 @@ class_name FireCannonAction
 var station: CannonStationPoint
 
 
-func _init(
-	new_station: CannonStationPoint
-) -> void:
+func _init(new_station: CannonStationPoint) -> void:
 
 	station = new_station
 	action_point = station
@@ -21,9 +19,7 @@ func _init(
 
 func on_start(actor, _instance) -> void:
 
-	var cannon = _get_cannon(
-		actor
-	)
+	var cannon = _get_cannon(actor)
 
 	if cannon == null:
 		return
@@ -36,9 +32,7 @@ func _get_cannon(actor) -> Cannon:
 	if station == null:
 		return null
 
-	var cannon = station.get_cannon_for_operator(
-		actor
-	)
+	var cannon = station.get_cannon_for_operator(actor)
 
 	if cannon == null or not cannon.can_fire_now():
 		return null

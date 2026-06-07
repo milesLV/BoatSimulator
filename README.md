@@ -10,7 +10,7 @@ Since this is a simulation of a game, there are some tweaks that are made to mak
 
 1.  The cannoneer knows exactly how far their cannon reaches and will preemptively adjust the closest cannon to the target when they don't have an angle
 
-2.  Repairing cannot be interrupted by cannons (this may change later)
+2.  Repairing cannot be interrupted by cannon knockback (this may change later)
 
 3.  Supplies can be gotten instantaneously
 
@@ -22,7 +22,7 @@ Since this is a simulation of a game, there are some tweaks that are made to mak
 
 <img src="sloopDecks.png" width="550" height="350">
 
-7.  An action done in the same area as a previous one has minimal transition time)
+7.  Crewmates have default responsibilities that they will default to if not controlled and idle for 3 seconds
 
 ### Actions
 

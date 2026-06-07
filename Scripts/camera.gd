@@ -6,8 +6,8 @@ const ZOOM_STEP = Vector2(0.1, 0.1)
 const KEY_ZOOM_SPEED = Vector2(1.0, 1.0)
 const TRACKPAD_ZOOM_SPEED = Vector2(1.5, 1.5)
 const TRACKPAD_SCROLL_ZOOM_SPEED = Vector2(0.01, 0.01)
-const MIN_ZOOM = Vector2(0.4, 0.4)
-const MAX_ZOOM = Vector2(1.9, 1.9)
+const MIN_ZOOM = 0.4
+const MAX_ZOOM = 2.5
 
 var is_panning := false
 var is_following := true
@@ -33,33 +33,23 @@ func _process(delta: float) -> void:
 		zoom_input -= 1.0
 
 	if zoom_input != 0.0:
-		_apply_zoom(
-			KEY_ZOOM_SPEED * zoom_input * delta
-		)
+		_apply_zoom(KEY_ZOOM_SPEED * zoom_input * delta)
 
 func _input(event):
 	if event is InputEventMagnifyGesture:
 		# Pinching out increases the gesture factor, so invert it to match Camera2D zoom.
-		_apply_zoom(
-			TRACKPAD_ZOOM_SPEED * (1.0 - event.factor)
-		)
+		_apply_zoom(TRACKPAD_ZOOM_SPEED * (1.0 - event.factor))
 		return
 
 	if event is InputEventPanGesture:
-		_apply_zoom(
-			TRACKPAD_SCROLL_ZOOM_SPEED * event.delta.y
-		)
+		_apply_zoom(TRACKPAD_SCROLL_ZOOM_SPEED * event.delta.y)
 		return
 
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_apply_zoom(
-				-ZOOM_STEP
-			)
+			_apply_zoom(-ZOOM_STEP)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_apply_zoom(
-				ZOOM_STEP
-			)
+			_apply_zoom(ZOOM_STEP)
 
 	# starting drag
 	if event.is_action_pressed("panCamera"):
@@ -72,7 +62,7 @@ func _input(event):
 
 	# drag camera
 	if is_panning and event is InputEventMouseMotion:
-		position -= event.relative.rotated(global_rotation) * zoom
+		global_position -= _screen_delta_to_world_delta(event.relative)
 	
 	# reset camera
 	if event.is_action_pressed("resetCameraPan"):
@@ -80,14 +70,19 @@ func _input(event):
 		is_following = true
 
 
-func _apply_zoom(
-	zoom_delta: Vector2
-) -> void:
+func _apply_zoom(zoom_delta: Vector2) -> void:
 
 	zoom = clamp(
 		zoom + zoom_delta,
-		MIN_ZOOM,
-		MAX_ZOOM
+		MIN_ZOOM * Vector2.ONE,
+		MAX_ZOOM * Vector2.ONE
+	)
+
+
+func _screen_delta_to_world_delta(screen_delta: Vector2) -> Vector2:
+
+	return get_canvas_transform().affine_inverse().basis_xform(
+		screen_delta
 	)
 
 
@@ -97,9 +92,7 @@ func _get_player_target() -> Node2D:
 
 	if (
 		game_map == null
-		or not game_map.has_method(
-			"get_player_ship"
-		)
+		or not game_map.has_method("get_player_ship")
 	):
 		return null
 

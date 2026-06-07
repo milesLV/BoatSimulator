@@ -40,9 +40,7 @@ func set_color(color: Color) -> void:
 
 func setColor(color: Color) -> void:
 
-	set_color(
-		color
-	)
+	set_color(color)
 
 
 func set_size(new_radius: float) -> void:
@@ -53,9 +51,7 @@ func set_size(new_radius: float) -> void:
 
 func setSize(new_radius: float) -> void:
 
-	set_size(
-		new_radius
-	)
+	set_size(new_radius)
 
 
 func set_location(new_location: int) -> void:
@@ -72,9 +68,7 @@ func set_location(new_location: int) -> void:
 
 func setLocation(new_location: int) -> void:
 
-	set_location(
-		new_location
-	)
+	set_location(new_location)
 
 
 func _apply_deck_visuals() -> void:

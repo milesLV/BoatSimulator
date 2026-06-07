@@ -28,13 +28,9 @@ func get_duration(_actor, _context := {}) -> float:
 
 func apply_interrupt_policy(_actor, instance) -> void:
 
-	var interrupted_elapsed = _get_interrupted_elapsed(
-		instance
-	)
+	var interrupted_elapsed = _get_interrupted_elapsed(instance)
 
-	instance.save_progress(
-		interrupted_elapsed
-	)
+	instance.save_progress(interrupted_elapsed)
 
 	instance.elapsed = interrupted_elapsed
 
@@ -52,9 +48,7 @@ func on_interrupt(_actor, _instance) -> void:
 
 
 func on_complete(actor, instance) -> void:
-	completed.emit(
-		_build_context(actor, instance)
-	)
+	completed.emit(_build_context(actor, instance))
 
 
 func _get_interrupted_elapsed(instance) -> float:
@@ -74,9 +68,7 @@ func _get_interrupted_elapsed(instance) -> float:
 	return 0.0
 
 
-func _get_completed_checkpoint_time(
-	elapsed: float
-) -> float:
+func _get_completed_checkpoint_time(elapsed: float) -> float:
 
 	var completed_checkpoint := 0.0
 

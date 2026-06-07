@@ -7,9 +7,7 @@ const RIG_DURATION := 0.5
 var anchor_point: ShipActionPoint
 
 
-func _init(
-	new_anchor_point: ShipActionPoint
-) -> void:
+func _init(new_anchor_point: ShipActionPoint) -> void:
 
 	var new_action_id := "rig_missing_anchor"
 	var new_duration := 0.0
@@ -25,9 +23,7 @@ func _init(
 
 func on_start(actor, _instance) -> void:
 
-	var anchor_system = _get_anchor_system(
-		actor
-	)
+	var anchor_system = _get_anchor_system(actor)
 
 	if anchor_system == null:
 		return
@@ -37,9 +33,7 @@ func on_start(actor, _instance) -> void:
 
 func on_interrupt(actor, _instance) -> void:
 
-	var anchor_system = _get_anchor_system(
-		actor
-	)
+	var anchor_system = _get_anchor_system(actor)
 
 	if anchor_system == null:
 		return
@@ -49,9 +43,7 @@ func on_interrupt(actor, _instance) -> void:
 
 func on_complete(actor, instance) -> void:
 
-	print(
-		"Anchor has been rigged."
-	)
+	ShipDebugLog.anchor("Anchor has been rigged.")
 
 	super.on_complete(
 		actor,

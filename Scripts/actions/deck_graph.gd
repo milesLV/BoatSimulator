@@ -3,22 +3,16 @@ class_name DeckGraph
 
 enum DECKS {UPPER, MAIN, MID, LOWER}
 
-static func is_valid_deck(
-	deck: int
-) -> bool:
+static func is_valid_deck(deck: int) -> bool:
 
 	return DECKS.values().has(
 		deck
 	)
 
 
-static func get_deck_name(
-	deck: int
-) -> String:
+static func get_deck_name(deck: int) -> String:
 
-	var deck_key = DECKS.find_key(
-		deck
-	)
+	var deck_key = DECKS.find_key(deck)
 
 	if deck_key == null:
 		return "Unknown Deck"
@@ -45,9 +39,7 @@ static func get_transition_path(
 	# Godot doesn't support nested typed arrays.
 	var queue := []
 
-	queue.append(
-		[start_deck]
-	)
+	queue.append([start_deck])
 
 
 	var visited := {}
@@ -95,13 +87,9 @@ static func get_transition_path(
 				path.duplicate()
 			)
 
-			new_path.append(
-				neighbor
-			)
+			new_path.append(neighbor)
 
 
-			queue.append(
-				new_path
-			)
+			queue.append(new_path)
 
 	return []

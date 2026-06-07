@@ -22,13 +22,9 @@ func _init(
 	definition = action_definition
 
 
-func begin(
-	actor
-) -> void:
+func begin(actor) -> void:
 
-	duration = definition.get_duration(
-		actor
-	)
+	duration = definition.get_duration(actor)
 	duration_initialized = true
 	started = true
 
@@ -59,16 +55,12 @@ func is_complete() -> bool:
 	return elapsed >= duration
 
 
-func get_remaining_time(
-	actor
-) -> float:
+func get_remaining_time(actor) -> float:
 
 	var remaining_duration := duration
 
 	if not duration_initialized:
-		remaining_duration = definition.get_duration(
-			actor
-		)
+		remaining_duration = definition.get_duration(actor)
 
 	if remaining_duration < 0.0:
 		return 0.0
@@ -84,16 +76,12 @@ func reset_to_zero() -> void:
 	elapsed = 0.0
 
 
-func save_progress(
-	progress = null
-) -> void:
+func save_progress(progress = null) -> void:
 
 	if progress == null:
 		progress = elapsed
 
-	saved_progress = float(
-		progress
-	)
+	saved_progress = float(progress)
 
 
 func restore_progress() -> void:

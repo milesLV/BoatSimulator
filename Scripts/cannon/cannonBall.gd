@@ -1,6 +1,7 @@
 extends Area2D
 
 const SPEED := 500
+const CANNONBALL_HOLE_DAMAGE := 3
 
 var travelled_distance := 0.0
 var max_range := 0.0
@@ -23,7 +24,14 @@ func _on_body_entered(body):
 	if body == owner_node:
 		return
 
-	if body.has_method("updateHealth"):
+	if body.has_method(
+		"apply_cannonball_hit"
+	):
+		body.apply_cannonball_hit(
+			global_position,
+			CANNONBALL_HOLE_DAMAGE
+		)
+	elif body.has_method("updateHealth"):
 		body.updateHealth(1)
 
 	queue_free()

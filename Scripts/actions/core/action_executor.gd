@@ -22,18 +22,14 @@ var queued_actions: Array[ActionInstance] = []
 # PUBLIC
 # ==================================================
 
-func queue_action(
-	definition: ActionDefinition
-) -> ActionInstance:
+func queue_action(definition: ActionDefinition) -> ActionInstance:
 
 	var instance = ActionInstance.new(
 		definition,
 		actor
 	)
 
-	queued_actions.append(
-		instance
-	)
+	queued_actions.append(instance)
 
 	if current_action == null:
 		_start_next_action()
@@ -41,9 +37,7 @@ func queue_action(
 	return instance
 
 
-func queue_actions(
-	definitions: Array
-) -> void:
+func queue_actions(definitions: Array) -> void:
 
 	for definition in definitions:
 
@@ -52,9 +46,7 @@ func queue_actions(
 			actor
 		)
 
-		queued_actions.append(
-			instance
-		)
+		queued_actions.append(instance)
 
 	if current_action == null:
 		_start_next_action()
@@ -75,9 +67,7 @@ func interrupt_current() -> void:
 		current_action
 	)
 
-	action_interrupted.emit(
-		current_action
-	)
+	action_interrupted.emit(current_action)
 
 	current_action = null
 
@@ -111,15 +101,11 @@ func get_total_remaining_time() -> float:
 
 	if current_action != null:
 
-		total += current_action.get_remaining_time(
-			actor
-		)
+		total += current_action.get_remaining_time(actor)
 
 	for action in queued_actions:
 
-		total += action.get_remaining_time(
-			actor
-		)
+		total += action.get_remaining_time(actor)
 
 	return total
 
@@ -128,9 +114,7 @@ func get_total_remaining_time() -> float:
 # PROCESS
 # ==================================================
 
-func _physics_process(
-	delta: float
-) -> void:
+func _physics_process(delta: float) -> void:
 
 	if current_action == null:
 		return
@@ -167,7 +151,6 @@ func _start_next_action() -> void:
 	while current_action == null:
 
 		if queued_actions.is_empty():
-
 			queue_finished.emit()
 
 			return
@@ -178,9 +161,7 @@ func _start_next_action() -> void:
 		)
 
 
-		current_action.begin(
-			actor
-		)
+		current_action.begin(actor)
 
 
 		current_action.definition.on_start(
@@ -189,9 +170,7 @@ func _start_next_action() -> void:
 		)
 
 
-		action_started.emit(
-			current_action
-		)
+		action_started.emit(current_action)
 
 		if not current_action.is_complete():
 			return
@@ -210,8 +189,6 @@ func _finish_current_action() -> void:
 		completed_action
 	)
 
-	action_completed.emit(
-		completed_action
-	)
+	action_completed.emit(completed_action)
 
 	current_action = null

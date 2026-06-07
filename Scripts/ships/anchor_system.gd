@@ -23,9 +23,7 @@ var drop_progress := 0.0
 var is_holding_ship := false
 
 
-func _init(
-	new_ship
-) -> void:
+func _init(new_ship) -> void:
 
 	ship = new_ship
 
@@ -52,9 +50,7 @@ func begin_rigging() -> bool:
 	if not can_drop():
 		return false
 
-	_set_state(
-		State.RIGGING
-	)
+	_set_state(State.RIGGING)
 
 	return true
 
@@ -64,9 +60,7 @@ func cancel_rigging() -> bool:
 	if state != State.RIGGING:
 		return false
 
-	_set_state(
-		State.RAISED
-	)
+	_set_state(State.RAISED)
 
 	return true
 
@@ -82,9 +76,7 @@ func start_dropping() -> bool:
 	drop_elapsed = 0.0
 	drop_progress = 0.0
 
-	_set_state(
-		State.DROPPING
-	)
+	_set_state(State.DROPPING)
 
 	return true
 
@@ -99,16 +91,12 @@ func begin_raising() -> bool:
 
 	_sync_drop_elapsed_to_progress()
 
-	_set_state(
-		State.RAISING
-	)
+	_set_state(State.RAISING)
 
 	return true
 
 
-func raise_by_delta(
-	delta: float
-) -> void:
+func raise_by_delta(delta: float) -> void:
 
 	if state != State.RAISING:
 		return
@@ -129,9 +117,7 @@ func cancel_raising() -> bool:
 
 	_sync_drop_elapsed_to_progress()
 
-	_set_state(
-		State.DROPPING
-	)
+	_set_state(State.DROPPING)
 
 	return true
 
@@ -144,9 +130,7 @@ func finish_raising() -> bool:
 	drop_elapsed = 0.0
 	drop_progress = 0.0
 
-	_set_state(
-		State.RAISED
-	)
+	_set_state(State.RAISED)
 
 	return true
 
@@ -156,9 +140,7 @@ func get_raise_remaining_duration() -> float:
 	return drop_progress * RAISE_DURATION
 
 
-func physics_process(
-	delta: float
-) -> void:
+func physics_process(delta: float) -> void:
 
 	if state != State.DROPPING:
 		return
@@ -171,9 +153,7 @@ func physics_process(
 	)
 
 	if drop_progress >= 1.0:
-		_set_state(
-			State.DOWN
-		)
+		_set_state(State.DOWN)
 
 
 func affects_ship_movement() -> bool:
@@ -231,9 +211,7 @@ func _sync_drop_elapsed_to_progress() -> void:
 	drop_elapsed = drop_progress * DROP_DURATION
 
 
-func _set_state(
-	new_state: State
-) -> void:
+func _set_state(new_state: State) -> void:
 
 	if state == new_state:
 		return
@@ -245,11 +223,7 @@ func _set_state(
 	elif state == State.RAISED:
 		is_holding_ship = false
 
-	state_changed.emit(
-		state
-	)
+	state_changed.emit(state)
 
 	if state == State.DOWN:
-		print(
-			"Anchor has dropped all the way."
-		)
+		ShipDebugLog.anchor("Anchor has dropped all the way.")

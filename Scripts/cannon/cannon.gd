@@ -35,29 +35,20 @@ func _physics_process(delta):
 		current_range = -1
 		return
 
-	var bodies = range_area.get_overlapping_bodies()
-
 	current_target = null
 	current_range = -1
 
-	if bodies.size() > 0:
-		# pick closest valid target
-		var closest_dist = INF
-		
-		for body in bodies:
-			if body == get_parent():
-				continue
-			if not is_in_arc(body.global_position):
-				continue
+	if (
+		tracking_target != null
+		and is_instance_valid(tracking_target)
+		and is_in_arc(tracking_target.global_position)
+	):
+		var target_distance = global_position.distance_to(tracking_target.global_position)
+		var target_range = get_range(target_distance)
 
-			var dist = global_position.distance_to(body.global_position)
-
-			if dist < closest_dist:
-				closest_dist = dist
-				current_target = body
-
-		if current_target != null:
-			current_range = get_range(closest_dist)
+		if target_range != -1:
+			current_target = tracking_target
+			current_range = target_range
 
 	if current_target != null:
 		var shooter_position = global_position
@@ -74,13 +65,10 @@ func _physics_process(delta):
 		aim_at_position(intercept_position, delta)
 		return
 
-	if current_target == null:
-		if (
-			tracking_target == null
-			or not is_instance_valid(tracking_target)
-		):
-			return
-
+	if (
+		tracking_target != null
+		and is_instance_valid(tracking_target)
+	):
 		aim_at_position(tracking_target.global_position, delta)
 		return
 
@@ -143,23 +131,19 @@ func calculate_intercept_position(
 
 func get_target_velocity(target: Node) -> Vector2:
 	if target.has_method("get_velocity"):
-		return target.velocity
+		return target.get_velocity()
 	elif "velocity" in target:
 		return target.velocity
 	
-	print("Target doesnt have velocity!")
+	ShipDebugLog.cannon("Target doesnt have velocity!")
 	return Vector2.ZERO
 
-func set_tracking_enabled(
-	enabled: bool
-) -> void:
+func set_tracking_enabled(enabled: bool) -> void:
 
 	tracking_enabled = enabled
 
 
-func set_tracking_target(
-	target_or_null: Node
-) -> void:
+func set_tracking_target(target_or_null: Node) -> void:
 
 	tracking_target = target_or_null
 
@@ -184,9 +168,7 @@ func can_fire_now() -> bool:
 	return (
 		loaded
 		and current_target != null
-		and is_instance_valid(
-			current_target
-		)
+		and is_instance_valid(current_target)
 		and current_range != -1
 		and is_aligned()
 	)

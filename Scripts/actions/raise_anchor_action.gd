@@ -4,9 +4,7 @@ class_name RaiseAnchorAction
 var anchor_point: ShipActionPoint
 
 
-func _init(
-	new_anchor_point: ShipActionPoint
-) -> void:
+func _init(new_anchor_point: ShipActionPoint) -> void:
 
 	anchor_point = new_anchor_point
 	action_point = anchor_point
@@ -23,9 +21,7 @@ func _init(
 
 func get_duration(actor, _context := {}) -> float:
 
-	var anchor_system = _get_anchor_system(
-		actor
-	)
+	var anchor_system = _get_anchor_system(actor)
 
 	if anchor_system == null:
 		return 0.0
@@ -35,9 +31,7 @@ func get_duration(actor, _context := {}) -> float:
 
 func on_start(actor, _instance) -> void:
 
-	var anchor_system = _get_anchor_system(
-		actor
-	)
+	var anchor_system = _get_anchor_system(actor)
 
 	if anchor_system == null:
 		return
@@ -47,23 +41,17 @@ func on_start(actor, _instance) -> void:
 
 func on_tick(actor, _instance, delta: float) -> void:
 
-	var anchor_system = _get_anchor_system(
-		actor
-	)
+	var anchor_system = _get_anchor_system(actor)
 
 	if anchor_system == null:
 		return
 
-	anchor_system.raise_by_delta(
-		delta
-	)
+	anchor_system.raise_by_delta(delta)
 
 
 func on_interrupt(actor, _instance) -> void:
 
-	var anchor_system = _get_anchor_system(
-		actor
-	)
+	var anchor_system = _get_anchor_system(actor)
 
 	if anchor_system == null:
 		return
@@ -73,9 +61,7 @@ func on_interrupt(actor, _instance) -> void:
 
 func on_complete(actor, instance) -> void:
 
-	var anchor_system = _get_anchor_system(
-		actor
-	)
+	var anchor_system = _get_anchor_system(actor)
 
 	if anchor_system != null:
 		anchor_system.finish_raising()

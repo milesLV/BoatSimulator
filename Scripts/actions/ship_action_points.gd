@@ -30,16 +30,12 @@ func get_deck_name() -> String:
 	)
 
 
-func is_on_deck(
-	deck_id: int
-) -> bool:
+func is_on_deck(deck_id: int) -> bool:
 
 	return deck == deck_id
 
 
-func get_position_for_actor(
-	actor: Node2D
-) -> Vector2:
+func get_position_for_actor(actor: Node2D) -> Vector2:
 
 	var actor_parent = actor.get_parent()
 

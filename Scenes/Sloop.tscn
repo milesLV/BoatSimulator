@@ -45,7 +45,7 @@ closed = true
 width = 1.5
 
 [node name="Helmsman" parent="." unique_id=1506136118 instance=ExtResource("4_hk5xy")]
-position = Vector2(-32, 0)
+position = Vector2(-36, 0)
 default_station_name = &"Wheel"
 
 [node name="Cannoneer" parent="." unique_id=1412420956 instance=ExtResource("4_hk5xy")]

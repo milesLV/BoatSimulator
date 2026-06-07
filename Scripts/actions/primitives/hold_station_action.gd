@@ -4,9 +4,7 @@ class_name HoldStationAction
 var station: StationPoint
 
 
-func _init(
-	new_station: StationPoint
-) -> void:
+func _init(new_station: StationPoint) -> void:
 
 	station = new_station
 	action_point = station
@@ -44,12 +42,8 @@ func on_interrupt(actor, _instance) -> void:
 		return
 
 	if (
-		actor.ship.station_controller.get_operator(
-			station
-		)
+		actor.ship.station_controller.get_operator(station)
 		== actor
 	):
 
-		actor.ship.station_controller.clear_operator(
-			station
-		)
+		actor.ship.station_controller.clear_operator(station)

@@ -9,11 +9,14 @@ func _ready() -> void:
 	super()
 
 
-func set_connected_point(
-	point: DeckTransitionPoint
-) -> void:
+func set_connected_point(point: DeckTransitionPoint) -> void:
 
 	deck_connection = point
+
+
+func clear_connected_point() -> void:
+
+	deck_connection = null
 
 
 func get_destination_deck() -> int:

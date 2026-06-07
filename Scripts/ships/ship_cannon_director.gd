@@ -18,9 +18,7 @@ func _init(
 	cannons = new_cannons
 
 
-func refresh_targets(
-	ships: Array
-) -> void:
+func refresh_targets(ships: Array) -> void:
 
 	target_ship = null
 
@@ -31,9 +29,7 @@ func refresh_targets(
 			return
 
 
-func update_active_cannon(
-	tracking_enabled: bool
-) -> void:
+func update_active_cannon(tracking_enabled: bool) -> void:
 
 	if (
 		target_ship == null
@@ -47,9 +43,7 @@ func update_active_cannon(
 
 	for cannon in cannons:
 
-		var dist = cannon.global_position.distance_to(
-			target_ship.global_position
-		)
+		var dist = cannon.global_position.distance_to(target_ship.global_position)
 
 		match cannon.broadside:
 			CannonSide.Value.PORT:
@@ -89,18 +83,12 @@ func update_active_cannon(
 			and cannon.broadside == active_broadside
 		)
 
-		cannon.set_tracking_enabled(
-			is_active_broadside
-		)
+		cannon.set_tracking_enabled(is_active_broadside)
 
 		if is_active_broadside:
-			cannon.set_tracking_target(
-				target_ship
-			)
+			cannon.set_tracking_target(target_ship)
 		else:
-			cannon.set_tracking_target(
-				null
-			)
+			cannon.set_tracking_target(null)
 
 
 func clear_active_cannons() -> void:
@@ -109,12 +97,8 @@ func clear_active_cannons() -> void:
 
 	for cannon in cannons:
 
-		cannon.set_tracking_enabled(
-			false
-		)
-		cannon.set_tracking_target(
-			null
-		)
+		cannon.set_tracking_enabled(false)
+		cannon.set_tracking_target(null)
 
 
 func get_active_broadside() -> int:

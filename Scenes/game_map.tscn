@@ -22,6 +22,6 @@ position = Vector2(478, 89)
 rotation = 1.5707964
 
 [node name="Camera2D" type="Camera2D" parent="." unique_id=731039578]
-position = Vector2(-1.3597174, -7.629394e-06)
+position = Vector2(476.99997, 465.99997)
 scale = Vector2(0.3067729, 0.3067729)
 script = ExtResource("4_d8w4w")

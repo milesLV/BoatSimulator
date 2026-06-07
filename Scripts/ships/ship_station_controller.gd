@@ -4,6 +4,8 @@ extends RefCounted
 var action_points: ShipActionPointContainer
 var action_planner: ShipActionPlanner
 var station_operators := {}
+var crewmate_stations := {}
+var crew_task_controller: ShipCrewTaskController
 
 
 func _init(
@@ -15,18 +17,19 @@ func _init(
 	action_planner = new_action_planner
 
 
-func get_station(
-	station_name: StringName
-) -> StationPoint:
+func set_task_controller(new_crew_task_controller: ShipCrewTaskController) -> void:
+
+	crew_task_controller = new_crew_task_controller
+
+
+func get_station(station_name: StringName) -> StationPoint:
 
 	return action_points.get_station(
 		station_name
 	)
 
 
-func has_operator(
-	station: StationPoint
-) -> bool:
+func has_operator(station: StationPoint) -> bool:
 
 	return (
 		station != null
@@ -34,9 +37,7 @@ func has_operator(
 	)
 
 
-func get_operator(
-	station: StationPoint
-) -> Crewmate:
+func get_operator(station: StationPoint) -> Crewmate:
 
 	if station == null:
 		return null
@@ -44,30 +45,21 @@ func get_operator(
 	return station_operators.get(station)
 
 
-func get_operator_by_name(
-	station_name: StringName
-) -> Crewmate:
+func get_operator_by_name(station_name: StringName) -> Crewmate:
 
 	return get_operator(
-		get_station(
-			station_name
-		)
+		get_station(station_name)
 	)
 
 
-func get_station_operated_by(
-	crewmate: Crewmate
-) -> StationPoint:
+func get_station_operated_by(crewmate: Crewmate) -> StationPoint:
 
 	if crewmate == null:
 		return null
 
-	for station in station_operators.keys():
-
-		if station_operators[station] == crewmate:
-			return station
-
-	return null
+	return crewmate_stations.get(
+		crewmate
+	)
 
 
 func set_operator(
@@ -75,43 +67,63 @@ func set_operator(
 	crewmate: Crewmate
 ) -> void:
 
-	if station == null:
+	if (
+		station == null
+		or crewmate == null
+	):
 		return
+
+	var current_operator = station_operators.get(station)
+
+	if (
+		current_operator != null
+		and current_operator != crewmate
+	):
+		crewmate_stations.erase(current_operator)
+
+	var previous_station = crewmate_stations.get(crewmate)
+
+	if (
+		previous_station != null
+		and previous_station != station
+	):
+		station_operators.erase(previous_station)
 
 	station_operators[station] = crewmate
+	crewmate_stations[crewmate] = station
 
 
-func clear_operator(
-	station: StationPoint
-) -> void:
+func clear_operator(station: StationPoint) -> void:
 
 	if station == null:
 		return
+
+	var crewmate = station_operators.get(station)
+
+	if (
+		crewmate != null
+		and crewmate_stations.get(
+			crewmate
+		) == station
+	):
+		crewmate_stations.erase(crewmate)
 
 	station_operators.erase(station)
 
 
-func detach_crewmate(
-	crewmate: Crewmate
-) -> bool:
+func detach_crewmate(crewmate: Crewmate) -> bool:
 
-	var station = get_station_operated_by(
-		crewmate
-	)
+	var station = get_station_operated_by(crewmate)
 
 	if station == null:
 		return false
 
-	clear_operator(
-		station
-	)
+	clear_operator(station)
 
 	return true
 
 
-func cancel_station_request(
-	crewmate: Crewmate
-) -> void:
+func cancel_station_request(crewmate: Crewmate) -> void:
 
 	if crewmate == null:
 		return
@@ -131,16 +143,19 @@ func request_station_control(
 	if crewmate == null:
 		return false
 
-	var station = get_station(
-		station_name
-	)
+	if (
+		crewmate.ship != null
+		and crewmate.ship.has_method("is_sunk")
+		and crewmate.ship.is_sunk()
+	):
+		return false
+
+	var station = get_station(station_name)
 
 	if station == null:
 		return false
 
-	var operator = get_operator(
-		station
-	)
+	var operator = get_operator(station)
 
 	if operator != null:
 		if operator == crewmate:
@@ -165,19 +180,22 @@ func request_station_control(
 	if actions.is_empty():
 		return false
 
+	if crew_task_controller != null:
+		crew_task_controller.prepare_for_station_control(
+			crewmate,
+			"station control input for %s"
+			% station_name
+		)
+
 	_clear_cannon_duty_for_station_control(
 		crewmate,
 		requested_input
 	)
 
-	cancel_station_request(
-		crewmate
-	)
+	cancel_station_request(crewmate)
 
 	crewmate.requested_station = station
-	crewmate.action_executor.queue_actions(
-		actions
-	)
+	crewmate.action_executor.queue_actions(actions)
 
 	return false
 
@@ -193,12 +211,16 @@ func _clear_cannon_duty_for_station_control(
 	if (
 		crewmate == null
 		or crewmate.ship == null
-		or crewmate.ship.cannon_duty_controller == null
 	):
 		return
 
-	if not crewmate.ship.cannon_duty_controller.is_duty_crewmate(
-		crewmate
+	if crew_task_controller != null:
+		crew_task_controller.clear_cannon_duty(crewmate)
+		return
+
+	if (
+		crewmate.ship.cannon_duty_controller == null
+		or not crewmate.ship.cannon_duty_controller.is_duty_crewmate(crewmate)
 	):
 		return
 

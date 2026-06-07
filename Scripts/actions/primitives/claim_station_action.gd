@@ -4,9 +4,7 @@ class_name ClaimStationAction
 var station: StationPoint
 
 
-func _init(
-	new_station: StationPoint
-) -> void:
+func _init(new_station: StationPoint) -> void:
 
 	station = new_station
 	action_point = station
@@ -29,17 +27,13 @@ func on_start(actor, _instance) -> void:
 	):
 		return
 
-	var current_station = actor.ship.station_controller.get_station_operated_by(
-		actor
-	)
+	var current_station = actor.ship.station_controller.get_station_operated_by(actor)
 
 	if (
 		current_station != null
 		and current_station != station
 	):
-		actor.ship.station_controller.clear_operator(
-			current_station
-		)
+		actor.ship.station_controller.clear_operator(current_station)
 
 	actor.ship.station_controller.set_operator(
 		station,

@@ -1,131 +1,129 @@
 class_name PlayerShip
 extends Sloop
 
-func is_crewmate_selected(
-	crewmate: Crewmate
-) -> bool:
+func is_crewmate_selected(crewmate: Crewmate) -> bool:
 
-	return current_crewmate == crewmate
+	return super.is_crewmate_selected(
+		crewmate
+	)
 
 func _physics_process(delta):
-	turn_input = 0.0
-	sail_input = 0.0
-	sail_rotation_input = 0.0
+	reset_movement_input()
+	_process_health(delta)
+
+	if is_sunk():
+		return
 
 	if Input.is_action_just_pressed("cancelAction"):
 		request_cancel_action()
 		_process_movement(delta)
-		update_active_cannon()
+		update_cannon_systems()
 		return
 
 	# Changing crewmates
 	if Input.is_action_just_pressed("changeCrewmate"):
-		_change_crewmate()
+		change_crewmate()
 
 	if Input.is_action_just_pressed("goToCannon"):
 		request_current_cannon_duty()
 
-	var wheel_request = _get_wheel_request()
-	var sail_request = _get_sail_length_request()
-	var rotation_request = _get_sail_rotation_request()
+	if Input.is_action_just_pressed("bailWater"):
+		request_bail_water()
 
-	_apply_station_input(
+	if Input.is_action_just_pressed("repairShip"):
+		request_repair_ship()
+
+	var turn = _get_station_axis_input(
 		&"Wheel",
-		wheel_request
+		&"turnWheelLeft",
+		&"turnWheelRight"
 	)
-	_apply_station_input(
+	var sail = _get_station_axis_input(
 		&"SailLengthStarb", # TODO: make so can choose port or starboard size depending on whatever's closest
-		sail_request
+		&"raiseSailsUp",
+		&"lowerSailsDown"
 	)
-	_apply_station_input(
+	var sail_rotation = _get_station_axis_input(
 		&"SailRotationStarb", # TODO: make so can choose port or starboard size depending on whatever's closest
-		rotation_request
+		&"adjustSailLeft",
+		&"adjustSailRight"
+	)
+
+	set_movement_input(
+		turn,
+		sail,
+		sail_rotation
 	)
 
 	if Input.is_action_just_pressed("dropOrRaiseAnchor"):
 		request_anchor_toggle()
 
 	_process_movement(delta)
-	update_active_cannon()
+	update_cannon_systems()
 
 
-func _get_wheel_request() -> float:
+func _get_axis_request(
+	negative_action: StringName,
+	positive_action: StringName
+) -> float:
 
 	var request := 0.0
 
-	if Input.is_action_pressed("turnWheelLeft"):
+	if Input.is_action_pressed(
+		negative_action
+	):
 		request -= 1.0
 
-	if Input.is_action_pressed("turnWheelRight"):
+	if Input.is_action_pressed(
+		positive_action
+	):
 		request += 1.0
 
 	return request
 
 
-func _get_sail_length_request() -> float:
+func _get_station_axis_input(
+	station_name: StringName,
+	negative_action: StringName,
+	positive_action: StringName
+) -> float:
 
-	var request := 0.0
+	var requested_input = _get_axis_request(
+		negative_action,
+		positive_action
+	)
 
-	if Input.is_action_pressed("lowerSailsDown"):
-		request += 1.0
+	if not _can_apply_station_input(
+		station_name,
+		requested_input
+	):
+		return 0.0
 
-	if Input.is_action_pressed("raiseSailsUp"):
-		request -= 1.0
-
-	return request
-
-
-func _get_sail_rotation_request() -> float:
-
-	var request := 0.0
-
-	if Input.is_action_pressed("adjustSailLeft"):
-		request -= 1.0
-
-	if Input.is_action_pressed("adjustSailRight"):
-		request += 1.0
-
-	return request
+	return requested_input
 
 
-func _apply_station_input(
+func _can_apply_station_input(
 	station_name: StringName,
 	requested_input: float
 ) -> bool:
 
-	var ready = _current_crewmate_operating_station(
+	if _station_has_operator(
 		station_name
-	)
+	):
+		return true
 
-	if not ready:
-		ready = request_station_control(
-			station_name,
-			requested_input
-		)
-
-	if not ready:
+	if requested_input == 0.0:
 		return false
 
-	match station_name:
-		&"Wheel":
-			turn_input = requested_input
-
-		&"SailLengthStarb":
-			sail_input = requested_input
-
-		&"SailRotationStarb":
-			sail_rotation_input = requested_input
-
-	return requested_input != 0.0
+	return request_station_control(
+		station_name,
+		requested_input
+	)
 
 
-func _current_crewmate_operating_station(
-	station_name: StringName
-) -> bool:
+func _station_has_operator(station_name: StringName) -> bool:
 
 	return (
-		station_controller.get_operator_by_name(
-			station_name
-		)
+		station_controller.get_operator_by_name(station_name)
 		!= null
 	)

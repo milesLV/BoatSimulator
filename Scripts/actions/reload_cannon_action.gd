@@ -6,9 +6,7 @@ const RELOAD_DURATION := 2.0
 var station: CannonStationPoint
 
 
-func _init(
-	new_station: CannonStationPoint
-) -> void:
+func _init(new_station: CannonStationPoint) -> void:
 
 	var new_action_id := "reload_missing_cannon"
 	var new_duration := 0.0
@@ -31,9 +29,7 @@ func _init(
 
 func on_start(actor, _instance) -> void:
 
-	var cannon = _get_cannon(
-		actor
-	)
+	var cannon = _get_cannon(actor)
 
 	if cannon == null:
 		return
@@ -43,9 +39,7 @@ func on_start(actor, _instance) -> void:
 
 func on_complete(actor, instance) -> void:
 
-	var cannon = _get_cannon(
-		actor
-	)
+	var cannon = _get_cannon(actor)
 
 	if cannon != null:
 		cannon.finish_reload()
