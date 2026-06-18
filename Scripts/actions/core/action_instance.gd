@@ -12,6 +12,7 @@ var elapsed := 0.0
 var saved_progress := 0.0
 var started := false
 var finished := false
+var runtime_state: Dictionary = {}
 
 
 func _init(
@@ -20,10 +21,15 @@ func _init(
 ):
 
 	definition = action_definition
+	clear_runtime_state()
 
 
 func begin(actor) -> void:
 
+	definition.prepare_instance(
+		actor,
+		self
+	)
 	duration = definition.get_duration(actor)
 	duration_initialized = true
 	started = true
@@ -87,3 +93,34 @@ func save_progress(progress = null) -> void:
 func restore_progress() -> void:
 
 	elapsed = saved_progress
+
+
+func set_runtime_value(key, value) -> void:
+
+	runtime_state[key] = value
+
+
+func get_runtime_value(
+	key,
+	default_value = null
+):
+
+	return runtime_state.get(
+		key,
+		default_value
+	)
+
+
+func has_runtime_value(key) -> bool:
+
+	return runtime_state.has(key)
+
+
+func clear_runtime_value(key) -> void:
+
+	runtime_state.erase(key)
+
+
+func clear_runtime_state() -> void:
+
+	runtime_state.clear()

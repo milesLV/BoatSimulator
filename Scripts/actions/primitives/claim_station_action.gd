@@ -39,7 +39,8 @@ func on_start(actor, _instance) -> void:
 		station,
 		actor
 	)
-	actor.requested_station = null
+
+	actor.ship.crew_task_controller.clear_requested_station(actor)
 
 
 func _get_station_name() -> String:

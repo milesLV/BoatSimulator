@@ -10,6 +10,7 @@ func is_crewmate_selected(crewmate: Crewmate) -> bool:
 func _physics_process(delta):
 	reset_movement_input()
 	_process_health(delta)
+	_process_sink_fade(delta)
 
 	if is_sunk():
 		return

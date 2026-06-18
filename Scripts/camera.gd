@@ -88,12 +88,4 @@ func _screen_delta_to_world_delta(screen_delta: Vector2) -> Vector2:
 
 func _get_player_target() -> Node2D:
 
-	var game_map = get_tree().current_scene
-
-	if (
-		game_map == null
-		or not game_map.has_method("get_player_ship")
-	):
-		return null
-
-	return game_map.get_player_ship()
+	return GlobalShipRegistry.get_player_ship_from_tree(get_tree())

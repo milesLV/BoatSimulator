@@ -135,7 +135,7 @@ func update() -> void:
 		_queue_cannon_cycle_if_idle(desired_station)
 		return
 
-	if duty_crewmate.requested_station == desired_station:
+	if _get_requested_station(duty_crewmate) == desired_station:
 		return
 
 	_move_to_station(desired_station)
@@ -150,8 +150,6 @@ func _move_to_station(station: CannonStationPoint) -> void:
 	):
 		return
 
-	_clear_crewmate_state(duty_crewmate)
-
 	var actions = action_planner.build_cannon_station_actions(
 		duty_crewmate,
 		station
@@ -160,8 +158,12 @@ func _move_to_station(station: CannonStationPoint) -> void:
 	if actions.is_empty():
 		return
 
-	duty_crewmate.requested_station = station
-	duty_crewmate.action_executor.queue_actions(actions)
+	_clear_crewmate_state(duty_crewmate)
+	crew_task_controller.queue_cannon_station_actions(
+		duty_crewmate,
+		station,
+		actions
+	)
 
 
 func _queue_cannon_cycle_if_idle(station: CannonStationPoint) -> void:
@@ -182,50 +184,38 @@ func _queue_cannon_cycle_if_idle(station: CannonStationPoint) -> void:
 		return
 
 	if not cannon.is_loaded():
-		duty_crewmate.action_executor.queue_action(ReloadCannonAction.new(station))
+		_queue_cannon_action(ReloadCannonAction.new(station))
 		return
 
 	if cannon.can_fire_now():
-		duty_crewmate.action_executor.queue_action(FireCannonAction.new(station))
+		_queue_cannon_action(FireCannonAction.new(station))
 
 
 func _get_best_station_for_broadside(broadside: int) -> CannonStationPoint:
 
-	var target_ship = cannon_director.get_target_ship()
-
-	if target_ship == null:
-		return null
-
-	var best_station: CannonStationPoint = null
-	var best_distance := INF
-
-	for station in cannon_stations:
-
-		if station.broadside != broadside:
-			continue
-
-		if not _station_available_for(
-			station
-		):
-			continue
-
-		var cannon = station.get_cannon(ship)
-
-		if cannon == null:
-			continue
-
-		var distance = cannon.global_position.distance_to(target_ship.global_position)
-
-		if distance < best_distance:
-			best_distance = distance
-			best_station = station
-
-	return best_station
+	return _get_best_cannon_station_for_broadside(
+		broadside,
+		null,
+		false
+	)
 
 
 func _get_best_unoccupied_station_for_broadside(
 	broadside: int,
 	requesting_crewmate: Crewmate
+) -> CannonStationPoint:
+
+	return _get_best_cannon_station_for_broadside(
+		broadside,
+		requesting_crewmate,
+		true
+	)
+
+
+func _get_best_cannon_station_for_broadside(
+	broadside: int,
+	requesting_crewmate: Crewmate,
+	require_unoccupied: bool
 ) -> CannonStationPoint:
 
 	var target_ship = cannon_director.get_target_ship()
@@ -241,9 +231,18 @@ func _get_best_unoccupied_station_for_broadside(
 		if station.broadside != broadside:
 			continue
 
-		if not _station_unoccupied(
-			station,
-			requesting_crewmate
+		if (
+			require_unoccupied
+			and not _station_unoccupied(
+				station,
+				requesting_crewmate
+			)
+		):
+			continue
+
+		if (
+			not require_unoccupied
+			and not _station_available_for(station)
 		):
 			continue
 
@@ -281,13 +280,13 @@ func _station_available_for(station: CannonStationPoint) -> bool:
 	):
 		return false
 
-	for crewmate in ship.get_crewmates():
-		if (
-			crewmate != null
-			and crewmate != duty_crewmate
-			and crewmate.requested_station == station
-		):
-			return false
+	var requesting_crewmate = _get_station_requester(station)
+
+	if (
+		requesting_crewmate != null
+		and requesting_crewmate != duty_crewmate
+	):
+		return false
 
 	return true
 
@@ -302,15 +301,39 @@ func _station_unoccupied(
 	):
 		return false
 
-	for crewmate in ship.get_crewmates():
-		if (
-			crewmate != null
-			and crewmate != requesting_crewmate
-			and crewmate.requested_station == station
-		):
-			return false
+	var station_requester = _get_station_requester(station)
+
+	if (
+		station_requester != null
+		and station_requester != requesting_crewmate
+	):
+		return false
 
 	return true
+
+
+func _queue_cannon_action(action: ActionDefinition) -> void:
+
+	if duty_crewmate == null:
+		return
+
+	crew_task_controller.queue_cannon_action(
+		duty_crewmate,
+		action
+	)
+
+
+func _get_requested_station(crewmate: Crewmate) -> StationPoint:
+
+	if crewmate != null:
+		return crew_task_controller.get_requested_station(crewmate)
+
+	return null
+
+
+func _get_station_requester(station: StationPoint) -> Crewmate:
+
+	return crew_task_controller.get_station_requester(station)
 
 
 func _clear_crewmate_state(crewmate: Crewmate) -> void:
@@ -318,14 +341,4 @@ func _clear_crewmate_state(crewmate: Crewmate) -> void:
 	if crewmate == null:
 		return
 
-	if crew_task_controller != null:
-		crew_task_controller.clear_station_and_actions(crewmate)
-		return
-
-	crewmate.requested_station = null
-
-	if crewmate.action_executor != null:
-		crewmate.action_executor.cancel_plan()
-
-	if station_controller != null:
-		station_controller.detach_crewmate(crewmate)
+	crew_task_controller.clear_station_and_actions(crewmate)

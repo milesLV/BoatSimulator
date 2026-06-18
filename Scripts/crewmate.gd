@@ -18,6 +18,8 @@ const MAX_BUCKET_AMOUNT := 50.0
 )
 
 var location := -1
+var transition_from_deck := -1
+var transition_to_deck := -1
 var requested_station: StationPoint = null
 var bucket_amount := 0.0
 var _idle_time := 0.0
@@ -63,10 +65,55 @@ func set_location(new_location: int) -> void:
 		return
 
 	if location == new_location:
+		clear_deck_transition()
 		return
 
+	clear_deck_transition()
 	location = new_location
 	location_changed.emit(location)
+
+
+func begin_deck_transition(
+	from_deck: int,
+	to_deck: int
+) -> void:
+
+	if (
+		not DeckGraph.is_valid_deck(from_deck)
+		or not DeckGraph.is_valid_deck(to_deck)
+	):
+		return
+
+	if location != from_deck:
+		set_location(from_deck)
+
+	transition_from_deck = from_deck
+	transition_to_deck = to_deck
+
+
+func complete_deck_transition() -> void:
+
+	var destination_deck = transition_to_deck
+
+	clear_deck_transition()
+
+	if DeckGraph.is_valid_deck(destination_deck):
+		set_location(destination_deck)
+
+
+func clear_deck_transition() -> void:
+
+	transition_from_deck = -1
+	transition_to_deck = -1
+
+
+func is_transitioning_decks() -> bool:
+
+	return (
+		DeckGraph.is_valid_deck(transition_from_deck)
+		and DeckGraph.is_valid_deck(transition_to_deck)
+	)
+
 
 func is_on_deck(deck_id: int) -> bool:
 

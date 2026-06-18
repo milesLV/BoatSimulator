@@ -1,6 +1,8 @@
 class_name Sloop
 extends CharacterBody2D
 
+const SINK_FADE_DURATION := 7.0
+
 @onready var action_points_path: NodePath = ^"ShipActionPoints"
 @onready var sail = $Sail
 @onready var helmsman = $Helmsman
@@ -16,9 +18,10 @@ var cannon_duty_controller: ShipCannonDutyController
 var repair_duty_controller: ShipRepairDutyController
 var movement_controller: ShipMovementController
 var crew_controller: ShipCrewController
-var crew_command_controller: ShipCrewCommandController
 var crew_task_controller: ShipCrewTaskController
 var health_system: ShipHealthSystem
+var sink_fade_elapsed := 0.0
+var sink_fade_active := false
 
 
 func _ready() -> void:
@@ -47,11 +50,11 @@ func _physics_process(delta: float) -> void:
 
 	_process_health(delta)
 
-	if is_sunk():
-		return
+	if not is_sunk():
+		_process_movement(delta)
+		update_cannon_systems()
 
-	_process_movement(delta)
-	update_cannon_systems()
+	_process_sink_fade(delta)
 
 
 func get_action_points() -> ShipActionPointContainer:
@@ -129,12 +132,12 @@ func request_station_control(
 ) -> bool:
 
 	if (
-		crew_command_controller == null
+		crew_task_controller == null
 		or is_sunk()
 	):
 		return false
 
-	return crew_command_controller.request_station_control(
+	return crew_task_controller.request_station_control(
 		station_name,
 		requested_input
 	)
@@ -143,78 +146,78 @@ func request_station_control(
 func request_anchor_drop() -> bool:
 
 	if (
-		crew_command_controller == null
+		crew_task_controller == null
 		or is_sunk()
 	):
 		return false
 
-	return crew_command_controller.request_anchor_drop()
+	return crew_task_controller.request_anchor_drop()
 
 
 func request_anchor_raise() -> bool:
 
 	if (
-		crew_command_controller == null
+		crew_task_controller == null
 		or is_sunk()
 	):
 		return false
 
-	return crew_command_controller.request_anchor_raise()
+	return crew_task_controller.request_anchor_raise()
 
 
 func request_anchor_toggle() -> bool:
 
 	if (
-		crew_command_controller == null
+		crew_task_controller == null
 		or is_sunk()
 	):
 		return false
 
-	return crew_command_controller.request_anchor_toggle()
+	return crew_task_controller.request_anchor_toggle()
 
 
 func request_bail_water() -> bool:
 
 	if (
-		crew_command_controller == null
+		crew_task_controller == null
 		or is_sunk()
 	):
 		return false
 
-	return crew_command_controller.request_bail_water()
+	return crew_task_controller.request_bail_water()
 
 
 func request_repair_ship() -> bool:
 
 	if (
-		crew_command_controller == null
+		crew_task_controller == null
 		or is_sunk()
 	):
 		return false
 
-	return crew_command_controller.request_repair_ship()
+	return crew_task_controller.request_repair_ship()
 
 
 func request_current_cannon_duty() -> bool:
 
 	if (
-		crew_command_controller == null
+		crew_task_controller == null
 		or is_sunk()
 	):
 		return false
 
-	return crew_command_controller.request_current_cannon_duty()
+	return crew_task_controller.request_current_cannon_duty()
 
 
 func request_cannon_duty_for(crewmate: Crewmate) -> bool:
 
 	if (
-		crew_command_controller == null
+		crew_task_controller == null
 		or is_sunk()
 	):
 		return false
 
-	return crew_command_controller.request_cannon_duty_for(
+	return crew_task_controller.request_cannon_duty_for(
 		crewmate
 	)
 
@@ -222,12 +225,12 @@ func request_cannon_duty_for(crewmate: Crewmate) -> bool:
 func request_cancel_action() -> bool:
 
 	if (
-		crew_command_controller == null
+		crew_task_controller == null
 		or is_sunk()
 	):
 		return false
 
-	return crew_command_controller.request_cancel_action()
+	return crew_task_controller.request_cancel_action()
 
 
 func update_cannon_systems() -> void:
@@ -308,6 +311,7 @@ func is_sunk() -> bool:
 func on_sunk() -> void:
 
 	reset_movement_input()
+	_begin_sink_fade()
 
 	if cannon_director != null:
 		cannon_director.clear_active_cannons()
@@ -318,15 +322,38 @@ func on_sunk() -> void:
 	if repair_duty_controller != null:
 		repair_duty_controller.clear_all()
 
-	if station_controller != null:
-		for crewmate in get_crewmates():
-			station_controller.detach_crewmate(crewmate)
-
 	for crewmate in get_crewmates():
-		crewmate.requested_station = null
+		crew_task_controller.clear_station_and_actions(crewmate)
 
-		if crewmate.action_executor != null:
-			crewmate.action_executor.cancel_plan()
+
+func _begin_sink_fade() -> void:
+
+	if sink_fade_active:
+		return
+
+	sink_fade_active = true
+	sink_fade_elapsed = 0.0
+
+
+func _process_sink_fade(delta: float) -> void:
+
+	if not sink_fade_active:
+		return
+
+	sink_fade_elapsed = min(
+		sink_fade_elapsed + delta,
+		SINK_FADE_DURATION
+	)
+
+	var fade_ratio = 1.0 - (sink_fade_elapsed / SINK_FADE_DURATION)
+	modulate.a = fade_ratio
+
+	if sink_fade_elapsed < SINK_FADE_DURATION:
+		return
+
+	sink_fade_active = false
+	collision_layer = 0
+	collision_mask = 0
 
 
 func _validate_action_points() -> bool:
@@ -377,10 +404,15 @@ func _create_systems() -> void:
 		action_planner
 	)
 
+	crew_controller = ShipCrewController.new(self)
+
 	crew_task_controller = ShipCrewTaskController.new(
+		crew_controller,
 		station_controller,
 		cannon_duty_controller,
-		repair_duty_controller
+		repair_duty_controller,
+		action_planner,
+		anchor_system
 	)
 
 	station_controller.set_task_controller(crew_task_controller)
@@ -392,18 +424,6 @@ func _create_systems() -> void:
 		sail,
 		station_controller,
 		anchor_system
-	)
-
-	crew_controller = ShipCrewController.new(self)
-
-	crew_command_controller = ShipCrewCommandController.new(
-		crew_controller,
-		action_planner,
-		station_controller,
-		cannon_duty_controller,
-		repair_duty_controller,
-		anchor_system,
-		crew_task_controller
 	)
 
 

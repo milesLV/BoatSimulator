@@ -6,11 +6,11 @@ const MID_DECK_WATER_LEVEL := 232.0
 const REPAIR_SAFETY_LEEWAY := 0.5
 const HELP_SINK_WINDOW := 5.0
 
-var action_points: ShipActionPointContainer
-var route_planner: ShipRoutePlanner
+var action_points
+var route_planner
 
 
-func _init(new_action_points: ShipActionPointContainer) -> void:
+func _init(new_action_points) -> void:
 
 	action_points = new_action_points
 	route_planner = ShipRoutePlanner.new(action_points)
@@ -165,8 +165,6 @@ func build_bail_water(
 
 		throw_actions.append(ThrowBucketWaterAction.new(throw_point))
 
-		throw_actions.append(ContinueBailingAction.new(drain_to_zero))
-
 		return throw_actions
 
 	if _should_use_mid_deck_bailing(
@@ -183,8 +181,6 @@ func build_bail_water(
 		)
 
 		if not mid_actions.is_empty():
-			mid_actions.append(ContinueBailingAction.new(drain_to_zero))
-
 			return mid_actions
 
 	var actions = _build_single_bail_cycle(
@@ -202,8 +198,6 @@ func build_bail_water(
 		drain_to_zero
 	):
 		return []
-
-	actions.append(ContinueBailingAction.new(drain_to_zero))
 
 	return actions
 
@@ -241,8 +235,6 @@ func build_repair_hole(
 		return []
 
 	actions.append(RepairHoleAction.new(hole))
-
-	actions.append(ContinueRepairingAction.new())
 
 	return actions
 
@@ -331,7 +323,8 @@ func build_flooded_mid_deck_entry_bail(
 		var throw_route = build_go_to_point_from_deck(
 			mid_entry_point.deck,
 			throw_point,
-			mid_entry_point.global_position
+			mid_entry_point.get_position_for_actor(actor),
+			actor
 		)
 
 		if (
@@ -357,7 +350,6 @@ func build_flooded_mid_deck_entry_bail(
 		actions.append_array(throw_route)
 
 	actions.append(ThrowBucketWaterAction.new(throw_point))
-	actions.append(ContinueRepairingAction.new())
 
 	return actions
 
@@ -412,8 +404,6 @@ func _build_flooded_repair_area_bail(
 
 	if actions.is_empty():
 		return []
-
-	actions.append(ContinueRepairingAction.new())
 
 	return actions
 
@@ -583,7 +573,8 @@ func _build_mid_deck_bail_cycle(
 		var throw_route = build_go_to_point_from_deck(
 			bucket_point.deck,
 			throw_point,
-			bucket_point.global_position
+			bucket_point.get_position_for_actor(actor),
+			actor
 		)
 
 		if (
@@ -696,8 +687,6 @@ func _build_repair_bail_cycle(actor) -> Array[ActionDefinition]:
 		)
 		return []
 
-	actions.append(ContinueRepairingAction.new())
-
 	return actions
 
 
@@ -736,7 +725,8 @@ func _build_single_bail_cycle(
 	var throw_route = build_go_to_point_from_deck(
 		bucket_point.deck,
 		throw_point,
-		bucket_point.global_position
+		bucket_point.get_position_for_actor(actor),
+		actor
 	)
 
 	if (
@@ -768,13 +758,15 @@ func _build_single_bail_cycle(
 func build_go_to_point_from_deck(
 	start_deck: int,
 	point: ShipActionPoint,
-	start_position = null
+	start_position = null,
+	actor = null
 ) -> Array[ActionDefinition]:
 
 	return route_planner.build_go_to_point_from_deck(
 		start_deck,
 		point,
-		start_position
+		start_position,
+		actor
 	)
 
 
@@ -792,13 +784,15 @@ func build_transition_actions(
 func build_transition_actions_from_deck(
 	start_deck: int,
 	target_deck: int,
-	start_position = null
+	start_position = null,
+	actor = null
 ) -> Array[ActionDefinition]:
 
 	return route_planner.build_transition_actions_from_deck(
 		start_deck,
 		target_deck,
-		start_position
+		start_position,
+		actor
 	)
 
 
@@ -912,16 +906,15 @@ func _get_bail_target_water_level(drain_to_zero: bool) -> float:
 func is_repair_trip_safe(
 	actor,
 	hole: ShipHolePoint,
-	repair_trip: Dictionary,
+	repair_trip,
 	effective_flood_rate := -1.0
 ) -> bool:
 
 	if (
 		actor == null
 		or hole == null
-		or repair_trip.is_empty()
-		or not repair_trip.has("total_time")
-		or not repair_trip.has("repair_complete_time")
+		or repair_trip == null
+		or not repair_trip["reachable"]
 		or actor.ship == null
 		or actor.ship.health_system == null
 	):
@@ -943,11 +936,9 @@ func is_repair_trip_safe(
 			actor.ship.health_system.MAX_WATER_LEVEL
 		)
 
-	return ShipFloodForecast.can_survive_repair_trip(
-		water_level,
-		actor.ship.health_system.MAX_WATER_LEVEL,
+	return actor.ship.health_system.can_survive_repair_trip(
+		hole,
 		flood_rate,
-		_get_flooding_hole_grade(hole),
 		repair_complete_time,
 		total_time,
 		REPAIR_SAFETY_LEEWAY
@@ -981,10 +972,10 @@ func _estimate_repair_trip(
 		if time_to_throw == INF:
 			return _get_unreachable_repair_trip()
 
-		return {
-			"total_time": repair_complete_time + time_to_throw,
-			"repair_complete_time": repair_complete_time
-		}
+		return _repair_trip(
+			repair_complete_time + time_to_throw,
+			repair_complete_time
+		)
 
 	var projected_after_repair = actor.ship.health_system.get_projected_water_level(repair_complete_time)
 	var bucket_point = _get_bucket_point_after_repair(
@@ -993,10 +984,10 @@ func _estimate_repair_trip(
 	)
 
 	if bucket_point == null:
-		return {
-			"total_time": repair_complete_time,
-			"repair_complete_time": repair_complete_time
-		}
+		return _repair_trip(
+			repair_complete_time,
+			repair_complete_time
+		)
 
 	var time_to_bucket = _estimate_move_and_bail_duration_from_point(
 		actor,
@@ -1015,38 +1006,35 @@ func _estimate_repair_trip(
 	if time_to_throw == INF:
 		return _get_unreachable_repair_trip()
 
-	return {
-		"total_time": (
+	return _repair_trip(
+		(
 			repair_complete_time
 			+ time_to_bucket
 			+ time_to_throw
 		),
-		"repair_complete_time": repair_complete_time
-	}
+		repair_complete_time
+	)
 
 
 func _get_unreachable_repair_trip() -> Dictionary:
 
 	return {
 		"total_time": INF,
-		"repair_complete_time": INF
+		"repair_complete_time": INF,
+		"reachable": false
 	}
 
 
-func _get_flooding_hole_grade(hole: ShipHolePoint) -> float:
+func _repair_trip(
+	total_time: float,
+	repair_complete_time: float
+) -> Dictionary:
 
-	if (
-		hole == null
-		or (
-			hole.deck != DeckGraph.DECKS.MID
-			and hole.deck != DeckGraph.DECKS.LOWER
-		)
-	):
-		return 0.0
-
-	return float(
-		hole.grade
-	)
+	return {
+		"total_time": total_time,
+		"repair_complete_time": repair_complete_time,
+		"reachable": true
+	}
 
 
 func _estimate_move_duration_to_point(
@@ -1091,7 +1079,8 @@ func _estimate_move_and_bail_duration_from_point(
 	var route_actions = build_go_to_point_from_deck(
 		start_point.deck,
 		bucket_point,
-		start_point.global_position
+		start_point.get_position_for_actor(actor),
+		actor
 	)
 
 	if (
@@ -1109,7 +1098,8 @@ func _estimate_move_and_bail_duration_from_point(
 		MoveToPointAction.get_travel_duration_for_points(
 			actor,
 			route_points,
-			start_point.get_position_for_actor(actor)
+			start_point.get_position_for_actor(actor),
+			start_point.deck
 		),
 		BailWaterAction.DURATION
 	)
@@ -1131,7 +1121,8 @@ func _estimate_throw_duration_from_bucket(
 		var route_actions = build_go_to_point_from_deck(
 			bucket_point.deck,
 			throw_point,
-			bucket_point.global_position
+			bucket_point.get_position_for_actor(actor),
+			actor
 		)
 
 		if (
@@ -1148,7 +1139,8 @@ func _estimate_throw_duration_from_bucket(
 		movement_duration = MoveToPointAction.get_travel_duration_for_points(
 			actor,
 			route_points,
-			bucket_point.get_position_for_actor(actor)
+			bucket_point.get_position_for_actor(actor),
+			bucket_point.deck
 		)
 
 	return movement_duration + ThrowBucketWaterAction.DURATION

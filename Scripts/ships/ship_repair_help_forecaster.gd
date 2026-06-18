@@ -23,10 +23,10 @@ func get_crewmate_bail_rate(crewmate: Crewmate) -> float:
 
 	var bail_cycle_duration = action_planner.estimate_repair_bail_cycle_duration(crewmate)
 
-	return ShipFloodForecast.bail_rate(
-		Crewmate.MAX_BUCKET_AMOUNT,
-		bail_cycle_duration
-	)
+	if bail_cycle_duration <= 0.0 or bail_cycle_duration == INF:
+		return 0.0
+
+	return Crewmate.MAX_BUCKET_AMOUNT / bail_cycle_duration
 
 
 func is_bailing_outmatched(
@@ -71,11 +71,11 @@ func get_effective_flood_rate(
 			continue
 
 		var bail_cycle_duration = action_planner.estimate_repair_bail_cycle_duration(crewmate)
-		flood_rate = ShipFloodForecast.flood_rate_after_bailing(
-			flood_rate,
-			Crewmate.MAX_BUCKET_AMOUNT,
-			bail_cycle_duration
-		)
+		if bail_cycle_duration > 0.0 and bail_cycle_duration != INF:
+			flood_rate = max(
+				flood_rate - Crewmate.MAX_BUCKET_AMOUNT / bail_cycle_duration,
+				0.0
+			)
 
 	return max(flood_rate, 0.0)
 
@@ -102,25 +102,22 @@ func print_doomed_bailing_help_request_if_needed(
 	if own_bail_duration <= 0.0 or own_bail_duration == INF:
 		return
 
-	var flood_after_own_bail = ShipFloodForecast.flood_rate_after_bailing(
+	var flood_after_own_bail = max(
 		get_effective_flood_rate(
 			active_crewmates,
 			roles,
 			crewmate,
 			bailer_role
-		),
-		Crewmate.MAX_BUCKET_AMOUNT,
-		own_bail_duration
+		) - Crewmate.MAX_BUCKET_AMOUNT / own_bail_duration,
+		0.0
 	)
 
 	if flood_after_own_bail <= 0.0:
 		help_requested.erase(crewmate)
 		return
 
-	var time_until_full = ShipFloodForecast.time_until_full(
-		ship.health_system.get_water_level(),
-		flood_after_own_bail,
-		ship.health_system.MAX_WATER_LEVEL
+	var time_until_full = ship.health_system.get_time_until_full(
+		flood_after_own_bail - ship.health_system.get_flood_rate()
 	)
 	var nearest_help_time = _get_nearest_available_help_time(
 		crewmate,
@@ -185,39 +182,31 @@ func _get_nearest_assist_point(crewmate: Crewmate) -> ShipHolePoint:
 	if crewmate == null or action_points == null:
 		return null
 
-	var best_hole: ShipHolePoint = null
-	var best_distance := INF
+	for flooding_decks_only in [true, false]:
+		var best_hole: ShipHolePoint = null
+		var best_distance := INF
 
-	for hole in action_points.get_holes_ref():
-		if (
-			hole.grade <= ShipHolePoint.MIN_GRADE
-			or (
-				hole.deck != DeckGraph.DECKS.MID
-				and hole.deck != DeckGraph.DECKS.LOWER
-			)
-		):
-			continue
+		for hole in action_points.get_holes_ref():
+			if (
+				hole.grade <= ShipHolePoint.MIN_GRADE
+				or (
+					flooding_decks_only
+					and hole.deck != DeckGraph.DECKS.MID
+					and hole.deck != DeckGraph.DECKS.LOWER
+				)
+			):
+				continue
 
-		var distance = crewmate.global_position.distance_to(hole.global_position)
+			var distance = crewmate.global_position.distance_to(hole.global_position)
 
-		if distance < best_distance:
-			best_hole = hole
-			best_distance = distance
+			if distance < best_distance:
+				best_hole = hole
+				best_distance = distance
 
-	if best_hole != null:
-		return best_hole
+		if best_hole != null:
+			return best_hole
 
-	for hole in action_points.get_holes_ref():
-		if hole.grade <= ShipHolePoint.MIN_GRADE:
-			continue
-
-		var distance = crewmate.global_position.distance_to(hole.global_position)
-
-		if distance < best_distance:
-			best_hole = hole
-			best_distance = distance
-
-	return best_hole
+	return null
 
 
 func _is_active_bailer_support(

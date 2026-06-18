@@ -92,6 +92,8 @@ func set_operator(
 	station_operators[station] = crewmate
 	crewmate_stations[crewmate] = station
 
+	crew_task_controller.clear_requested_station(crewmate)
+
 
 func clear_operator(station: StationPoint) -> void:
 
@@ -128,10 +130,10 @@ func cancel_station_request(crewmate: Crewmate) -> void:
 	if crewmate == null:
 		return
 
-	crewmate.requested_station = null
-
-	if crewmate.action_executor != null:
-		crewmate.action_executor.cancel_plan()
+	crew_task_controller.cancel_plan_and_clear_station_request(
+		crewmate,
+		true
+	)
 
 
 func request_station_control(
@@ -169,7 +171,13 @@ func request_station_control(
 	if requested_input == 0.0:
 		return false
 
-	if crewmate.requested_station == station:
+	if crew_task_controller.get_requested_station(crewmate) == station:
+		return false
+
+	if crew_task_controller.is_station_requested_by_other(
+		station,
+		crewmate
+	):
 		return false
 
 	var actions = action_planner.build_station_control(
@@ -180,22 +188,17 @@ func request_station_control(
 	if actions.is_empty():
 		return false
 
-	if crew_task_controller != null:
-		crew_task_controller.prepare_for_station_control(
-			crewmate,
-			"station control input for %s"
-			% station_name
-		)
-
 	_clear_cannon_duty_for_station_control(
 		crewmate,
 		requested_input
 	)
-
-	cancel_station_request(crewmate)
-
-	crewmate.requested_station = station
-	crewmate.action_executor.queue_actions(actions)
+	crew_task_controller.queue_station_request(
+		crewmate,
+		station,
+		actions,
+		"station control input for %s"
+		% station_name
+	)
 
 	return false
 
@@ -214,14 +217,4 @@ func _clear_cannon_duty_for_station_control(
 	):
 		return
 
-	if crew_task_controller != null:
-		crew_task_controller.clear_cannon_duty(crewmate)
-		return
-
-	if (
-		crewmate.ship.cannon_duty_controller == null
-		or not crewmate.ship.cannon_duty_controller.is_duty_crewmate(crewmate)
-	):
-		return
-
-	crewmate.ship.cannon_duty_controller.clear_assignment()
+	crew_task_controller.clear_cannon_duty(crewmate)

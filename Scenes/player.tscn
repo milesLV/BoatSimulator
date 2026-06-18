@@ -5,8 +5,6 @@
 [ext_resource type="Texture2D" uid="uid://coxgunpsds1mx" path="res://Assets/noSailTransparentRefined.png" id="4_fkybt"]
 
 [node name="PlayerSloop" unique_id=1141876777 instance=ExtResource("1_cgts5")]
-collision_layer = 1
-collision_mask = 6
 script = ExtResource("1_onrkg")
 
 [node name="PlayerSloopBody" type="Sprite2D" parent="." index="0" unique_id=1910078389]

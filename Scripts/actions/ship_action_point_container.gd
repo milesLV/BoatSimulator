@@ -411,6 +411,11 @@ func get_transition_points(
 	return result
 
 
+func get_transition_points_ref() -> Array[DeckTransitionPoint]:
+
+	return transitions
+
+
 func get_closest_transition_point(
 	from_deck: int,
 	to_deck: int,

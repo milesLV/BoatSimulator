@@ -137,9 +137,7 @@ func _process_ship_velocity(delta: float) -> void:
 			ACCELERATION * delta
 		)
 
-	ship.velocity = Vector2.RIGHT.rotated(
-		ship.rotation
-	) * current_velocity
+	ship.velocity = Vector2.RIGHT.rotated(ship.rotation) * current_velocity
 	ship.move_and_slide()
 
 
@@ -160,6 +158,5 @@ func _has_wheel_operator() -> bool:
 
 	return (
 		station_controller != null
-		and station_controller.get_operator_by_name(&"Wheel")
-		!= null
+		and station_controller.get_operator_by_name(&"Wheel") != null
 	)

@@ -6,7 +6,6 @@
 [ext_resource type="Script" uid="uid://ci0omk7rimasa" path="res://Scripts/actions/transition_deck_point.gd" id="2_b31r2"]
 [ext_resource type="Script" uid="uid://bft7j6jh68rxj" path="res://Scripts/actions/hole_point.gd" id="3_jjglc"]
 [ext_resource type="Script" uid="uid://dlsmaujtp3ish" path="res://Scripts/actions/transition_group.gd" id="4_soy2k"]
-[ext_resource type="Texture2D" uid="uid://1qkvfujxy8pw" path="res://Assets/noSailTransparentSkele.png" id="7_qb1qm"]
 
 [node name="shipActionPoints" type="Node2D" unique_id=826780228]
 script = ExtResource("2_5lbpi")
@@ -253,14 +252,7 @@ script = ExtResource("3_jjglc")
 grade = 2
 deck = 3
 
-[node name="EnemySloopBody" type="Sprite2D" parent="." unique_id=1079068866]
-visible = false
-rotation = 1.5707964
-scale = Vector2(1.23, 1.23)
-texture = ExtResource("7_qb1qm")
-
 [node name="SloopCollision" type="CollisionPolygon2D" parent="." unique_id=303340020]
-visible = false
 position = Vector2(-5.6028366e-06, -2.8421704e-13)
 rotation = 1.5707964
 scale = Vector2(0.58, 0.58)

@@ -1,13 +1,15 @@
 class_name MoveAndBailWaterAction
 extends MoveToPointAction
 
-var route_points: Array = []
+const RUNTIME_ROUTE_POSITIONS := &"route_positions"
+const RUNTIME_SEGMENT_LENGTHS := &"segment_lengths"
+const RUNTIME_SEGMENT_DURATIONS := &"segment_durations"
+const RUNTIME_SEGMENT_FROM_DECKS := &"segment_from_decks"
+const RUNTIME_SEGMENT_TO_DECKS := &"segment_to_decks"
+const RUNTIME_TOTAL_DISTANCE := &"total_distance"
+const RUNTIME_WINDUP_STARTED := &"windup_started"
 
-var _route_positions: Array = []
-var _segment_lengths: Array = []
-var _total_distance := 0.0
-var _travel_duration := 0.0
-var _windup_started := false
+var route_points: Array = []
 
 
 func _init(
@@ -43,20 +45,56 @@ func on_start(
 	instance
 ) -> void:
 
-	_route_positions = MoveToPointAction.get_route_positions_for_points(
+	var route_positions = MoveToPointAction.get_route_positions_for_points(
 		actor,
 		route_points
 	)
-	_rebuild_segment_lengths()
-	_travel_duration = _total_distance / MOVE_SPEED
+	var start_deck = actor.location
+	var target_deck = start_deck
 
-	if not _route_positions.is_empty():
-		_start_position = _route_positions[0]
-		_target_position = _route_positions[
-			_route_positions.size() - 1
-		]
+	if point != null:
+		target_deck = point.deck
 
-	_windup_started = false
+	_set_runtime(
+		instance,
+		RUNTIME_ROUTE_POSITIONS,
+		route_positions
+	)
+	_set_runtime(
+		instance,
+		RUNTIME_START_DECK,
+		start_deck
+	)
+	_set_runtime(
+		instance,
+		RUNTIME_TARGET_DECK,
+		target_deck
+	)
+
+	_rebuild_route_segments(
+		actor,
+		instance
+	)
+
+	if not route_positions.is_empty():
+		_set_runtime(
+			instance,
+			RUNTIME_START_POSITION,
+			route_positions[0]
+		)
+		_set_runtime(
+			instance,
+			RUNTIME_TARGET_POSITION,
+			route_positions[
+				route_positions.size() - 1
+			]
+		)
+
+	_set_runtime(
+		instance,
+		RUNTIME_WINDUP_STARTED,
+		false
+	)
 	_start_windup_if_ready(
 		actor,
 		instance
@@ -74,11 +112,18 @@ func on_tick(
 		instance
 	)
 
-	var distance_along_route = _get_distance_along_route(instance.elapsed)
+	var distance_along_route = _get_distance_along_route(
+		instance,
+		instance.elapsed
+	)
 
-	actor.position = _get_position_at_distance(distance_along_route)
+	actor.position = _get_position_at_distance(
+		instance,
+		distance_along_route
+	)
 	_update_actor_location_at_distance(
 		actor,
+		instance,
 		distance_along_route
 	)
 
@@ -93,7 +138,11 @@ func on_complete(
 		instance
 	)
 
-	actor.position = _target_position
+	actor.position = _get_runtime_vector2(
+		instance,
+		RUNTIME_TARGET_POSITION,
+		actor.position
+	)
 	_update_actor_location(actor)
 
 	BailWaterAction.collect_water(
@@ -114,94 +163,263 @@ func _start_windup_if_ready(
 	instance
 ) -> void:
 
-	if _windup_started:
+	if bool(
+		_get_runtime(
+			instance,
+			RUNTIME_WINDUP_STARTED,
+			false
+		)
+	):
 		return
 
+	var travel_duration = _get_runtime_float(
+		instance,
+		RUNTIME_TRAVEL_DURATION
+	)
 	var windup_start_time = max(
-		_travel_duration - BailWaterAction.DURATION,
+		travel_duration - BailWaterAction.DURATION,
 		0.0
 	)
 
 	if instance.elapsed < windup_start_time:
 		return
 
-	_windup_started = true
+	_set_runtime(
+		instance,
+		RUNTIME_WINDUP_STARTED,
+		true
+	)
 	BailWaterAction.print_bail_started(
 		actor,
 		point
 	)
 
 
-func _get_distance_along_route(elapsed: float) -> float:
+func _get_distance_along_route(
+	instance,
+	elapsed: float
+) -> float:
 
-	if _travel_duration <= 0.0:
-		return _total_distance
+	var travel_duration = _get_runtime_float(
+		instance,
+		RUNTIME_TRAVEL_DURATION
+	)
+	var total_distance = _get_runtime_float(
+		instance,
+		RUNTIME_TOTAL_DISTANCE
+	)
 
-	return min(
-		elapsed * MOVE_SPEED,
-		_total_distance
+	if travel_duration <= 0.0:
+		return total_distance
+
+	var remaining_time = clamp(
+		elapsed,
+		0.0,
+		travel_duration
+	)
+	var distance := 0.0
+	var segment_lengths = _get_runtime_array(
+		instance,
+		RUNTIME_SEGMENT_LENGTHS
+	)
+	var segment_durations = _get_runtime_array(
+		instance,
+		RUNTIME_SEGMENT_DURATIONS
+	)
+
+	for i in range(segment_lengths.size()):
+		var segment_duration = segment_durations[i]
+		var segment_length = segment_lengths[i]
+
+		if segment_duration <= 0.0:
+			distance += segment_length
+			continue
+
+		if remaining_time <= segment_duration:
+			return (
+				distance
+				+ segment_length * (remaining_time / segment_duration)
+			)
+
+		distance += segment_length
+		remaining_time -= segment_duration
+
+	return total_distance
+
+
+func _rebuild_route_segments(
+	actor,
+	instance
+) -> void:
+
+	var route_positions = _get_runtime_array(
+		instance,
+		RUNTIME_ROUTE_POSITIONS
+	)
+	var segment_lengths: Array = []
+	var segment_durations: Array = []
+	var segment_from_decks: Array[int] = []
+	var segment_to_decks: Array[int] = []
+	var total_distance := 0.0
+	var travel_duration := 0.0
+
+	if route_positions.size() <= 1:
+		_store_route_segments(
+			instance,
+			segment_lengths,
+			segment_durations,
+			segment_from_decks,
+			segment_to_decks,
+			total_distance,
+			travel_duration
+		)
+		return
+
+	var current_deck = actor.location
+
+	for i in range(route_positions.size() - 1):
+		var segment_length = route_positions[i].distance_to(route_positions[i + 1])
+		var target_point: ShipActionPoint = null
+		var target_deck = current_deck
+
+		if i < route_points.size():
+			target_point = route_points[i]
+
+			if target_point != null:
+				target_deck = target_point.deck
+
+		var segment_duration = MoveToPointAction.get_travel_duration_to_point(
+			actor,
+			target_point,
+			route_positions[i],
+			current_deck
+		)
+
+		segment_lengths.append(segment_length)
+		segment_durations.append(segment_duration)
+		segment_from_decks.append(current_deck)
+		segment_to_decks.append(target_deck)
+		total_distance += segment_length
+		travel_duration += segment_duration
+		current_deck = target_deck
+
+	_store_route_segments(
+		instance,
+		segment_lengths,
+		segment_durations,
+		segment_from_decks,
+		segment_to_decks,
+		total_distance,
+		travel_duration
 	)
 
 
-func _rebuild_segment_lengths() -> void:
+func _store_route_segments(
+	instance,
+	segment_lengths: Array,
+	segment_durations: Array,
+	segment_from_decks: Array,
+	segment_to_decks: Array,
+	total_distance: float,
+	travel_duration: float
+) -> void:
 
-	_segment_lengths.clear()
-	_total_distance = 0.0
+	_set_runtime(
+		instance,
+		RUNTIME_SEGMENT_LENGTHS,
+		segment_lengths
+	)
+	_set_runtime(
+		instance,
+		RUNTIME_SEGMENT_DURATIONS,
+		segment_durations
+	)
+	_set_runtime(
+		instance,
+		RUNTIME_SEGMENT_FROM_DECKS,
+		segment_from_decks
+	)
+	_set_runtime(
+		instance,
+		RUNTIME_SEGMENT_TO_DECKS,
+		segment_to_decks
+	)
+	_set_runtime(
+		instance,
+		RUNTIME_TOTAL_DISTANCE,
+		total_distance
+	)
+	_set_runtime(
+		instance,
+		RUNTIME_TRAVEL_DURATION,
+		travel_duration
+	)
 
-	if _route_positions.size() <= 1:
-		return
 
-	for i in range(
-		_route_positions.size() - 1
-	):
-		var segment_length = _route_positions[i].distance_to(_route_positions[i + 1])
+func _get_position_at_distance(
+	instance,
+	distance_along_route: float
+) -> Vector2:
 
-		_segment_lengths.append(segment_length)
-		_total_distance += segment_length
+	var route_positions = _get_runtime_array(
+		instance,
+		RUNTIME_ROUTE_POSITIONS
+	)
+	var target_position = _get_runtime_vector2(
+		instance,
+		RUNTIME_TARGET_POSITION,
+		Vector2.ZERO
+	)
+	var total_distance = _get_runtime_float(
+		instance,
+		RUNTIME_TOTAL_DISTANCE
+	)
 
-
-func _get_position_at_distance(distance_along_route: float) -> Vector2:
-
-	if _route_positions.is_empty():
-		return _target_position
+	if route_positions.is_empty():
+		return target_position
 
 	if (
-		_total_distance <= 0.0
-		or _route_positions.size() == 1
+		total_distance <= 0.0
+		or route_positions.size() == 1
 	):
-		return _route_positions[
-			_route_positions.size() - 1
+		return route_positions[
+			route_positions.size() - 1
 		]
 
 	var remaining_distance = clamp(
 		distance_along_route,
 		0.0,
-		_total_distance
+		total_distance
+	)
+	var segment_lengths = _get_runtime_array(
+		instance,
+		RUNTIME_SEGMENT_LENGTHS
 	)
 
 	for i in range(
-		_segment_lengths.size()
+		segment_lengths.size()
 	):
-		var segment_length = _segment_lengths[i]
+		var segment_length = segment_lengths[i]
 
 		if segment_length <= 0.0:
 			continue
 
 		if remaining_distance <= segment_length:
-			return _route_positions[i].lerp(
-				_route_positions[i + 1],
+			return route_positions[i].lerp(
+				route_positions[i + 1],
 				remaining_distance / segment_length
 			)
 
 		remaining_distance -= segment_length
 
-	return _route_positions[
-		_route_positions.size() - 1
+	return route_positions[
+		route_positions.size() - 1
 	]
 
 
 func _update_actor_location_at_distance(
 	actor,
+	instance,
 	distance_along_route: float
 ) -> void:
 
@@ -211,22 +429,70 @@ func _update_actor_location_at_distance(
 	var remaining_distance = clamp(
 		distance_along_route,
 		0.0,
-		_total_distance
+		_get_runtime_float(
+			instance,
+			RUNTIME_TOTAL_DISTANCE
+		)
+	)
+	var segment_lengths = _get_runtime_array(
+		instance,
+		RUNTIME_SEGMENT_LENGTHS
+	)
+	var segment_from_decks = _get_runtime_array(
+		instance,
+		RUNTIME_SEGMENT_FROM_DECKS
+	)
+	var segment_to_decks = _get_runtime_array(
+		instance,
+		RUNTIME_SEGMENT_TO_DECKS
 	)
 
-	for i in range(
-		_segment_lengths.size()
-	):
-		var segment_length = _segment_lengths[i]
+	for i in range(segment_lengths.size()):
+		var segment_length = segment_lengths[i]
+		var from_deck: int = segment_from_decks[i]
+		var to_deck: int = segment_to_decks[i]
 
 		if (
-			remaining_distance <= segment_length
-			or i == _segment_lengths.size() - 1
+			segment_length <= 0.0
+			or remaining_distance >= segment_length
 		):
-			actor.set_location(route_points[i].deck)
-			return
+			_clear_actor_deck_transition(actor)
+			actor.set_location(to_deck)
+			remaining_distance -= segment_length
+			continue
 
-		remaining_distance -= segment_length
+		if from_deck != to_deck:
+			_begin_actor_deck_transition(
+				actor,
+				from_deck,
+				to_deck
+			)
+		else:
+			_clear_actor_deck_transition(actor)
+			actor.set_location(to_deck)
+
+		return
+
+	if not route_points.is_empty():
+		_clear_actor_deck_transition(actor)
+		actor.set_location(route_points[route_points.size() - 1].deck)
+
+
+func _get_runtime_array(
+	instance,
+	key
+) -> Array:
+
+	var value = _get_runtime(
+		instance,
+		key,
+		[]
+	)
+
+	if value is Array:
+		return value
+
+	return []
 
 
 func _build_route_points(
@@ -254,23 +520,3 @@ func _build_route_points(
 		result.append(target_point)
 
 	return result
-
-
-func _get_actor_name(actor) -> String:
-
-	if actor == null:
-		return "Unknown actor"
-
-	return String(
-		actor.name
-	)
-
-
-func _get_point_name() -> String:
-
-	if point == null:
-		return "unknown point"
-
-	return String(
-		point.name
-	)

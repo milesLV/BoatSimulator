@@ -69,8 +69,7 @@ func assign_crewmate(crewmate: Crewmate) -> bool:
 	):
 		return false
 
-	if crew_task_controller != null:
-		crew_task_controller.prepare_for_repair_duty(crewmate)
+	crew_task_controller.prepare_for_repair_duty(crewmate)
 
 	if not active_crewmates.has(
 		crewmate
@@ -160,14 +159,8 @@ func queue_next_action(
 		plan
 	)
 
-	var reason: int = plan.get(
-		"reason",
-		RepairPlanReason.NONE
-	)
-	var actions: Array = plan.get(
-		"actions",
-		[]
-	)
+	var reason: int = plan["reason"]
+	var actions: Array = plan["actions"]
 
 	if reason == RepairPlanReason.DONE:
 		clear_crewmate(
@@ -303,17 +296,12 @@ func _build_next_damage_control_plan(crewmate: Crewmate) -> Dictionary:
 	if crewmate.bucket_amount > 0.0:
 		var repair_plan = _build_repair_hole_plan(crewmate)
 
-		if repair_plan.get(
-			"reason",
-			RepairPlanReason.NONE
-		) == RepairPlanReason.REPAIR_HOLE:
-			var details: Dictionary = repair_plan.get(
-				"details",
-				{}
+		if repair_plan["reason"] == RepairPlanReason.REPAIR_HOLE:
+			_set_plan_detail(
+				repair_plan,
+				"label",
+				"repairing before emptying carried bucket"
 			)
-
-			details["label"] = "repairing before emptying carried bucket"
-			repair_plan["details"] = details
 
 			return repair_plan
 
@@ -350,22 +338,26 @@ func _build_next_damage_control_plan(crewmate: Crewmate) -> Dictionary:
 	var bailing_outmatched = _is_bailing_outmatched(crewmate)
 	var repair_plan = _build_repair_hole_plan(crewmate)
 
-	if repair_plan.get(
-		"reason",
-		RepairPlanReason.NONE
-	) == RepairPlanReason.REPAIR_HOLE:
+	if repair_plan["reason"] == RepairPlanReason.REPAIR_HOLE:
 		if bailing_outmatched:
-			var details: Dictionary = repair_plan.get(
-				"details",
-				{}
-			)
 			var bail_rate = _get_crewmate_bail_rate(crewmate)
 			var flood_rate = _get_effective_flood_rate(crewmate)
 
-			details["label"] = "repairing because flood rate outmatches bailing"
-			details["flood_rate"] = "%.2f" % flood_rate
-			details["bail_rate"] = "%.2f" % bail_rate
-			repair_plan["details"] = details
+			_set_plan_detail(
+				repair_plan,
+				"label",
+				"repairing because flood rate outmatches bailing"
+			)
+			_set_plan_detail(
+				repair_plan,
+				"flood_rate",
+				"%.2f" % flood_rate
+			)
+			_set_plan_detail(
+				repair_plan,
+				"bail_rate",
+				"%.2f" % bail_rate
+			)
 
 		return repair_plan
 
@@ -435,10 +427,7 @@ func _build_next_damage_control_plan(crewmate: Crewmate) -> Dictionary:
 			}
 		)
 
-	var repair_reason: int = repair_plan.get(
-		"reason",
-		RepairPlanReason.NONE
-	)
+	var repair_reason: int = repair_plan["reason"]
 
 	if repair_reason != RepairPlanReason.NONE:
 		return repair_plan
@@ -745,20 +734,18 @@ func _queue_actions(
 		return
 
 	if replace_current:
-		if crew_task_controller != null:
-			crew_task_controller.cancel_plan_and_clear_station_request(
-				crewmate,
-				true
-			)
-		else:
-			crewmate.action_executor.cancel_plan()
-			crewmate.requested_station = null
-	elif crew_task_controller != null:
-		crew_task_controller.clear_requested_station(crewmate)
-	else:
-		crewmate.requested_station = null
+		crew_task_controller.queue_repair_actions(
+			crewmate,
+			actions,
+			true
+		)
+		return
 
-	crewmate.action_executor.queue_actions(actions)
+	crew_task_controller.queue_repair_actions(
+		crewmate,
+		actions,
+		false
+	)
 
 
 func _connect_queue_finished_listener(crewmate: Crewmate) -> void:
@@ -871,30 +858,30 @@ func _build_plan_result(
 	return {
 		"reason": reason,
 		"actions": actions,
-		"details": details
+		"details": details.duplicate()
 	}
+
+
+func _set_plan_detail(
+	plan: Dictionary,
+	key,
+	value
+) -> void:
+
+	plan["details"][key] = value
 
 
 func _log_plan_decision(
 	crewmate: Crewmate,
-	plan: Dictionary
+	plan
 ) -> void:
 
 	if crewmate == null:
 		return
 
-	var reason: int = plan.get(
-		"reason",
-		RepairPlanReason.NONE
-	)
-	var actions: Array = plan.get(
-		"actions",
-		[]
-	)
-	var details: Dictionary = plan.get(
-		"details",
-		{}
-	)
+	var reason: int = plan["reason"]
+	var actions: Array = plan["actions"]
+	var details: Dictionary = plan["details"]
 	var detail_text = _get_plan_detail_text(details)
 
 	ShipDebugLog.repair(
@@ -915,7 +902,7 @@ func _log_plan_decision(
 
 func _print_blocked_plan_warning(
 	crewmate: Crewmate,
-	plan: Dictionary
+	plan
 ) -> void:
 
 	if (
@@ -924,15 +911,9 @@ func _print_blocked_plan_warning(
 	):
 		return
 
-	var reason: int = plan.get(
-		"reason",
-		RepairPlanReason.NONE
-	)
+	var reason: int = plan["reason"]
 	var detail_text = _get_plan_detail_text(
-		plan.get(
-			"details",
-			{}
-		)
+		plan["details"]
 	)
 
 	ShipDebugLog.repair(

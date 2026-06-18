@@ -26,6 +26,10 @@ func get_duration(_actor, _context := {}) -> float:
 	return base_duration
 
 
+func prepare_instance(_actor, _instance) -> void:
+	pass
+
+
 func apply_interrupt_policy(_actor, instance) -> void:
 
 	var interrupted_elapsed = _get_interrupted_elapsed(instance)
@@ -91,3 +95,33 @@ func _build_context(actor, instance) -> Dictionary:
 		"action_id": action_id,
 		"progress_policy": progress_policy
 	}
+
+
+func _set_runtime(
+	instance,
+	key,
+	value
+) -> void:
+
+	if instance == null:
+		return
+
+	instance.set_runtime_value(
+		key,
+		value
+	)
+
+
+func _get_runtime(
+	instance,
+	key,
+	default_value = null
+):
+
+	if instance == null:
+		return default_value
+
+	return instance.get_runtime_value(
+		key,
+		default_value
+	)

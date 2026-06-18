@@ -22,7 +22,11 @@ var queued_actions: Array[ActionInstance] = []
 # PUBLIC
 # ==================================================
 
-func queue_action(definition: ActionDefinition) -> ActionInstance:
+func queue_action(definition) -> ActionInstance:
+
+	if not (definition is ActionDefinition):
+		push_warning("Ignored invalid action definition.")
+		return null
 
 	var instance = ActionInstance.new(
 		definition,
@@ -40,6 +44,9 @@ func queue_action(definition: ActionDefinition) -> ActionInstance:
 func queue_actions(definitions: Array) -> void:
 
 	for definition in definitions:
+		if not (definition is ActionDefinition):
+			push_warning("Ignored invalid action definition.")
+			continue
 
 		var instance = ActionInstance.new(
 			definition,
@@ -95,56 +102,55 @@ func cancel_plan() -> bool:
 	return had_actions
 
 
-func get_total_remaining_time() -> float:
-
-	var total := 0.0
-
-	if current_action != null:
-
-		total += current_action.get_remaining_time(actor)
-
-	for action in queued_actions:
-
-		total += action.get_remaining_time(actor)
-
-	return total
-
-
 # ==================================================
 # PROCESS
 # ==================================================
 
 func _physics_process(delta: float) -> void:
 
-	if current_action == null:
-		return
+	var remaining_delta := delta
 
+	while remaining_delta > 0.0:
+		if current_action == null:
+			_start_next_action()
 
-	current_action.elapsed += delta
+		if current_action == null:
+			return
 
+		var action_delta = remaining_delta
 
-	current_action.definition.on_tick(
-		actor,
-		current_action,
-		delta
-	)
+		if current_action.duration >= 0.0:
+			action_delta = min(
+				remaining_delta,
+				max(
+					current_action.duration - current_action.elapsed,
+					0.0
+				)
+			)
 
+		current_action.elapsed += action_delta
 
-	if current_action.is_complete():
+		current_action.definition.on_tick(
+			actor,
+			current_action,
+			action_delta
+		)
 
-		_complete_current()
+		if not current_action.is_complete():
+			return
+
+		remaining_delta -= action_delta
+
+		_finish_current_action()
+
+		if remaining_delta <= 0.0:
+			_start_next_action()
+			return
 
 
 # ==================================================
 # INTERNAL
 # ==================================================
-
-func _complete_current() -> void:
-
-	_finish_current_action()
-
-	_start_next_action()
-
 
 func _start_next_action() -> void:
 
