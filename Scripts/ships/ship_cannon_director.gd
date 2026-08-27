@@ -9,86 +9,60 @@ var target_ship: Node = null
 var active_broadside := -1
 
 
-func _init(
-	new_ship: Node2D,
-	new_cannons: Array
-) -> void:
-
+func _init(new_ship: Node2D, new_cannons: Array) -> void:
 	ship = new_ship
 	cannons = new_cannons
 
 
 func refresh_targets(ships: Array) -> void:
 
-	target_ship = null
+	var live = ships.filter(
+		func(candidate): return candidate != ship and not candidate.is_sunk()
+	)
 
-	for candidate in ships:
-
-		if candidate != ship:
-			target_ship = candidate
-			return
+	target_ship = live.front() if not live.is_empty() else null
 
 
 func update_active_cannon(tracking_enabled: bool) -> void:
 
-	if (
-		target_ship == null
-		or not is_instance_valid(target_ship)
-	):
+	if get_target_ship() == null:
 		clear_active_cannons()
 		return
 
-	var port_closest := INF
-	var starboard_closest := INF
+	var port_closest = _get_closest_distance(CannonSide.Value.PORT)
+	var starboard_closest = _get_closest_distance(CannonSide.Value.STARBOARD)
 
-	for cannon in cannons:
-
-		var dist = cannon.global_position.distance_to(target_ship.global_position)
-
-		match cannon.broadside:
-			CannonSide.Value.PORT:
-				port_closest = min(
-					port_closest,
-					dist
-				)
-
-			CannonSide.Value.STARBOARD:
-				starboard_closest = min(
-					starboard_closest,
-					dist
-				)
-
-	var chosen_broadside := active_broadside
-
-	if (
-		port_closest == INF
-		and starboard_closest == INF
-	):
-		chosen_broadside = -1
+	if port_closest == INF and starboard_closest == INF:
+		active_broadside = -1
 	elif abs(port_closest - starboard_closest) <= SIDE_TIE_EPSILON:
-		if chosen_broadside == -1:
-			chosen_broadside = CannonSide.Value.PORT
+		if active_broadside == -1:
+			active_broadside = CannonSide.Value.PORT
 	elif port_closest < starboard_closest:
-		chosen_broadside = CannonSide.Value.PORT
+		active_broadside = CannonSide.Value.PORT
 	else:
-		chosen_broadside = CannonSide.Value.STARBOARD
-
-	active_broadside = chosen_broadside
+		active_broadside = CannonSide.Value.STARBOARD
 
 	for cannon in cannons:
-
 		var is_active_broadside = (
 			tracking_enabled
 			and active_broadside != -1
 			and cannon.broadside == active_broadside
 		)
 
-		cannon.set_tracking_enabled(is_active_broadside)
+		cannon.tracking_enabled = is_active_broadside
+		cannon.tracking_target = target_ship if is_active_broadside else null
 
-		if is_active_broadside:
-			cannon.set_tracking_target(target_ship)
-		else:
-			cannon.set_tracking_target(null)
+
+## Distance from the target to the nearest cannon on [param side], INF when it has none.
+func _get_closest_distance(side: int) -> float:
+
+	var distances = (
+		cannons
+			.filter(func(cannon): return cannon.broadside == side)
+			.map(func(cannon): return cannon.global_position.distance_to(target_ship.global_position))
+	)
+
+	return distances.min() if not distances.is_empty() else INF
 
 
 func clear_active_cannons() -> void:
@@ -96,22 +70,13 @@ func clear_active_cannons() -> void:
 	active_broadside = -1
 
 	for cannon in cannons:
-
-		cannon.set_tracking_enabled(false)
-		cannon.set_tracking_target(null)
-
-
-func get_active_broadside() -> int:
-
-	return active_broadside
+		cannon.tracking_enabled = false
+		cannon.tracking_target = null
 
 
 func get_target_ship() -> Node:
 
-	if (
-		target_ship == null
-		or not is_instance_valid(target_ship)
-	):
+	if target_ship == null or not is_instance_valid(target_ship) or target_ship.is_sunk():
 		return null
 
 	return target_ship

@@ -12,25 +12,14 @@ const MAX_ZOOM = 2.5
 var is_panning := false
 var is_following := true
 
-func _ready() -> void:
-
-	follow_target = _get_player_target()
-
 func _process(delta: float) -> void:
 	if follow_target == null:
-		follow_target = _get_player_target()
+		follow_target = GlobalShipRegistry.get_player_ship_from_tree(get_tree())
 
-	# following player
 	if is_following and follow_target != null:
 		global_position = follow_target.global_position
 
-	var zoom_input := 0.0
-
-	if Input.is_action_pressed("ZoomIn"):
-		zoom_input += 1.0
-
-	if Input.is_action_pressed("ZoomOut"):
-		zoom_input -= 1.0
+	var zoom_input := Input.get_axis("ZoomOut", "ZoomIn")
 
 	if zoom_input != 0.0:
 		_apply_zoom(KEY_ZOOM_SPEED * zoom_input * delta)
@@ -51,41 +40,21 @@ func _input(event):
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			_apply_zoom(ZOOM_STEP)
 
-	# starting drag
 	if event.is_action_pressed("panCamera"):
 		is_panning = true
 		is_following = false
-	
-	#stopping
+
 	if event.is_action_released("panCamera"):
 		is_panning = false
 
-	# drag camera
 	if is_panning and event is InputEventMouseMotion:
-		global_position -= _screen_delta_to_world_delta(event.relative)
-	
-	# reset camera
+		global_position -= get_canvas_transform().affine_inverse().basis_xform(event.relative)
+
 	if event.is_action_pressed("resetCameraPan"):
-		is_panning = false # just in case
+		is_panning = false
 		is_following = true
 
 
 func _apply_zoom(zoom_delta: Vector2) -> void:
 
-	zoom = clamp(
-		zoom + zoom_delta,
-		MIN_ZOOM * Vector2.ONE,
-		MAX_ZOOM * Vector2.ONE
-	)
-
-
-func _screen_delta_to_world_delta(screen_delta: Vector2) -> Vector2:
-
-	return get_canvas_transform().affine_inverse().basis_xform(
-		screen_delta
-	)
-
-
-func _get_player_target() -> Node2D:
-
-	return GlobalShipRegistry.get_player_ship_from_tree(get_tree())
+	zoom = clamp(zoom + zoom_delta, MIN_ZOOM * Vector2.ONE, MAX_ZOOM * Vector2.ONE)

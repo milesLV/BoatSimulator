@@ -12,13 +12,6 @@ func _init(
 ) -> void:
 
 	point = new_point
-	action_point = point
 	action_id = new_action_id
 	base_duration = new_duration
 	progress_policy = new_progress_policy
-
-	if point == null:
-		action_location = ""
-		return
-
-	action_location = String(point.name)

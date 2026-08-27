@@ -7,10 +7,6 @@ var travelled_distance := 0.0
 var max_range := 0.0
 var owner_node: Node = null
 
-func setup(cannon: Node, cannonball_range: float):
-	owner_node = cannon
-	max_range = cannonball_range
-
 func _physics_process(delta):
 	var direction = Vector2.RIGHT.rotated(global_rotation)
 
@@ -24,14 +20,7 @@ func _on_body_entered(body):
 	if body == owner_node:
 		return
 
-	if body.has_method(
-		"apply_cannonball_hit"
-	):
-		body.apply_cannonball_hit(
-			global_position,
-			CANNONBALL_HOLE_DAMAGE
-		)
-	elif body.has_method("updateHealth"):
-		body.updateHealth(1)
+	if body.has_method("apply_cannonball_hit"):
+		body.apply_cannonball_hit(global_position, CANNONBALL_HOLE_DAMAGE)
 
 	queue_free()

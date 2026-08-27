@@ -1,40 +1,13 @@
-extends ActionDefinition
+extends ClaimStationAction
 class_name HoldStationAction
 
-var station: StationPoint
-
-
+## Same claim as [ClaimStationAction], but held open until something interrupts it.
 func _init(new_station: StationPoint) -> void:
 
-	station = new_station
-	action_point = station
-	progress_policy = ProgressPolicy.CONTINUOUS
-
-	if station == null:
-		action_id = "control_missing_station"
-		action_location = ""
-		return
-
-	action_id = (
-		"control_%s"
-		% station.name
-	)
-
-	action_location = String(station.name)
+	super(new_station)
+	action_id = "control_%s" % (new_station.name if new_station != null else "missing_station")
 	base_duration = -1.0
-
-
-func on_start(actor, _instance) -> void:
-
-	if station == null:
-		return
-
-	actor.ship.station_controller.set_operator(
-		station,
-		actor
-	)
-
-	actor.ship.crew_task_controller.clear_requested_station(actor)
+	progress_policy = ProgressPolicy.CONTINUOUS
 
 
 func on_interrupt(actor, _instance) -> void:
@@ -42,9 +15,5 @@ func on_interrupt(actor, _instance) -> void:
 	if station == null:
 		return
 
-	if (
-		actor.ship.station_controller.get_operator(station)
-		== actor
-	):
-
+	if actor.ship.station_controller.get_operator(station) == actor:
 		actor.ship.station_controller.clear_operator(station)

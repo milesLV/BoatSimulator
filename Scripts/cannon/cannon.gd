@@ -14,11 +14,9 @@ const FIRE_ANGLE_TOLERANCE = deg_to_rad(2) # won't fire until cannon lined up wi
 @export var broadside: CannonSide.Value
 
 var max_range := 0.0
-var range_step := 0.0
 
 var loaded := true
 var current_target = null
-var current_range = -1
 var last_direction_aimed: Vector2 = Vector2.ZERO
 
 var tracking_enabled := false
@@ -26,57 +24,30 @@ var tracking_target: Node = null
 
 func _ready():
 	await get_tree().process_frame
-	max_range = get_max_range()
-	range_step = max_range / 3.0
+	max_range = range_detection.shape.radius
 
 func _physics_process(delta):
-	if not tracking_enabled:
-		current_target = null
-		current_range = -1
+	current_target = null
+
+	if not tracking_enabled or tracking_target == null or not is_instance_valid(tracking_target):
 		return
 
-	current_target = null
-	current_range = -1
+	var aim_point: Vector2 = tracking_target.global_position
 
-	if (
-		tracking_target != null
-		and is_instance_valid(tracking_target)
-		and is_in_arc(tracking_target.global_position)
-	):
-		var target_distance = global_position.distance_to(tracking_target.global_position)
-		var target_range = get_range(target_distance)
-
-		if target_range != -1:
-			current_target = tracking_target
-			current_range = target_range
-
-	if current_target != null:
-		var shooter_position = global_position
-		var target_position = current_target.global_position
-		var target_velocity = get_target_velocity(current_target)
-
-		var intercept_position = calculate_intercept_position(
-			shooter_position,
-			target_position,
-			target_velocity,
+	if is_in_arc(aim_point) and global_position.distance_to(aim_point) <= max_range:
+		current_target = tracking_target
+		aim_point = calculate_intercept_position(
+			global_position,
+			aim_point,
+			tracking_target.velocity,
 			500.0
 		)
 
-		aim_at_position(intercept_position, delta)
-		return
-
-	if (
-		tracking_target != null
-		and is_instance_valid(tracking_target)
-	):
-		aim_at_position(tracking_target.global_position, delta)
-		return
+	aim_at_position(aim_point, delta)
 
 func is_in_arc(target_pos: Vector2) -> bool:
-	var forward = Vector2.RIGHT.rotated(global_rotation)
 	var to_target = (target_pos - global_position).normalized()
-	var angle = forward.angle_to(to_target)
-	return abs(angle) <= MAX_ANGLE
+	return abs(Vector2.RIGHT.rotated(global_rotation).angle_to(to_target)) <= MAX_ANGLE
 
 func aim_at_position(target_position: Vector2, delta: float):
 	var shooter_position = global_position
@@ -88,11 +59,7 @@ func aim_at_position(target_position: Vector2, delta: float):
 	var angle_to_target = current_forward.angle_to(aim_direction)
 	var clamped_angle = clamp(angle_to_target, -MAX_ANGLE, MAX_ANGLE)
 
-	sprite.rotation = move_toward(
-		sprite.rotation,
-		clamped_angle,
-		ROTATION_SPEED * delta
-	)
+	sprite.rotation = move_toward(sprite.rotation, clamped_angle, ROTATION_SPEED * delta)
 
 func calculate_intercept_position(
 	shooter_position: Vector2,
@@ -102,7 +69,7 @@ func calculate_intercept_position(
 ) -> Vector2:
 
 	var dist_to_target = target_position - shooter_position
-	
+
 	# solving intercept equation
 	# (target_velocity^2 - project_speed^2) * time^2 + 2*distance_between_ships*target_velocity)*time + distance_between_ships^2
 	var a = target_velocity.dot(target_velocity) - projectile_speed * projectile_speed
@@ -129,47 +96,12 @@ func calculate_intercept_position(
 
 	return target_position + target_velocity * intercept_time
 
-func get_target_velocity(target: Node) -> Vector2:
-	if target.has_method("get_velocity"):
-		return target.get_velocity()
-	elif "velocity" in target:
-		return target.velocity
-	
-	ShipDebugLog.cannon("Target doesnt have velocity!")
-	return Vector2.ZERO
-
-func set_tracking_enabled(enabled: bool) -> void:
-
-	tracking_enabled = enabled
-
-
-func set_tracking_target(target_or_null: Node) -> void:
-
-	tracking_target = target_or_null
-
-
-func is_loaded() -> bool:
-
-	return loaded
-
-
-func begin_unloaded() -> void:
-
-	loaded = false
-
-
-func finish_reload() -> void:
-
-	loaded = true
-
-
 func can_fire_now() -> bool:
 
 	return (
 		loaded
 		and current_target != null
 		and is_instance_valid(current_target)
-		and current_range != -1
 		and is_aligned()
 	)
 
@@ -179,7 +111,7 @@ func fire() -> bool:
 	if not can_fire_now():
 		return false
 
-	begin_unloaded()
+	loaded = false
 
 	var new_cannonball = CANNONBALL.instantiate()
 
@@ -187,28 +119,16 @@ func fire() -> bool:
 	new_cannonball.global_position = cannon_mouth.global_position
 	new_cannonball.global_rotation = cannon_mouth.global_rotation
 
-	new_cannonball.setup(get_parent(), get_max_range())
+	new_cannonball.owner_node = get_parent()
+	new_cannonball.max_range = max_range
 
 	return true
-	
+
 func is_aligned() -> bool:
 	if last_direction_aimed == Vector2.ZERO:
 		return false
-	
+
 	var forward = Vector2.RIGHT.rotated(sprite.global_rotation)
 	var angle = forward.angle_to(last_direction_aimed)
-	
+
 	return abs(angle) <= FIRE_ANGLE_TOLERANCE
-
-func get_range(dist: float) -> int:
-	if dist < range_step: # short
-		return 0
-	elif dist < range_step * 2.0: # medium
-		return 1
-	elif dist <= max_range: # long
-		return 2
-	
-	return -1 # outside
-
-func get_max_range() -> float:
-	return range_detection.shape.radius

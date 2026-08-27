@@ -5,4 +5,5 @@
 build
 /(OLD) Java-version
 /addons
-/addons
+
+.DS_Store

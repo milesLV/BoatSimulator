@@ -2,8 +2,6 @@ extends Resource
 class_name ActionDefinition
 
 
-signal completed(context)
-
 enum ProgressPolicy {
 	ONE_SHOT,
 	VARIABLE_TIME,
@@ -13,30 +11,29 @@ enum ProgressPolicy {
 
 
 @export var action_id: String = ""
-
-var action_point: ShipActionPoint = null
-@export var action_location: String = ""
-
 @export var base_duration: float = 0.0
 @export var progress_policy: ProgressPolicy = ProgressPolicy.ONE_SHOT
 @export var checkpoint_times: Array[float] = []
+## True while the action ends with the actor holding a filled bucket.
+var fills_bucket := false
 
 
 func get_duration(_actor, _context := {}) -> float:
 	return base_duration
 
 
-func prepare_instance(_actor, _instance) -> void:
-	pass
-
-
+## ONE_SHOT and VARIABLE_TIME keep no partial progress; the other two do.
 func apply_interrupt_policy(_actor, instance) -> void:
 
-	var interrupted_elapsed = _get_interrupted_elapsed(instance)
+	match progress_policy:
+		ProgressPolicy.CHECKPOINT:
+			instance.elapsed = _get_completed_checkpoint_time(instance.elapsed)
 
-	instance.save_progress(interrupted_elapsed)
+		ProgressPolicy.CONTINUOUS:
+			pass
 
-	instance.elapsed = interrupted_elapsed
+		_:
+			instance.elapsed = 0.0
 
 
 func on_start(_actor, _instance) -> void:
@@ -51,77 +48,14 @@ func on_interrupt(_actor, _instance) -> void:
 	pass
 
 
-func on_complete(actor, instance) -> void:
-	completed.emit(_build_context(actor, instance))
-
-
-func _get_interrupted_elapsed(instance) -> float:
-
-	match progress_policy:
-		ProgressPolicy.CHECKPOINT:
-			return _get_completed_checkpoint_time(
-				instance.elapsed
-			)
-
-		ProgressPolicy.CONTINUOUS:
-			return instance.elapsed
-
-		ProgressPolicy.ONE_SHOT, ProgressPolicy.VARIABLE_TIME:
-			return 0.0
-
-	return 0.0
+func on_complete(_actor, _instance) -> void:
+	pass
 
 
 func _get_completed_checkpoint_time(elapsed: float) -> float:
 
-	var completed_checkpoint := 0.0
-
-	for checkpoint_time in checkpoint_times:
-
-		if (
-			checkpoint_time <= elapsed
-			and checkpoint_time > completed_checkpoint
-		):
-			completed_checkpoint = checkpoint_time
-
-	return completed_checkpoint
-
-
-func _build_context(actor, instance) -> Dictionary:
-
-	return {
-		"actor": actor,
-		"instance": instance,
-		"action_id": action_id,
-		"progress_policy": progress_policy
-	}
-
-
-func _set_runtime(
-	instance,
-	key,
-	value
-) -> void:
-
-	if instance == null:
-		return
-
-	instance.set_runtime_value(
-		key,
-		value
+	var completed = checkpoint_times.filter(
+		func(checkpoint_time): return checkpoint_time <= elapsed
 	)
 
-
-func _get_runtime(
-	instance,
-	key,
-	default_value = null
-):
-
-	if instance == null:
-		return default_value
-
-	return instance.get_runtime_value(
-		key,
-		default_value
-	)
+	return completed.max() if not completed.is_empty() else 0.0

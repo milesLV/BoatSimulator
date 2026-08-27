@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://ccc7gafptdtc5" path="res://Scenes/player.tscn" id="2_8wm8v"]
 [ext_resource type="PackedScene" uid="uid://dpa5rjievogo5" path="res://Scenes/enemy.tscn" id="2_c4nuu"]
 [ext_resource type="Script" uid="uid://c7axx8vr4dc6a" path="res://Scripts/camera.gd" id="4_d8w4w"]
+[ext_resource type="PackedScene" path="res://Scenes/gameGui.tscn" id="5_game_gui"]
 
 [node name="GameMap" type="Node2D" unique_id=1463359944]
 script = ExtResource("1_c4nuu")
@@ -25,3 +26,5 @@ rotation = 1.5707964
 position = Vector2(476.99997, 465.99997)
 scale = Vector2(0.3067729, 0.3067729)
 script = ExtResource("4_d8w4w")
+
+[node name="GameGui" parent="." instance=ExtResource("5_game_gui")]

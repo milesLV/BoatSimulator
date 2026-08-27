@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://ci0omk7rimasa" path="res://Scripts/actions/transition_deck_point.gd" id="2_b31r2"]
 [ext_resource type="Script" uid="uid://bft7j6jh68rxj" path="res://Scripts/actions/hole_point.gd" id="3_jjglc"]
 [ext_resource type="Script" uid="uid://dlsmaujtp3ish" path="res://Scripts/actions/transition_group.gd" id="4_soy2k"]
+[ext_resource type="Script" uid="uid://dj6maina28jyt" path="res://Scripts/actions/water_throw_zone.gd" id="5_throw_zone"]
 
 [node name="shipActionPoints" type="Node2D" unique_id=826780228]
 script = ExtResource("2_5lbpi")
@@ -57,7 +58,7 @@ position = Vector2(-16, 24)
 script = ExtResource("1_cnjvm")
 deck = 3
 
-[node name="AirsUpper2Main" type="ColorRect" parent="." unique_id=1543027597]
+[node name="StairsUpper2Main" type="ColorRect" parent="." unique_id=1543027597]
 offset_left = -26.0
 offset_top = -5.0
 offset_right = -19.0
@@ -67,16 +68,15 @@ script = ExtResource("4_soy2k")
 to_deck = 1
 bidirectional = false
 
-[node name="Upper2MainTop" type="Node2D" parent="AirsUpper2Main" unique_id=1554154436]
+[node name="Upper2MainTop" type="Node2D" parent="StairsUpper2Main" unique_id=1554154436]
 script = ExtResource("2_b31r2")
 
-[node name="Upper2MainBottom" type="Node2D" parent="AirsUpper2Main" unique_id=718866033]
+[node name="Upper2MainBottom" type="Node2D" parent="StairsUpper2Main" unique_id=718866033]
 position = Vector2(7, 0)
 script = ExtResource("2_b31r2")
 deck = 1
 
 [node name="StairsMain2Upper" type="ColorRect" parent="." unique_id=647290471]
-visible = false
 offset_left = -26.0
 offset_top = 19.0
 offset_right = -12.0
@@ -99,7 +99,7 @@ offset_left = -25.0
 offset_top = -3.0
 offset_right = -12.0
 offset_bottom = 3.0
-color = Color(0.57254905, 0.30588236, 0.25882354, 1)
+color = Color(0.5358802, 0.28296405, 0.23843518, 1)
 script = ExtResource("4_soy2k")
 from_deck = 1
 to_deck = 2
@@ -116,10 +116,10 @@ deck = 2
 
 [node name="StairsMid2Lower" type="ColorRect" parent="." unique_id=1093254988]
 offset_left = -26.0
-offset_top = 22.0
+offset_top = 20.0
 offset_right = -16.0
 offset_bottom = 26.0
-color = Color(0.57254905, 0.30588236, 0.25882354, 1)
+color = Color(0.51281285, 0.2688468, 0.22594649, 1)
 script = ExtResource("4_soy2k")
 from_deck = 2
 to_deck = 3
@@ -155,7 +155,6 @@ deck = 1
 [node name="HolePort1" type="Node2D" parent="." unique_id=2117893932]
 position = Vector2(-120, -11)
 script = ExtResource("3_jjglc")
-grade = 2
 deck = 2
 
 [node name="HolePort2" type="Node2D" parent="." unique_id=968727177]
@@ -166,19 +165,16 @@ deck = 2
 [node name="HolePort3" type="Node2D" parent="." unique_id=1488942488]
 position = Vector2(-89, -27)
 script = ExtResource("3_jjglc")
-grade = 3
 deck = 2
 
 [node name="HolePort4" type="Node2D" parent="." unique_id=1144231039]
-position = Vector2(-63, -27)
+position = Vector2(-63, -29)
 script = ExtResource("3_jjglc")
-grade = 1
 deck = 2
 
 [node name="HolePort5" type="Node2D" parent="." unique_id=71173118]
 position = Vector2(-42, -28)
 script = ExtResource("3_jjglc")
-grade = 3
 deck = 2
 
 [node name="HolePort6" type="Node2D" parent="." unique_id=1240173887]
@@ -194,7 +190,6 @@ deck = 3
 [node name="HolePort8" type="Node2D" parent="." unique_id=623495143]
 position = Vector2(67, -20)
 script = ExtResource("3_jjglc")
-grade = 3
 deck = 3
 
 [node name="HoleStarb1" type="Node2D" parent="." unique_id=1378267736]
@@ -205,18 +200,17 @@ deck = 2
 [node name="HoleStarb2" type="Node2D" parent="." unique_id=1934910862]
 position = Vector2(-107, 25)
 script = ExtResource("3_jjglc")
+grade = 5
 deck = 2
 
 [node name="HoleStarb3" type="Node2D" parent="." unique_id=145154696]
 position = Vector2(-89, 27)
 script = ExtResource("3_jjglc")
-grade = 2
 deck = 2
 
 [node name="HoleStarb4" type="Node2D" parent="." unique_id=148968436]
-position = Vector2(-63, 27)
+position = Vector2(-63, 29)
 script = ExtResource("3_jjglc")
-grade = 3
 deck = 2
 
 [node name="HoleStarb5" type="Node2D" parent="." unique_id=1438123267]
@@ -227,7 +221,6 @@ deck = 2
 [node name="HoleStarb6" type="Node2D" parent="." unique_id=1148850925]
 position = Vector2(-28, 28)
 script = ExtResource("3_jjglc")
-grade = 3
 deck = 2
 
 [node name="HoleStarb7" type="Node2D" parent="." unique_id=1009877056]
@@ -243,17 +236,16 @@ deck = 3
 [node name="HoleStarb9" type="Node2D" parent="." unique_id=1964018395]
 position = Vector2(67, 20)
 script = ExtResource("3_jjglc")
-grade = 1
 deck = 3
 
 [node name="HoleBow" type="Node2D" parent="." unique_id=854267742]
 position = Vector2(80, 0)
 script = ExtResource("3_jjglc")
-grade = 2
 deck = 3
 
-[node name="SloopCollision" type="CollisionPolygon2D" parent="." unique_id=303340020]
-position = Vector2(-5.6028366e-06, -2.8421704e-13)
-rotation = 1.5707964
-scale = Vector2(0.58, 0.58)
-polygon = PackedVector2Array(0, 260, 50, 240, 75, 180, 75, 125, 85, 60, 90, 0, 85, -55, 35, -155, 15, -208, 0, -257, -15, -208, -35, -155, -85, -55, -90, 0, -85, 60, -75, 125, -75, 180, -50, 240)
+[node name="AftBuckettingZone" type="CollisionPolygon2D" parent="." unique_id=947335498]
+visible = false
+position = Vector2(-98, -26)
+polygon = PackedVector2Array(32, -3, -9, 1, -22, 15, -22, 35, -9, 51, 32, 55)
+script = ExtResource("5_throw_zone")
+deck = 2

@@ -26,62 +26,62 @@ var sink_fade_active := false
 
 func _ready() -> void:
 
-	if not _validate_action_points():
+	if action_points == null:
+		push_error(
+			"Sloop requires a ShipActionPointContainer at %s."
+			% action_points_path
+		)
+
 		return
 
 	_create_systems()
-	_register_with_game_map()
-	_initialize_crew()
+
+	var registry := GlobalShipRegistry.from_tree(get_tree())
+
+	if registry != null:
+		registry.register_ship(self)
+
+	crew_controller.initialize()
 	await _refresh_cannon_targets_deferred()
 
 
 func _exit_tree() -> void:
 
-	var game_map = get_tree().current_scene
+	_unregister_from_game_map()
 
-	if (
-		game_map != null
-		and game_map.has_method("unregister_ship")
-	):
-		game_map.unregister_ship(self)
+
+func _unregister_from_game_map() -> void:
+
+	var registry := GlobalShipRegistry.from_tree(get_tree())
+
+	if registry != null:
+		registry.ships.erase(self)
 
 
 func _physics_process(delta: float) -> void:
 
 	_process_health(delta)
-
-	if not is_sunk():
-		_process_movement(delta)
-		update_cannon_systems()
-
 	_process_sink_fade(delta)
 
-
-func get_action_points() -> ShipActionPointContainer:
-
-	if action_points == null:
-		action_points = get_node_or_null(action_points_path)
-
-	return action_points
-
-
-func set_movement_input(
-	turn: float,
-	sail_length: float,
-	sail_rotation: float
-) -> void:
-
-	if (
-		movement_controller == null
-		or is_sunk()
-	):
+	if is_sunk() or not _control(delta):
 		return
 
-	movement_controller.set_input(
-		turn,
-		sail_length,
-		sail_rotation
-	)
+	_process_movement(delta)
+	update_cannon_systems()
+
+
+## Where each ship decides what it wants this frame: the player reads the
+## keyboard, the enemy chases. False skips movement and cannons this frame.
+func _control(_delta: float) -> bool:
+
+	return true
+
+
+func set_movement_input(turn: float, sail_length: float, sail_rotation: float) -> void:
+	if movement_controller == null or is_sunk():
+		return
+
+	movement_controller.set_input(turn, sail_length, sail_rotation)
 
 
 func reset_movement_input() -> void:
@@ -89,156 +89,41 @@ func reset_movement_input() -> void:
 	if movement_controller == null:
 		return
 
-	movement_controller.reset_input()
+	movement_controller.set_input(0.0, 0.0, 0.0)
 
 
 func get_current_crewmate() -> Crewmate:
-
-	if crew_controller == null:
-		return null
 
 	return crew_controller.get_current_crewmate()
 
 
 func get_crewmates() -> Array[Crewmate]:
 
-	if crew_controller == null:
-		return []
-
 	return crew_controller.get_crewmates()
 
 
 func change_crewmate() -> Crewmate:
-
-	if crew_controller == null:
-		return null
 
 	return crew_controller.change_crewmate()
 
 
 func is_crewmate_selected(crewmate: Crewmate) -> bool:
 
-	if crew_controller == null:
+	return crewmate != null and crew_controller.current_crewmate == crewmate
+
+
+## Every crew request shares the same gate, so they go through one door.
+func request(method: StringName, args: Array = []) -> bool:
+
+	if crew_task_controller == null or is_sunk():
 		return false
 
-	return crew_controller.is_selected(
-		crewmate
-	)
-
-
-func request_station_control(
-	station_name: StringName,
-	requested_input: float
-) -> bool:
-
-	if (
-		crew_task_controller == null
-		or is_sunk()
-	):
-		return false
-
-	return crew_task_controller.request_station_control(
-		station_name,
-		requested_input
-	)
-
-
-func request_anchor_drop() -> bool:
-
-	if (
-		crew_task_controller == null
-		or is_sunk()
-	):
-		return false
-
-	return crew_task_controller.request_anchor_drop()
-
-
-func request_anchor_raise() -> bool:
-
-	if (
-		crew_task_controller == null
-		or is_sunk()
-	):
-		return false
-
-	return crew_task_controller.request_anchor_raise()
-
-
-func request_anchor_toggle() -> bool:
-
-	if (
-		crew_task_controller == null
-		or is_sunk()
-	):
-		return false
-
-	return crew_task_controller.request_anchor_toggle()
-
-
-func request_bail_water() -> bool:
-
-	if (
-		crew_task_controller == null
-		or is_sunk()
-	):
-		return false
-
-	return crew_task_controller.request_bail_water()
-
-
-func request_repair_ship() -> bool:
-
-	if (
-		crew_task_controller == null
-		or is_sunk()
-	):
-		return false
-
-	return crew_task_controller.request_repair_ship()
-
-
-func request_current_cannon_duty() -> bool:
-
-	if (
-		crew_task_controller == null
-		or is_sunk()
-	):
-		return false
-
-	return crew_task_controller.request_current_cannon_duty()
-
-
-func request_cannon_duty_for(crewmate: Crewmate) -> bool:
-
-	if (
-		crew_task_controller == null
-		or is_sunk()
-	):
-		return false
-
-	return crew_task_controller.request_cannon_duty_for(
-		crewmate
-	)
-
-
-func request_cancel_action() -> bool:
-
-	if (
-		crew_task_controller == null
-		or is_sunk()
-	):
-		return false
-
-	return crew_task_controller.request_cancel_action()
+	return crew_task_controller.callv(method, args)
 
 
 func update_cannon_systems() -> void:
 
-	if (
-		cannon_director == null
-		or is_sunk()
-	):
+	if cannon_director == null or is_sunk():
 		return
 
 	var tracking_enabled = (
@@ -252,17 +137,9 @@ func update_cannon_systems() -> void:
 		cannon_duty_controller.update()
 
 
-func update_active_cannon() -> void:
-
-	update_cannon_systems()
-
-
 func _process_movement(delta: float) -> void:
 
-	if (
-		movement_controller == null
-		or is_sunk()
-	):
+	if movement_controller == null or is_sunk():
 		return
 
 	movement_controller.physics_process(delta)
@@ -276,42 +153,28 @@ func _process_health(delta: float) -> void:
 	health_system.physics_process(delta)
 
 
-func apply_cannonball_hit(
-	hit_position: Vector2,
-	hole_damage: int
-) -> bool:
-
-	if (
-		health_system == null
-		or is_sunk()
-	):
+func apply_cannonball_hit(hit_position: Vector2, hole_damage: int) -> bool:
+	if health_system == null or is_sunk():
 		return false
 
-	return health_system.apply_cannonball_hit(
-		hit_position,
-		hole_damage
-	)
-
-
-func get_water_level() -> float:
-
-	if health_system == null:
-		return 0.0
-
-	return health_system.get_water_level()
+	return health_system.apply_cannonball_hit(hit_position, hole_damage)
 
 
 func is_sunk() -> bool:
-	return (
-		health_system != null
-		and health_system.is_sunk()
-	)
+	return health_system != null and health_system.sunk_state
 
 
 func on_sunk() -> void:
 
+	_unregister_from_game_map()
 	reset_movement_input()
-	_begin_sink_fade()
+
+	if not sink_fade_active:
+		sink_fade_active = true
+		sink_fade_elapsed = 0.0
+
+	for cannon in cannons:
+		cannon.range_area.hide()
 
 	if cannon_director != null:
 		cannon_director.clear_active_cannons()
@@ -326,27 +189,14 @@ func on_sunk() -> void:
 		crew_task_controller.clear_station_and_actions(crewmate)
 
 
-func _begin_sink_fade() -> void:
-
-	if sink_fade_active:
-		return
-
-	sink_fade_active = true
-	sink_fade_elapsed = 0.0
-
-
 func _process_sink_fade(delta: float) -> void:
 
 	if not sink_fade_active:
 		return
 
-	sink_fade_elapsed = min(
-		sink_fade_elapsed + delta,
-		SINK_FADE_DURATION
-	)
+	sink_fade_elapsed = min(sink_fade_elapsed + delta, SINK_FADE_DURATION)
 
-	var fade_ratio = 1.0 - (sink_fade_elapsed / SINK_FADE_DURATION)
-	modulate.a = fade_ratio
+	modulate.a = lerp(1.0, 0.05, sink_fade_elapsed / SINK_FADE_DURATION)
 
 	if sink_fade_elapsed < SINK_FADE_DURATION:
 		return
@@ -356,39 +206,17 @@ func _process_sink_fade(delta: float) -> void:
 	collision_mask = 0
 
 
-func _validate_action_points() -> bool:
-
-	if action_points != null:
-		return true
-
-	push_error(
-		"Sloop requires a ShipActionPointContainer at %s."
-		% action_points_path
-	)
-
-	return false
-
-
 func _create_systems() -> void:
 
 	anchor_system = AnchorSystem.new(self)
 
-	health_system = ShipHealthSystem.new(
-		self,
-		action_points
-	)
+	health_system = ShipHealthSystem.new(self, action_points)
 
 	action_planner = ShipActionPlanner.new(action_points)
 
-	station_controller = ShipStationController.new(
-		action_points,
-		action_planner
-	)
+	station_controller = ShipStationController.new(action_points, action_planner)
 
-	cannon_director = ShipCannonDirector.new(
-		self,
-		cannons
-	)
+	cannon_director = ShipCannonDirector.new(self, cannons)
 
 	cannon_duty_controller = ShipCannonDutyController.new(
 		self,
@@ -398,11 +226,7 @@ func _create_systems() -> void:
 		cannon_director
 	)
 
-	repair_duty_controller = ShipRepairDutyController.new(
-		self,
-		action_points,
-		action_planner
-	)
+	repair_duty_controller = ShipRepairDutyController.new(self, action_points, action_planner)
 
 	crew_controller = ShipCrewController.new(self)
 
@@ -415,35 +239,11 @@ func _create_systems() -> void:
 		anchor_system
 	)
 
-	station_controller.set_task_controller(crew_task_controller)
-	cannon_duty_controller.set_task_controller(crew_task_controller)
-	repair_duty_controller.set_task_controller(crew_task_controller)
+	station_controller.crew_task_controller = crew_task_controller
+	cannon_duty_controller.crew_task_controller = crew_task_controller
+	repair_duty_controller.crew_task_controller = crew_task_controller
 
-	movement_controller = ShipMovementController.new(
-		self,
-		sail,
-		station_controller,
-		anchor_system
-	)
-
-
-func _register_with_game_map() -> void:
-
-	var game_map = get_tree().current_scene
-
-	if (
-		game_map != null
-		and game_map.has_method("register_ship")
-	):
-		game_map.register_ship(self)
-
-
-func _initialize_crew() -> void:
-
-	if crew_controller == null:
-		return
-
-	crew_controller.initialize()
+	movement_controller = ShipMovementController.new(self, sail, station_controller, anchor_system)
 
 
 func _refresh_cannon_targets_deferred() -> void:
@@ -453,26 +253,6 @@ func _refresh_cannon_targets_deferred() -> void:
 	if cannon_director == null:
 		return
 
-	cannon_director.refresh_targets(_get_target_ships())
+	var registry := GlobalShipRegistry.from_tree(get_tree())
 
-
-func _get_target_ships() -> Array:
-
-	var game_map = get_tree().current_scene
-
-	if game_map == null:
-		return []
-
-	if game_map.has_method(
-		"get_other_ships"
-	):
-		return game_map.get_other_ships(
-			self
-		)
-
-	var ships_property = game_map.get("ships")
-
-	if ships_property is Array:
-		return ships_property
-
-	return []
+	cannon_director.refresh_targets(registry.get_other_ships(self) if registry != null else [])

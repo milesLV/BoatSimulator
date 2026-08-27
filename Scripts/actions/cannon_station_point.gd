@@ -10,35 +10,20 @@ func get_cannon(ship: Node) -> Cannon:
 	if cannon_path.is_empty():
 		return null
 
-	var cannon = get_node_or_null(
-		cannon_path
-	) as Cannon
+	var cannon = get_node_or_null(cannon_path) as Cannon
 
-	if cannon != null:
-		return cannon
+	if cannon == null and ship != null:
+		cannon = ship.get_node_or_null(cannon_path) as Cannon
 
-	if ship == null:
-		return null
-
-	return ship.get_node_or_null(
-		cannon_path
-	) as Cannon
+	return cannon
 
 
 func get_cannon_for_operator(actor) -> Cannon:
 
-	if (
-		actor == null
-		or actor.ship == null
-		or actor.ship.station_controller == null
-	):
+	if actor == null or actor.ship == null or actor.ship.station_controller == null:
 		return null
 
-	if actor.ship.station_controller.get_operator(
-		self
-	) != actor:
+	if actor.ship.station_controller.get_operator(self) != actor:
 		return null
 
-	return get_cannon(
-		actor.ship
-	)
+	return get_cannon(actor.ship)

@@ -6,26 +6,10 @@ var stations: Array[StationPoint] = []
 var cannon_stations: Array[CannonStationPoint] = []
 var holes: Array[ShipHolePoint] = []
 var transitions: Array[DeckTransitionPoint] = []
-var deck_connections: Dictionary = {}
-var deck_transition_points: Dictionary = {}
 
 func _ready() -> void:
 
-	_register_points()
-
-
-func _register_points() -> void:
-
-	points.clear()
-	stations.clear()
-	cannon_stations.clear()
-	holes.clear()
-	transitions.clear()
-	deck_connections.clear()
-	deck_transition_points.clear()
-
 	for child in get_children():
-
 		_register_recursive(child)
 
 	_resolve_transition_points()
@@ -34,29 +18,11 @@ func _register_points() -> void:
 func _register_recursive(node: Node) -> void:
 
 	if node is ShipActionPoint:
-
 		if points.has(node.name):
-
-			push_error(
-				"Duplicate action point: %s"
-				% node.name
-			)
-
+			push_error("Duplicate action point: %s" % node.name)
 			return
 
-
 		points[node.name] = node
-
-		if not DeckGraph.is_valid_deck(
-			node.deck
-		):
-			push_error(
-				"%s has invalid deck: %s"
-				% [
-					node.name,
-					node.deck
-				]
-			)
 
 		if node is StationPoint:
 			stations.append(node)
@@ -70,9 +36,7 @@ func _register_recursive(node: Node) -> void:
 		if node is DeckTransitionPoint:
 			transitions.append(node)
 
-
 	for child in node.get_children():
-
 		_register_recursive(child)
 
 
@@ -81,85 +45,40 @@ func _resolve_transition_points() -> void:
 	var transition_groups: Dictionary = {}
 
 	for transition in transitions:
-
-		transition.clear_connected_point()
-
-		var group_key = _get_transition_group_key(transition)
-
-		if not transition_groups.has(
-			group_key
-		):
-			transition_groups[group_key] = []
-
-		transition_groups[group_key].append(transition)
-
+		transition.deck_connection = null
+		transition_groups.get_or_add(_get_transition_group_key(transition), []).append(transition)
 
 	for group_key in transition_groups.keys():
-
-		var endpoints: Array = transition_groups[
-			group_key
-		]
+		var endpoints: Array = transition_groups[group_key]
 
 		if endpoints.size() != 2:
-
 			push_error(
 				"Transition group %s must have exactly 2 endpoints, found %s."
-				% [
-					group_key,
-					endpoints.size()
-				]
+				% [group_key, endpoints.size()]
 			)
-
 			continue
-
 
 		var first: DeckTransitionPoint = endpoints[0]
 		var second: DeckTransitionPoint = endpoints[1]
 
 		if first.deck == second.deck:
-
 			push_error(
 				"Transition group %s connects %s to itself."
-				% [
-					group_key,
-					DeckGraph.get_deck_name(first.deck)
-				]
+				% [group_key, DeckGraph.get_deck_name(first.deck)]
 			)
-
 			continue
 
-
-		var transition_group = _get_transition_group(first)
+		var transition_group = first.get_parent() as DeckStairTransition
 
 		if transition_group == null:
-
-			_add_deck_connection(
-				first,
-				second
-			)
-
-			_add_deck_connection(
-				second,
-				first
-			)
-
+			first.deck_connection = second
+			second.deck_connection = first
 			continue
 
-
-		_add_group_connection(
-			transition_group,
-			first,
-			second
-		)
+		_add_group_connection(transition_group, first, second)
 
 		if transition_group.bidirectional:
-
-			_add_group_connection(
-				transition_group,
-				second,
-				first,
-				true
-			)
+			_add_group_connection(transition_group, second, first, true)
 
 
 func _get_transition_group_key(transition: DeckTransitionPoint) -> String:
@@ -169,38 +88,8 @@ func _get_transition_group_key(transition: DeckTransitionPoint) -> String:
 	if parent != self:
 		return String(parent.get_path())
 
-	return _get_name_pair_key(
-		String(transition.name)
-	)
-
-
-func _get_transition_group(transition: DeckTransitionPoint) -> DeckStairTransition:
-
-	var parent = transition.get_parent()
-
-	if parent is DeckStairTransition:
-		return parent
-
-	return null
-
-
-func _get_name_pair_key(point_name: String) -> String:
-
-	if point_name.ends_with(
-		"Top"
-	):
-		return point_name.trim_suffix(
-			"Top"
-		)
-
-	if point_name.ends_with(
-		"Bottom"
-	):
-		return point_name.trim_suffix(
-			"Bottom"
-		)
-
-	return point_name
+	# trim_suffix leaves the name alone when the suffix is absent.
+	return String(transition.name).trim_suffix("Top").trim_suffix("Bottom")
 
 
 func _add_group_connection(
@@ -210,29 +99,14 @@ func _add_group_connection(
 	reversed := false
 ) -> void:
 
-	var from_deck = transition_group.from_deck
-	var to_deck = transition_group.to_deck
+	var from_deck = transition_group.to_deck if reversed else transition_group.from_deck
+	var to_deck = transition_group.from_deck if reversed else transition_group.to_deck
 
-	if reversed:
-		from_deck = transition_group.to_deck
-		to_deck = transition_group.from_deck
+	var start_point = _get_endpoint_on_deck(first, second, from_deck)
 
-	var start_point = _get_endpoint_on_deck(
-		first,
-		second,
-		from_deck
-	)
+	var destination_point = _get_endpoint_on_deck(first, second, to_deck)
 
-	var destination_point = _get_endpoint_on_deck(
-		first,
-		second,
-		to_deck
-	)
-
-	if (
-		start_point == null
-		or destination_point == null
-	):
+	if start_point == null or destination_point == null:
 		push_error(
 			"Transition group %s direction does not match its endpoint decks."
 			% transition_group.name
@@ -240,10 +114,7 @@ func _add_group_connection(
 
 		return
 
-	_add_deck_connection(
-		start_point,
-		destination_point
-	)
+	start_point.deck_connection = destination_point
 
 
 func _get_endpoint_on_deck(
@@ -252,57 +123,7 @@ func _get_endpoint_on_deck(
 	deck: int
 ) -> DeckTransitionPoint:
 
-	if first.deck == deck:
-		return first
-
-	if second.deck == deck:
-		return second
-
-	return null
-
-
-func _add_deck_connection(
-	start_point: DeckTransitionPoint,
-	destination_point: DeckTransitionPoint
-) -> void:
-
-	start_point.set_connected_point(destination_point)
-
-	if not deck_connections.has(
-		start_point.deck
-	):
-		deck_connections[start_point.deck] = {}
-
-	if not deck_connections[start_point.deck].has(
-		destination_point.deck
-	):
-		deck_connections[start_point.deck][destination_point.deck] = (
-			start_point
-		)
-
-	if not deck_transition_points.has(
-		start_point.deck
-	):
-		deck_transition_points[start_point.deck] = {}
-
-	if not deck_transition_points[start_point.deck].has(
-		destination_point.deck
-	):
-		deck_transition_points[start_point.deck][destination_point.deck] = []
-
-	deck_transition_points[start_point.deck][destination_point.deck].append(start_point)
-
-
-func get_transition_path(
-	start_deck: int,
-	target_deck: int
-) -> Array[int]:
-
-	return DeckGraph.get_transition_path(
-		deck_connections,
-		start_deck,
-		target_deck
-	)
+	return first if first.deck == deck else (second if second.deck == deck else null)
 
 
 func get_station(point_name: StringName) -> StationPoint:
@@ -312,157 +133,31 @@ func get_station(point_name: StringName) -> StationPoint:
 	if point is StationPoint:
 		return point
 
-	push_error(
-		"Action point is not a station: %s"
-		% point_name
-	)
+	push_error("Action point is not a station: %s" % point_name)
 
 	return null
-
-
-func get_cannon_stations() -> Array[CannonStationPoint]:
-
-	return cannon_stations.duplicate()
-
-
-func get_holes() -> Array[ShipHolePoint]:
-
-	var result: Array[ShipHolePoint] = []
-
-	for hole in holes:
-		result.append(hole)
-
-	return result
-
-
-func get_holes_ref() -> Array[ShipHolePoint]:
-
-	return holes
 
 
 func get_closest_hole(global_position: Vector2) -> ShipHolePoint:
 
-	var closest_hole: ShipHolePoint = null
-	var closest_distance := INF
-
-	for hole in holes:
-		var distance = hole.global_position.distance_to(global_position)
-
-		if distance < closest_distance:
-			closest_distance = distance
-			closest_hole = hole
-
-	return closest_hole
-
-
-func get_transition_point(
-	from_deck: int,
-	to_deck: int
-) -> DeckTransitionPoint:
-
-	var neighbors: Dictionary = deck_connections.get(
-		from_deck,
-		{}
-	)
-
-	var point: DeckTransitionPoint = neighbors.get(to_deck)
-
-	if point != null:
-		return point
-
-	push_error(
-		"No scene transition endpoint from %s to %s."
-		% [
-			DeckGraph.get_deck_name(from_deck),
-			DeckGraph.get_deck_name(to_deck)
-		]
-	)
-
-	return null
-
-
-func get_transition_points(
-	from_deck: int,
-	to_deck: int
-) -> Array[DeckTransitionPoint]:
-
-	var neighbors: Dictionary = deck_transition_points.get(
-		from_deck,
-		{}
-	)
-
-	var candidates: Array = neighbors.get(
-		to_deck,
-		[]
-	)
-
-	var result: Array[DeckTransitionPoint] = []
-
-	for candidate in candidates:
-		if (
-			candidate is DeckTransitionPoint
-			and candidate.connects(
-				from_deck,
-				to_deck
-			)
-		):
-			result.append(candidate)
-
-	return result
-
-
-func get_transition_points_ref() -> Array[DeckTransitionPoint]:
-
-	return transitions
-
-
-func get_closest_transition_point(
-	from_deck: int,
-	to_deck: int,
-	from_position: Vector2
-) -> DeckTransitionPoint:
-
-	var candidates = get_transition_points(
-		from_deck,
-		to_deck
-	)
-
-	if candidates.is_empty():
-		return get_transition_point(
-			from_deck,
-			to_deck
-		)
-
-	var closest_point: DeckTransitionPoint = null
-	var closest_distance := INF
-
-	for candidate in candidates:
-		var distance = candidate.global_position.distance_to(from_position)
-
-		if distance < closest_distance:
-			closest_distance = distance
-			closest_point = candidate
-
-	return closest_point
+	# reduce seeds the accumulator with the first hole, so closest is never null.
+	return holes.reduce(func(closest, hole): return (
+		hole
+		if hole.global_position.distance_to(global_position)
+		< closest.global_position.distance_to(global_position)
+		else closest
+	))
 
 
 func get_point(point_name: StringName) -> ShipActionPoint:
 
 	if not points.has(point_name):
-
-		push_error(
-			"Action point not found: %s"
-			% point_name
-		)
-
+		push_error("Action point not found: %s" % point_name)
 		return null
-
 
 	return points[point_name]
 
 
 func has_point(point_name: StringName) -> bool:
 
-	return points.has(
-		point_name
-	)
+	return points.has(point_name)

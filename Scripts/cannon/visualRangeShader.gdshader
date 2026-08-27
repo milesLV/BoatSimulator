@@ -40,7 +40,7 @@ void fragment() {
     const float epsilon = 0.0001;
 
     if (abs(cone_angle) > epsilon && abs(cone_angle - 360.0) > epsilon) {
-        angle_outline = step(cone_radians - radians(outline_thickness * 180.0 / 3.14159), abs(angle))
+        angle_outline = step(cone_radians - outline_thickness, abs(angle))
                       - step(cone_radians, abs(angle));
     }
 

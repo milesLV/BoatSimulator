@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/vertical_progress.gd" id="2_vertical"]
+
+[node name="VerticalProgress" type="Control"]
+offset_right = 170.0
+offset_bottom = 160.0
+mouse_filter = 2
+script = ExtResource("2_vertical")
+
+[node name="Text" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_top = 43.0
+offset_right = 110.0
+offset_bottom = 117.0
+
+[node name="Label" type="Label" parent="Text"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Anchor"
+horizontal_alignment = 2
+clip_text = true
+
+[node name="Percentage" type="Label" parent="Text"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "100%"
+horizontal_alignment = 2
+clip_text = true

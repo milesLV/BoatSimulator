@@ -16,7 +16,7 @@ static func get_repair_targets_by_priority(
 
 	var ranked_targets: Array = []
 
-	for hole in action_points.get_holes_ref():
+	for hole in action_points.holes:
 		if hole.grade <= ShipHolePoint.MIN_GRADE:
 			continue
 
@@ -38,22 +38,15 @@ static func get_repair_targets_by_priority(
 		if require_safe and not can_repair_safely:
 			continue
 
-		ranked_targets.append(
-			{
-				"hole": hole,
-				"repair_trip_duration": repair_trip["total_time"],
-				"is_flooding_hole": _is_flooding_hole(hole)
-			}
-		)
+		ranked_targets.append({
+			"hole": hole,
+			"repair_trip_duration": repair_trip["total_time"],
+			"is_flooding_hole": hole.deck in DeckGraph.FLOODED_DECKS
+		})
 
-	ranked_targets.sort_custom(func(a, b): return _compare_targets(a, b))
+	ranked_targets.sort_custom(_compare_targets)
 
-	var result: Array = []
-
-	for target in ranked_targets:
-		result.append(target["hole"])
-
-	return result
+	return ranked_targets.map(func(target): return target["hole"])
 
 
 static func _compare_targets(a: Dictionary, b: Dictionary) -> bool:
@@ -64,13 +57,3 @@ static func _compare_targets(a: Dictionary, b: Dictionary) -> bool:
 		return a["is_flooding_hole"] and not b["is_flooding_hole"]
 
 	return String(a["hole"].name) < String(b["hole"].name)
-
-
-static func _is_flooding_hole(hole: ShipHolePoint) -> bool:
-	return (
-		hole != null
-		and (
-			hole.deck == DeckGraph.DECKS.MID
-			or hole.deck == DeckGraph.DECKS.LOWER
-		)
-	)

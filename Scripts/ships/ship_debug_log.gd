@@ -1,56 +1,29 @@
 class_name ShipDebugLog
 extends RefCounted
 
-static var bail_enabled := true
-static var anchor_enabled := true
-static var cannon_enabled := true
-static var crew_enabled := true
-static var repair_enabled := true
-static var route_enabled := true
+## Channels named here stay quiet. Tests mute the noisy ones.
+static var muted: Dictionary = {}
 
 
-static func bail(message: String) -> void:
-	if bail_enabled:
+static func write(channel: StringName, message: String) -> void:
+	if not muted.get(channel, false):
 		print(message)
 
 
-static func anchor(message: String) -> void:
-	if anchor_enabled:
-		print(message)
+## Renders a details Dictionary as space-separated `key=value` pairs.
+static func join_details(details: Dictionary) -> String:
 
+	var parts := PackedStringArray()
 
-static func cannon(message: String) -> void:
-	if cannon_enabled:
-		print(message)
+	for key in details:
+		parts.append("%s=%s" % [key, details[key]])
 
-
-static func crew(message: String) -> void:
-	if crew_enabled:
-		print(message)
-
-
-static func repair(message: String) -> void:
-	if repair_enabled:
-		print(message)
+	return " ".join(parts)
 
 
 static func route_failure(route_name: String, details: Dictionary = {}) -> void:
-	if not route_enabled:
-		return
 
-	var detail_text := ""
-
-	for key in details.keys():
-		if detail_text != "":
-			detail_text += " "
-
-		detail_text += "%s=%s" % [
-			String(key),
-			String(details[key])
-		]
-
-	if detail_text == "":
-		print("Route build failed [%s]." % route_name)
-		return
-
-	print("Route build failed [%s]: %s" % [route_name, detail_text])
+	write(&"route", "Route build failed [%s]%s" % [
+		route_name,
+		": " + join_details(details) if not details.is_empty() else "."
+	])

@@ -1,0 +1,130 @@
+[gd_scene format=3 uid="uid://cib64tx44ny42"]
+
+[ext_resource type="PackedScene" path="res://Scenes/crewActionProgress.tscn" id="1_action_progress"]
+[ext_resource type="PackedScene" path="res://Scenes/verticalProgress.tscn" id="2_vertical_progress"]
+[ext_resource type="Texture2D" uid="uid://djf7yfvvld2aj" path="res://Assets/wheel.png" id="3_wheel"]
+[ext_resource type="Script" uid="uid://bukkt0pe8laij" path="res://Scripts/wheel_indicator.gd" id="4_wheel_indicator"]
+[ext_resource type="Texture2D" uid="uid://chikg5lgxkdbs" path="res://Assets/sloopHealthGUI.png" id="5_01ybj"]
+[ext_resource type="Script" uid="uid://bl26lqcyiwoqc" path="res://Scripts/water_polygon.gd" id="6_water_polygon"]
+[ext_resource type="Script" uid="uid://5mcq3f74lwyy" path="res://Scripts/camera_reattach_hint.gd" id="7_reattach_hint"]
+[ext_resource type="Texture2D" uid="uid://dr35csmduq2fe" path="res://Assets/mapMedallion.png" id="8_oxo7h"]
+[ext_resource type="Texture2D" uid="uid://c1r8l5nwr1r2f" path="res://Assets/mapArrow.png" id="9_taijg"]
+[ext_resource type="Script" uid="uid://d0gluqsuriyxo" path="res://Scripts/map_indicators.gd" id="10_map_indicators"]
+
+[node name="GameGui" type="CanvasLayer" unique_id=1939843259]
+layer = 10
+script = ExtResource("10_map_indicators")
+
+[node name="CrewActionProgress" parent="." unique_id=173944137 instance=ExtResource("1_action_progress")]
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -55.0
+offset_top = -55.0
+offset_right = 55.0
+offset_bottom = 55.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="OtherCrewActionProgress" parent="." unique_id=1799001087 instance=ExtResource("1_action_progress")]
+modulate = Color(1, 1, 1, 0.75)
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 46.25
+offset_top = -146.25
+offset_right = 156.25
+offset_bottom = -36.25
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(0.75, 0.75)
+show_other_crewmate = true
+
+[node name="AnchorProgress" parent="." unique_id=1810361057 instance=ExtResource("2_vertical_progress")]
+layout_mode = 3
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -220.0
+offset_top = -200.0
+offset_right = -50.0
+offset_bottom = -40.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="WheelIndicator" type="TextureRect" parent="." unique_id=182203853]
+anchors_preset = -1
+anchor_left = 0.93700004
+anchor_top = 0.89900005
+anchor_right = 0.93700004
+anchor_bottom = 0.89900005
+offset_left = -16.424072
+offset_top = -26.552002
+offset_right = 94.57593
+offset_bottom = 84.44794
+grow_horizontal = 0
+grow_vertical = 0
+rotation = -0.4410389
+mouse_filter = 2
+texture = ExtResource("3_wheel")
+script = ExtResource("4_wheel_indicator")
+
+[node name="HealthGui" type="Control" parent="." unique_id=884493189]
+layout_mode = 3
+anchor_left = 0.90800005
+anchor_top = 0.93500006
+anchor_right = 0.90800005
+anchor_bottom = 0.93500006
+offset_left = -271.0161
+offset_top = -181.8801
+offset_right = -83.422485
+offset_bottom = -34.77423
+grow_horizontal = 0
+grow_vertical = 0
+scale = Vector2(1.6210511, 1.6210511)
+mouse_filter = 2
+
+[node name="WaterPolygon" type="Polygon2D" parent="HealthGui" unique_id=1283510742]
+z_index = 2
+position = Vector2(16.870117, 98.70801)
+scale = Vector2(0.42090356, 0.42090356)
+color = Color(0.096, 0.62, 1, 0.72)
+polygon = PackedVector2Array(35, 79, 274, 79, 289, 76, 301, 70, 311, 62, 320, 53, 328, 41, 334, 28, 338, 18, 154, 19, 154, 2.5, 0.309, 2.5, 12, 41, 20, 57, 27, 70)
+script = ExtResource("6_water_polygon")
+
+[node name="SloopHealthGui" type="Sprite2D" parent="HealthGui" unique_id=1414448318]
+z_index = 1
+position = Vector2(93.796875, 63.55298)
+scale = Vector2(0.26991898, 0.26991898)
+texture = ExtResource("5_01ybj")
+
+[node name="CameraReattachHint" type="Label" parent="." unique_id=428917355]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = -32.0
+offset_right = 320.0
+offset_bottom = -8.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 25
+script = ExtResource("7_reattach_hint")
+
+[node name="MapMedallion" type="Sprite2D" parent="." unique_id=1649051688]
+position = Vector2(692.90326, 167.74998)
+rotation = 0.009294748
+scale = Vector2(0.1726649, 0.1726649)
+texture = ExtResource("8_oxo7h")
+
+[node name="MapArrow" type="Sprite2D" parent="." unique_id=1220895999]
+position = Vector2(689, 63)
+scale = Vector2(0.21747968, 0.21747968)
+texture = ExtResource("9_taijg")

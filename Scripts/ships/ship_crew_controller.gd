@@ -14,28 +14,23 @@ func _init(new_ship) -> void:
 
 func initialize() -> void:
 
-	crewmates.clear()
-
-	for child in ship.get_children():
-		if child is Crewmate:
-			crewmates.append(child)
+	crewmates.assign(ship.get_children().filter(func(child): return child is Crewmate))
 
 	if not crewmates.is_empty():
 		selected_index = 0
 		current_crewmate = crewmates[selected_index]
 		_print_selected_crewmate()
 
-	_initialize_crewmate_decks()
+	if ship.helmsman != null:
+		ship.helmsman.set_location(DeckGraph.DECKS.UPPER)
+
+	if ship.cannoneer != null:
+		ship.cannoneer.set_location(DeckGraph.DECKS.MAIN)
 
 
 func get_crewmates() -> Array[Crewmate]:
 
-	var result: Array[Crewmate] = []
-
-	for crewmate in crewmates:
-		result.append(crewmate)
-
-	return result
+	return crewmates.duplicate()
 
 
 func get_current_crewmate() -> Crewmate:
@@ -58,29 +53,9 @@ func change_crewmate() -> Crewmate:
 	return current_crewmate
 
 
-func is_selected(crewmate: Crewmate) -> bool:
-
-	return (
-		crewmate != null
-		and current_crewmate == crewmate
-	)
-
-
-func _initialize_crewmate_decks() -> void:
-
-	if ship.helmsman != null:
-		ship.helmsman.set_location(DeckGraph.DECKS.UPPER)
-
-	if ship.cannoneer != null:
-		ship.cannoneer.set_location(DeckGraph.DECKS.MAIN)
-
-
 func _print_selected_crewmate() -> void:
 
 	if current_crewmate == null:
 		return
 
-	ShipDebugLog.crew(
-		"Selected: %s"
-		% current_crewmate.name
-	)
+	ShipDebugLog.write(&"crew", "Selected: %s" % current_crewmate.name)
