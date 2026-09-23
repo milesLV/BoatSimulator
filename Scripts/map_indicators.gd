@@ -87,16 +87,16 @@ static func arrow_alpha(edge_distance: float) -> float:
 
 ## Where the arrow sits and how it is turned, keeping its authored radius and
 ## art direction, so that it points from the medallion towards `target`.
-static func place_arrow(medallion_pos: Vector2, target: Vector2, offset: Vector2, base_rotation: float) -> Array:
+static func place_arrow(medallion_pos: Vector2, target: Vector2, arrow_offset: Vector2, base_rotation: float) -> Array:
 
 	var to_target := target - medallion_pos
 
 	if to_target.is_zero_approx():
-		return [medallion_pos + offset, base_rotation]
+		return [medallion_pos + arrow_offset, base_rotation]
 
-	var delta := to_target.angle() - offset.angle()
+	var delta := to_target.angle() - arrow_offset.angle()
 
-	return [medallion_pos + offset.rotated(delta), base_rotation + delta]
+	return [medallion_pos + arrow_offset.rotated(delta), base_rotation + delta]
 
 
 func _build_indicator(ship: Node2D) -> Dictionary:

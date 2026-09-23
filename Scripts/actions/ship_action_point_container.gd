@@ -5,6 +5,10 @@ var points: Dictionary = {}
 var stations: Array[StationPoint] = []
 var cannon_stations: Array[CannonStationPoint] = []
 var holes: Array[ShipHolePoint] = []
+## Holes that let water in, and the mast holes that do not. Everything automatic - flooding,
+## gunnery, repair duty - works off hull_holes; the mast is damaged and repaired on its own.
+var hull_holes: Array[ShipHolePoint] = []
+var mast_holes: Array[ShipHolePoint] = []
 var transitions: Array[DeckTransitionPoint] = []
 
 func _ready() -> void:
@@ -32,6 +36,11 @@ func _register_recursive(node: Node) -> void:
 
 		if node is ShipHolePoint:
 			holes.append(node)
+
+			if DeckGraph.FLOODED_DECKS.has(node.deck):
+				hull_holes.append(node)
+			else:
+				mast_holes.append(node)
 
 		if node is DeckTransitionPoint:
 			transitions.append(node)
@@ -138,13 +147,13 @@ func get_station(point_name: StringName) -> StationPoint:
 	return null
 
 
-func get_closest_hole(global_position: Vector2) -> ShipHolePoint:
+func get_closest_hole(from_position: Vector2) -> ShipHolePoint:
 
 	# reduce seeds the accumulator with the first hole, so closest is never null.
-	return holes.reduce(func(closest, hole): return (
+	return hull_holes.reduce(func(closest, hole): return (
 		hole
-		if hole.global_position.distance_to(global_position)
-		< closest.global_position.distance_to(global_position)
+		if hole.global_position.distance_to(from_position)
+		< closest.global_position.distance_to(from_position)
 		else closest
 	))
 

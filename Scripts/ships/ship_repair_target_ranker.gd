@@ -16,7 +16,7 @@ static func get_repair_targets_by_priority(
 
 	var ranked_targets: Array = []
 
-	for hole in action_points.holes:
+	for hole in action_points.hull_holes:
 		if hole.grade <= ShipHolePoint.MIN_GRADE:
 			continue
 

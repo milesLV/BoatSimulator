@@ -7,7 +7,7 @@ var station: CannonStationPoint
 func _init(new_station: CannonStationPoint) -> void:
 
 	station = new_station
-	action_id = "fire_%s" % (station.name if station != null else "")
+	action_id = "fire_%s" % (String(station.name) if station != null else "")
 	base_duration = 0.0
 	progress_policy = ProgressPolicy.ONE_SHOT
 

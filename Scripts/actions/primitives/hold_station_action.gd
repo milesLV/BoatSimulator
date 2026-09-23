@@ -5,7 +5,7 @@ class_name HoldStationAction
 func _init(new_station: StationPoint) -> void:
 
 	super(new_station)
-	action_id = "control_%s" % (new_station.name if new_station != null else "missing_station")
+	action_id = "control_%s" % (String(new_station.name) if new_station != null else "missing_station")
 	base_duration = -1.0
 	progress_policy = ProgressPolicy.CONTINUOUS
 

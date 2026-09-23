@@ -139,18 +139,21 @@ position = Vector2(0, 0.069999695)
 rotation = 1.5707964
 script = ExtResource("3_jjglc")
 deck = 1
+max_grade = 2
 
 [node name="MastHole2" type="Node2D" parent="." unique_id=240302692]
 position = Vector2(-0.069999695, 0.069999695)
 rotation = -3.1415925
 script = ExtResource("3_jjglc")
 deck = 1
+max_grade = 2
 
 [node name="MastHole3" type="Node2D" parent="." unique_id=685284260]
 position = Vector2(-0.06999969, 0)
 rotation = -1.5707963
 script = ExtResource("3_jjglc")
 deck = 1
+max_grade = 2
 
 [node name="HolePort1" type="Node2D" parent="." unique_id=2117893932]
 position = Vector2(-120, -11)

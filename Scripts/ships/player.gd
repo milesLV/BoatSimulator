@@ -22,8 +22,11 @@ func _control(_delta: float) -> bool:
 	if Input.is_action_just_pressed("repairShip"):
 		request(&"request_repair_ship")
 
+	if Input.is_action_just_pressed("repairMast"):
+		request(&"request_repair_mast")
+
 	var turn = _get_station_axis_input(&"Wheel", &"turnWheelLeft", &"turnWheelRight")
-	var sail = _get_station_axis_input(
+	var sail_length = _get_station_axis_input(
 		&"SailLengthStarb", # TODO: make so can choose port or starboard size depending on whatever's closest
 		&"raiseSailsUp",
 		&"lowerSailsDown"
@@ -34,7 +37,7 @@ func _control(_delta: float) -> bool:
 		&"adjustSailRight"
 	)
 
-	set_movement_input(turn, sail, sail_rotation)
+	set_movement_input(turn, sail_length, sail_rotation)
 
 	if Input.is_action_just_pressed("dropOrRaiseAnchor"):
 		request(&"request_anchor_toggle")

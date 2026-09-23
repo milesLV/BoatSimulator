@@ -178,12 +178,12 @@ func is_repair_duty_crewmate(crewmate: Crewmate) -> bool:
 func _build_next_damage_control_plan(crewmate: Crewmate) -> Dictionary:
 
 	if crewmate.bucket_amount > 0.0:
-		var repair_plan = _build_repair_hole_plan(crewmate)
+		var carried_repair_plan = _build_repair_hole_plan(crewmate)
 
-		if repair_plan["reason"] == RepairPlanReason.REPAIR_HOLE:
-			repair_plan["details"]["label"] = "repairing before emptying carried bucket"
+		if carried_repair_plan["reason"] == RepairPlanReason.REPAIR_HOLE:
+			carried_repair_plan["details"]["label"] = "repairing before emptying carried bucket"
 
-			return repair_plan
+			return carried_repair_plan
 
 		roles[crewmate] = RepairRole.BAILER
 
@@ -365,7 +365,7 @@ func _has_damaged_holes(unreserved_only := false) -> bool:
 	if action_points == null:
 		return false
 
-	return action_points.holes.any(
+	return action_points.hull_holes.any(
 		func(hole):
 			return (
 				hole.grade > ShipHolePoint.MIN_GRADE

@@ -94,6 +94,30 @@ func clear_assignment() -> bool:
 	return true
 
 
+## Seconds until [param cannon] is loaded again, taken from the gunner actually reloading it.
+## A gun nobody has started on yet reads as a whole reload away: when the gunner gets there
+## is the route planner's business, not the gun's.
+func get_reload_remaining(cannon: Cannon) -> float:
+
+	if cannon.loaded:
+		return 0.0
+
+	var instance = (
+		duty_crewmate.action_executor.current_action
+		if has_duty_crewmate() and duty_crewmate.action_executor != null
+		else null
+	)
+
+	if (
+		instance == null
+		or not (instance.definition is ReloadCannonAction)
+		or instance.definition.station.get_cannon(ship) != cannon
+	):
+		return ReloadCannonAction.RELOAD_DURATION
+
+	return instance.get_remaining_time(duty_crewmate)
+
+
 func update() -> void:
 
 	if not has_duty_crewmate():

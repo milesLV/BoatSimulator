@@ -24,6 +24,9 @@ const GRADE_COLORS: Array[Color] = [
 @export_range(MIN_GRADE, MAX_GRADE) # exporting just for now for testing, delete later
 var grade: int = MIN_GRADE # default = no hole
 
+## How far this hole can be opened. The mast holes cap at 2; hull holes go the whole way.
+@export_range(MIN_GRADE, MAX_GRADE) var max_grade: int = MAX_GRADE
+
 
 func _draw() -> void:
 
@@ -49,7 +52,7 @@ func _process(_delta: float) -> void:
 
 func set_grade(new_grade: int) -> void:
 
-	var clamped_grade = clampi(new_grade, MIN_GRADE, MAX_GRADE)
+	var clamped_grade = clampi(new_grade, MIN_GRADE, max_grade)
 
 	if grade != clamped_grade:
 		var old_grade = grade

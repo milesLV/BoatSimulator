@@ -8,6 +8,8 @@ const MOVING_LOWER_HOLE_EFFICIENCY := 0.9
 const MOVING_MID_HOLE_EFFICIENCY := 0.333
 const STILL_LOWER_HOLE_EFFICIENCY := 1.0
 const STILL_MID_HOLE_EFFICIENCY := 0.166
+const MAST_RADIUS := 8.0
+const MAST_HOLE_DAMAGE := 2
 
 var ship
 var action_points: ShipActionPointContainer
@@ -24,7 +26,7 @@ func _init(new_ship, new_action_points: ShipActionPointContainer) -> void:
 	if action_points == null:
 		return
 
-	for hole in action_points.holes:
+	for hole in action_points.hull_holes:
 		_add_flood_rate(hole.deck, float(hole.grade))
 		hole.grade_changed.connect(_on_hole_grade_changed)
 
@@ -87,18 +89,80 @@ func remove_water(amount: float) -> float:
 	return removed
 
 
-func apply_cannonball_hit(hit_position: Vector2, hole_damage: int) -> bool:
+## Where the ball struck decides which hole it opened - the gunner may have picked a hole the
+## far end of the hull, and grading it there is the ball phasing through. Returns the hole that
+## took the damage, or null. A hole already at its cap absorbs nothing: set_grade clamps, and
+## the damage does not spill onto the next hole along.
+func apply_cannonball_hit(hit_position: Vector2, hole_damage: int) -> ShipHolePoint:
+
 	if action_points == null:
+		return null
+
+	var hole = _closest_facing_hole(hit_position)
+
+	if hole != null:
+		hole.set_grade(hole.grade + hole_damage)
+
+	return hole
+
+
+## A ball that missed the hull but crossed the mast on its way past. [param from] and
+## [param to] are the ends of the flight it has left. Opens one fresh mast hole - they cap at
+## grade 2 - and does nothing once all three are open.
+func apply_mast_hit(from: Vector2, to: Vector2) -> bool:
+
+	if action_points == null or action_points.mast_holes.is_empty():
 		return false
 
-	var hole = action_points.get_closest_hole(hit_position)
+	var mast = action_points.mast_holes.front().global_position
 
-	if hole == null:
+	if Geometry2D.get_closest_point_to_segment(mast, from, to).distance_to(mast) > MAST_RADIUS:
 		return false
 
-	hole.set_grade(hole.grade + hole_damage)
+	for hole in action_points.mast_holes:
+		if hole.grade < hole.max_grade:
+			hole.set_grade(hole.grade + MAST_HOLE_DAMAGE)
+			return true
 
-	return true
+	return false
+
+
+## The hole whose footprint is nearest the impact, out of those cut into plating facing the same
+## way as the plating the ball went through. Both points are on the hull: the hole nodes sit
+## 10 to 70px inside it, so measuring an impact against a node compares two different things and
+## hands the hit to whichever hole happens to be buried deepest.
+func _closest_facing_hole(hit_position: Vector2) -> ShipHolePoint:
+
+	var struck = AimForHoles.outward_normal(ship.to_local(hit_position))
+	var footprint := func(hole): return ship.to_global(
+		AimForHoles.hull_footprint(ship.to_local(hole.global_position))
+	)
+
+	var facing = action_points.hull_holes.filter(func(hole): return (
+		AimForHoles.outward_normal(ship.to_local(hole.global_position)).dot(struck) > 0.0
+	))
+
+	if facing.is_empty():
+		return action_points.get_closest_hole(hit_position)
+
+	return facing.reduce(func(closest, hole): return (
+		hole
+		if footprint.call(hole).distance_to(hit_position)
+		< footprint.call(closest).distance_to(hit_position)
+		else closest
+	))
+
+
+## How much water a grade point on [param deck] actually lets in right now.
+func get_deck_efficiency(deck: int) -> float:
+
+	if deck == DeckGraph.DECKS.LOWER:
+		return _get_lower_deck_efficiency()
+
+	if deck == DeckGraph.DECKS.MID:
+		return _get_mid_deck_efficiency(water_level)
+
+	return 0.0
 
 
 func get_flood_rate() -> float:

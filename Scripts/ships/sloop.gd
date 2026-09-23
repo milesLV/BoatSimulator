@@ -2,15 +2,16 @@ class_name Sloop
 extends CharacterBody2D
 
 const SINK_FADE_DURATION := 7.0
+const ACTION_POINTS_PATH: NodePath = ^"ShipActionPoints"
 
-@onready var action_points_path: NodePath = ^"ShipActionPoints"
 @onready var sail = $Sail
 @onready var helmsman = $Helmsman
 @onready var cannoneer = $Cannoneer
-@onready var action_points: ShipActionPointContainer = get_node_or_null(action_points_path)
+@onready var action_points: ShipActionPointContainer = get_node_or_null(ACTION_POINTS_PATH)
 @onready var cannons = get_children().filter(func(n): return n is Cannon)
 
 var anchor_system: AnchorSystem
+var motion_predictor: ShipMotionPredictor
 var action_planner: ShipActionPlanner
 var station_controller: ShipStationController
 var cannon_director: ShipCannonDirector
@@ -29,7 +30,7 @@ func _ready() -> void:
 	if action_points == null:
 		push_error(
 			"Sloop requires a ShipActionPointContainer at %s."
-			% action_points_path
+			% ACTION_POINTS_PATH
 		)
 
 		return
@@ -62,6 +63,9 @@ func _physics_process(delta: float) -> void:
 
 	_process_health(delta)
 	_process_sink_fade(delta)
+
+	if motion_predictor != null:
+		motion_predictor.physics_process(delta)
 
 	if is_sunk() or not _control(delta):
 		return
@@ -153,11 +157,20 @@ func _process_health(delta: float) -> void:
 	health_system.physics_process(delta)
 
 
-func apply_cannonball_hit(hit_position: Vector2, hole_damage: int) -> bool:
+func apply_cannonball_hit(hit_position: Vector2, hole_damage: int) -> ShipHolePoint:
+
+	if health_system == null or is_sunk():
+		return null
+
+	return health_system.apply_cannonball_hit(hit_position, hole_damage)
+
+
+func apply_mast_hit(from: Vector2, to: Vector2) -> bool:
+
 	if health_system == null or is_sunk():
 		return false
 
-	return health_system.apply_cannonball_hit(hit_position, hole_damage)
+	return health_system.apply_mast_hit(from, to)
 
 
 func is_sunk() -> bool:
@@ -244,6 +257,8 @@ func _create_systems() -> void:
 	repair_duty_controller.crew_task_controller = crew_task_controller
 
 	movement_controller = ShipMovementController.new(self, sail, station_controller, anchor_system)
+
+	motion_predictor = ShipMotionPredictor.new(self, movement_controller)
 
 
 func _refresh_cannon_targets_deferred() -> void:

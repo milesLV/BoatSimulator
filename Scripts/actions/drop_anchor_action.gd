@@ -2,7 +2,7 @@ extends ActionDefinition
 class_name DropAnchorAction
 
 
-func _init(new_anchor_point: ShipActionPoint) -> void:
+func _init() -> void:
 
 	action_id = "trigger_anchor_drop"
 	base_duration = 0.0

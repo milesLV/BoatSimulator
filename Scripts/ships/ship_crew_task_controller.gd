@@ -85,6 +85,26 @@ func request_repair_ship() -> bool:
 	return repair_duty_controller.assign_crewmate(crewmate)
 
 
+## Repair duty leaves the mast alone - it lets no water in - so this is the only way it gets
+## patched: one trip round every mast hole that is open.
+func request_repair_mast() -> bool:
+
+	var crewmate = _get_current_crewmate()
+
+	if crewmate == null or action_planner == null:
+		return false
+
+	var actions: Array[ActionDefinition] = []
+
+	for hole in action_planner.action_points.mast_holes:
+		if hole.grade > ShipHolePoint.MIN_GRADE:
+			actions.append_array(action_planner.build_repair_hole(crewmate, hole))
+
+	prepare_for_repair_duty(crewmate)
+
+	return queue_repair_actions(crewmate, actions, true)
+
+
 func request_current_cannon_duty() -> bool:
 
 	var crewmate = _get_current_crewmate()

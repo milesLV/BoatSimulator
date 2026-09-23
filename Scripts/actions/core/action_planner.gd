@@ -65,7 +65,7 @@ func build_drop_anchor(actor) -> Array[ActionDefinition]:
 	var anchor_point = action_points.get_point(&"Anchor")
 
 	actions.append(RigAnchorAction.new(anchor_point))
-	actions.append(DropAnchorAction.new(anchor_point))
+	actions.append(DropAnchorAction.new())
 
 	return actions
 
@@ -535,12 +535,12 @@ func estimate_repair_trip(actor, hole: ShipHolePoint) -> Dictionary:
 	var repair_complete_time = time_to_hole + repair_duration
 
 	if actor.bucket_amount > 0.0:
-		var time_to_throw = _estimate_throw_duration_from_bucket(actor, hole)
+		var bucket_throw_time = _estimate_throw_duration_from_bucket(actor, hole)
 
-		if time_to_throw == INF:
+		if bucket_throw_time == INF:
 			return _repair_trip(INF, INF)
 
-		return _repair_trip(repair_complete_time + time_to_throw, repair_complete_time)
+		return _repair_trip(repair_complete_time + bucket_throw_time, repair_complete_time)
 
 	var projected_after_repair = actor.ship.health_system.get_projected_water_level(repair_complete_time)
 	var bucket_point = (
@@ -614,7 +614,7 @@ func _has_damaged_holes() -> bool:
 	if action_points == null:
 		return false
 
-	return action_points.holes.any(
+	return action_points.hull_holes.any(
 		func(hole): return hole.grade > ShipHolePoint.MIN_GRADE
 	)
 
