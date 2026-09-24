@@ -25,6 +25,8 @@ var active_crewmates: Array[Crewmate] = []
 var roles: Dictionary = {}
 var hole_by_crewmate: Dictionary = {}
 var help_requested: Dictionary = {}
+## crewmate -> the decks they patch; missing or empty is every deck.
+var deck_filter: Dictionary = {}
 
 
 func _init(
@@ -38,9 +40,10 @@ func _init(
 	action_planner = new_action_planner
 
 
-func assign_crewmate(crewmate: Crewmate) -> bool:
+func assign_crewmate(crewmate: Crewmate, decks: Array = []) -> bool:
 
 	crew_task_controller.prepare_for_repair_duty(crewmate)
+	deck_filter[crewmate] = decks
 
 	if not active_crewmates.has(crewmate):
 		active_crewmates.append(crewmate)
@@ -62,6 +65,7 @@ func clear_crewmate(crewmate: Crewmate, reason := "unspecified") -> bool:
 	active_crewmates.erase(crewmate)
 	roles.erase(crewmate)
 	help_requested.erase(crewmate)
+	deck_filter.erase(crewmate)
 	Crewmate.set_queue_finished_listener(crewmate, _on_crewmate_queue_finished, false)
 	release_hole_for(crewmate)
 
@@ -233,10 +237,14 @@ func _get_sorted_repair_targets(crewmate: Crewmate, require_safe: bool) -> Array
 
 	var flood_rate = _get_flood_rate_without(crewmate)
 	var reserved = hole_by_crewmate.values()
+	var decks: Array = deck_filter.get(crewmate, [])
 	var trip_times := {}
 
 	for hole in action_points.hull_holes:
 		if hole.grade <= ShipHolePoint.MIN_GRADE or reserved.has(hole):
+			continue
+
+		if not decks.is_empty() and not hole.deck in decks:
 			continue
 
 		var repair_trip = action_planner.estimate_repair_trip(crewmate, hole)

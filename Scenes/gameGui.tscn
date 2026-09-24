@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" uid="uid://dr35csmduq2fe" path="res://Assets/mapMedallion.png" id="8_oxo7h"]
 [ext_resource type="Texture2D" uid="uid://c1r8l5nwr1r2f" path="res://Assets/mapArrow.png" id="9_taijg"]
 [ext_resource type="Script" uid="uid://d0gluqsuriyxo" path="res://Scripts/map_indicators.gd" id="10_map_indicators"]
+[ext_resource type="Script" path="res://Scripts/radial_menu.gd" id="11_radial_menu"]
 
 [node name="GameGui" type="CanvasLayer" unique_id=1939843259]
 layer = 10
@@ -143,3 +144,13 @@ texture = ExtResource("8_oxo7h")
 position = Vector2(689, 63)
 scale = Vector2(0.21747968, 0.21747968)
 texture = ExtResource("9_taijg")
+
+[node name="RadialMenu" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("11_radial_menu")

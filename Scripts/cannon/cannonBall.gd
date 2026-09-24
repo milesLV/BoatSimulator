@@ -18,6 +18,8 @@ static var mast_strike_chance := 0.25
 ## False when the accuracy roll at fire time said this shot missed: it flies on through
 ## everything and expires at its range limit.
 var will_hit := true
+## A hit aimed at the mast: it flies on over the hull and always takes the mast if it crosses it.
+var strikes_mast := false
 
 var travelled_distance := 0.0
 var max_range := 0.0
@@ -78,7 +80,7 @@ static func format_percent(pct: float) -> String:
 ## as the miss it was.
 func _try_mast_strike(body) -> void:
 
-	if not body.has_method("apply_mast_hit") or randf() >= mast_strike_chance:
+	if not body.has_method("apply_mast_hit") or (not strikes_mast and randf() >= mast_strike_chance):
 		return
 
 	var remaining = Vector2.RIGHT.rotated(global_rotation) * (max_range - travelled_distance)

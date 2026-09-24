@@ -13,6 +13,8 @@ const FIRE_ANGLE_TOLERANCE = deg_to_rad(2) # won't fire until cannon lined up wi
 
 @export var broadside: CannonSide.Value
 
+enum AimTarget { HULL, MAST, CANNON, WHEEL, CREW }
+
 var max_range := 0.0
 
 var loaded := true
@@ -24,6 +26,9 @@ var last_aim_point: Vector2 = Vector2.ZERO
 ## at all right now. Holding still slews the barrel, it just does not pull the trigger.
 var target_hole: ShipHolePoint = null
 var hold_fire := false
+
+## Set from whoever mans it: HULL goes hunting holes, the rest aim straight at that part.
+var aim_target := AimTarget.HULL
 
 var tracking_enabled := false
 var tracking_target: Node = null
@@ -39,7 +44,10 @@ func _physics_process(delta):
 	if not tracking_enabled or not is_instance_valid(tracking_target):
 		return
 
-	var shot = AimForHoles.pick_shot(self, get_parent(), tracking_target)
+	var shot = (
+		AimForHoles.pick_shot(self, get_parent(), tracking_target) if aim_target == AimTarget.HULL
+		else {"aim_point": _part_position(tracking_target), "hole": null, "fire_now": true}
+	)
 
 	var aim_point: Vector2 = shot["aim_point"]
 	target_hole = shot["hole"]
@@ -54,6 +62,27 @@ func _physics_process(delta):
 
 	var angle_to_aim = Vector2.RIGHT.rotated(global_rotation).angle_to(last_direction_aimed)
 	sprite.rotation = move_toward(sprite.rotation, clamp(angle_to_aim, -MAX_ANGLE, MAX_ANGLE), ROTATION_SPEED * delta)
+
+## Where on [param ship] a non-hull aim points: its mast, nearest cannon, wheel or crewmate.
+func _part_position(ship: Node2D) -> Vector2:
+
+	var nearest := func(nodes: Array) -> Vector2:
+		var closest = nodes.reduce(func(best, node): return (
+			node if best == null or global_position.distance_to(node.global_position)
+				< global_position.distance_to(best.global_position) else best
+		), null)
+		return closest.global_position if closest != null else ship.global_position
+
+	match aim_target:
+		AimTarget.MAST:
+			return nearest.call(ship.action_points.mast_holes)
+		AimTarget.CANNON:
+			return nearest.call(ship.cannons)
+		AimTarget.WHEEL:
+			return ship.action_points.get_station(&"Wheel").global_position
+		_:
+			return nearest.call(ship.get_crewmates())
+
 
 ## The firing arc rule on its own, so the aim code can ask it of a mount bearing the ship
 ## has not swung round to yet.
@@ -115,5 +144,10 @@ func fire() -> bool:
 	new_cannonball.max_range = max_range
 	new_cannonball.arc_distance = minf(cannon_mouth.global_position.distance_to(last_aim_point), max_range)
 	new_cannonball.will_hit = randf() < CannonAccuracy.for_shot(self, get_parent(), current_target)
+
+	# a good shot at the mast goes into the rigging, not the hull in front of it
+	if aim_target == AimTarget.MAST and new_cannonball.will_hit:
+		new_cannonball.will_hit = false
+		new_cannonball.strikes_mast = true
 
 	return true

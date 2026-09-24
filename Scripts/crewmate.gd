@@ -19,6 +19,8 @@ const SAIL_CONTACT_ALPHA := 0.50
 var location := -1
 var transition_to_deck := -1
 var bucket_amount := 0.0
+## What a cannon they man aims at; set from the C menu.
+var aim_target := Cannon.AimTarget.HULL
 var _idle_time := 0.0
 
 func _ready() -> void:

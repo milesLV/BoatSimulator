@@ -23,6 +23,7 @@ func _run() -> void:
 	await _test_strike()
 	await _test_geometry_gates_it()
 	await _test_only_a_shot_over_the_ship()
+	await _test_aimed_at_the_mast()
 	await _test_cap()
 	await _test_repair()
 
@@ -87,6 +88,24 @@ func _test_geometry_gates_it() -> void:
 	check(frames >= MAST_FRAMES, "something stopped the ball short: %d frames" % frames)
 	check(_mast_grade(ship) == 0, "a miss clear of the mast still holed it")
 
+	await despawn(ship)
+
+
+## A good shot aimed at the mast skips the hull and always takes the mast, whatever the chance.
+func _test_aimed_at_the_mast() -> void:
+
+	Cannonball.mast_strike_chance = 0.0
+
+	var ship = await spawn_frozen_ship()
+	var ball = spawn_ball(ship, false)
+	ball.strikes_mast = true
+
+	await _frames_until_gone(ball)
+
+	check(_mast_grade(ship) == ShipHealthSystem.MAST_HOLE_DAMAGE, "the aimed shot missed the mast")
+	check(_hull_grade(ship) == 0, "the aimed shot holed the hull")
+
+	Cannonball.mast_strike_chance = 1.0
 	await despawn(ship)
 
 

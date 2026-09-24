@@ -1,6 +1,46 @@
 class_name PlayerShip
 extends Sloop
 
+const REPAIR_OPTIONS: Array[String] = [
+	"Repair mast", "Repair whole hull", "Bail water",
+	"Repair mid deck", "Repair lower deck", "Repair whole ship",
+]
+const AIM_OPTIONS: Array[String] = ["Fire at hull", "Fire at mast", "Fire at cannon", "Fire at wheel", "Fire at crew"]
+
+
+func _ready() -> void:
+
+	super()
+	# the GUI is a sibling that may not be ready yet
+	_bind_radial_menu.call_deferred()
+
+
+func _bind_radial_menu() -> void:
+
+	var menu: RadialMenu = get_tree().get_first_node_in_group(&"radial_menu")
+
+	if menu == null:
+		return
+
+	menu.bind(&"repairShip", REPAIR_OPTIONS, _on_repair_option, func():
+		# just after the mast is hauled up, R goes to patch it so it stays up
+		request(&"request_repair_mast" if mast_system.just_raised() else &"request_repair_ship")
+	)
+	menu.bind(&"goToCannon", AIM_OPTIONS, func(i): request(&"request_cannon_aim", [i]), func():
+		request(&"request_cannon_aim", [Cannon.AimTarget.HULL])
+	)
+
+
+func _on_repair_option(index: int) -> void:
+
+	match index:
+		0: request(&"request_repair_mast")
+		1: request(&"request_repair_ship")
+		2: request(&"request_bail_water")
+		3: request(&"request_repair_ship", [[DeckGraph.DECKS.MID]])
+		4: request(&"request_repair_ship", [[DeckGraph.DECKS.LOWER]])
+		5: request(&"request_repair_whole_ship")
+
 func _control() -> bool:
 
 	set_movement_input(0.0, 0.0, 0.0)
@@ -13,15 +53,8 @@ func _control() -> bool:
 	if Input.is_action_just_pressed("changeCrewmate"):
 		change_crewmate()
 
-	if Input.is_action_just_pressed("goToCannon"):
-		request(&"request_current_cannon_duty")
-
 	if Input.is_action_just_pressed("bailWater"):
 		request(&"request_bail_water")
-
-	# just after the mast is hauled up, R goes to patch it so it stays up
-	if Input.is_action_just_pressed("repairShip"):
-		request(&"request_repair_mast" if mast_system.just_raised() else &"request_repair_ship")
 
 	if Input.is_action_just_pressed("repairMast"):
 		request(&"request_repair_mast")

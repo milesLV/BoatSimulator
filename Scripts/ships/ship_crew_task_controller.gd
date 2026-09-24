@@ -82,9 +82,42 @@ func request_bail_water() -> bool:
 	return true
 
 
-func request_repair_ship() -> bool:
+## [param decks] limits which hull holes they patch; empty is every deck.
+func request_repair_ship(decks: Array = []) -> bool:
 
-	return repair_duty_controller.assign_crewmate(crew_controller.current_crewmate)
+	return repair_duty_controller.assign_crewmate(crew_controller.current_crewmate, decks)
+
+
+## The mast first, then on to the hull.
+func request_repair_whole_ship() -> bool:
+
+	if not request_repair_mast():
+		return request_repair_ship()
+
+	Crewmate.set_queue_finished_listener(crew_controller.current_crewmate, _on_mast_repaired, true)
+
+	return true
+
+
+func _on_mast_repaired(crewmate: Crewmate) -> void:
+
+	Crewmate.set_queue_finished_listener(crewmate, _on_mast_repaired, false)
+	repair_duty_controller.assign_crewmate(crewmate)
+
+
+## Aims this crewmate's cannon at [param target], sending them to one if they are not on it.
+func request_cannon_aim(target: Cannon.AimTarget) -> bool:
+
+	var crewmate := crew_controller.current_crewmate
+	var station = station_controller.get_station_operated_by(crewmate)
+
+	crewmate.aim_target = target
+
+	if station is CannonStationPoint:
+		station.cannon.aim_target = target
+		return true
+
+	return request_current_cannon_duty()
 
 
 ## Repair duty leaves the mast alone - it lets no water in - so this is the only way it gets
