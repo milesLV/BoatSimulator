@@ -18,10 +18,6 @@ var plan_actions: Array[ActionInstance] = []
 func queue_actions(definitions: Array) -> void:
 
 	for definition in definitions:
-		if not (definition is ActionDefinition):
-			push_warning("Ignored invalid action definition.")
-			continue
-
 		var instance = ActionInstance.new(definition)
 
 		queued_actions.append(instance)
@@ -29,18 +25,6 @@ func queue_actions(definitions: Array) -> void:
 
 	if current_action == null:
 		_start_next_action()
-
-
-func interrupt_current() -> void:
-
-	if current_action == null:
-		return
-
-	current_action.definition.apply_interrupt_policy(actor, current_action)
-
-	current_action.definition.on_interrupt(actor, current_action)
-
-	current_action = null
 
 
 func has_actions() -> bool:
@@ -52,7 +36,11 @@ func cancel_plan() -> bool:
 
 	var had_actions = has_actions()
 
-	interrupt_current()
+	if current_action != null:
+		current_action.definition.apply_interrupt_policy(actor, current_action)
+		current_action.definition.on_interrupt(actor, current_action)
+		current_action = null
+
 	queued_actions.clear()
 	plan_actions.clear()
 
@@ -116,12 +104,9 @@ func _start_next_action() -> void:
 
 func _finish_current_action() -> void:
 
+	# on_complete may cancel the plan, so hold on to what finished
 	var completed_action = current_action
-
 	completed_action.finished = true
-
 	completed_action.definition.on_complete(actor, completed_action)
-
 	action_completed.emit(completed_action)
-
 	current_action = null

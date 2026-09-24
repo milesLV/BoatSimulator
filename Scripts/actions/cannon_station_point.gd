@@ -4,26 +4,11 @@ extends StationPoint
 @export var broadside: CannonSide.Value
 @export var cannon_path: NodePath
 
-
-func get_cannon(ship: Node) -> Cannon:
-
-	if cannon_path.is_empty():
-		return null
-
-	var cannon = get_node_or_null(cannon_path) as Cannon
-
-	if cannon == null and ship != null:
-		cannon = ship.get_node_or_null(cannon_path) as Cannon
-
-	return cannon
+# or_null: the action-point scene is also loaded on its own, away from any cannons
+@onready var cannon: Cannon = get_node_or_null(cannon_path)
 
 
+## The cannon, but only to whoever is manning it.
 func get_cannon_for_operator(actor) -> Cannon:
 
-	if actor == null or actor.ship == null or actor.ship.station_controller == null:
-		return null
-
-	if actor.ship.station_controller.get_operator(self) != actor:
-		return null
-
-	return get_cannon(actor.ship)
+	return cannon if actor.ship.station_controller.get_operator(self) == actor else null

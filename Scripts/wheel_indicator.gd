@@ -33,7 +33,7 @@ func _process(_delta: float) -> void:
 
 	var ship = GlobalShipRegistry.get_player_ship_from_tree(get_tree())
 
-	if ship == null or ship.movement_controller == null:
+	if ship == null:
 		rotation = base_rotation
 		set_wheel_color(Color.BLACK)
 		return
@@ -53,5 +53,4 @@ func _process(_delta: float) -> void:
 
 func set_wheel_color(color: Color) -> void:
 
-	if tint_material != null:
-		tint_material.set_shader_parameter("tint", color)
+	tint_material.set_shader_parameter("tint", color)

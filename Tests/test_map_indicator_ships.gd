@@ -17,7 +17,7 @@ func _run() -> void:
 	var gui = map.get_node("GameGui")
 	var camera: Camera2D = map.get_node("Camera2D")
 	var player = map.get_player_ship()
-	var enemy = map.get_other_ships(player)[0]
+	var enemy = map.ships.filter(func(ship): return ship != player)[0]
 
 	# --- one indicator per registered ship, dormant while they are on screen ---
 

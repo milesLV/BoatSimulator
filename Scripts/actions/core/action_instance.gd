@@ -39,12 +39,3 @@ func get_remaining_time(actor) -> float:
 		return 0.0
 
 	return max(remaining_duration - elapsed, 0.0)
-
-
-func set_runtime_value(key, value) -> void:
-
-	runtime_state[key] = value
-
-
-func get_runtime_value(key, default_value = null):
-	return runtime_state.get(key, default_value)

@@ -72,7 +72,7 @@ func _run() -> void:
 	current_scene = game_map
 	await process_frame
 	var player = game_map.get_node("Player")
-	game_map.register_ship(player)
+	game_map.ships.append(player)
 	var anchor_progress = game_map.get_node("GameGui/AnchorProgress")
 	anchor_progress._process(0.0)
 	assert(not anchor_progress.visible)

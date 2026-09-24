@@ -54,10 +54,6 @@ static func _static_init() -> void:
 static func pick_shot(cannon: Cannon, shooter: Node2D, target: Node2D) -> Dictionary:
 
 	var centre_shot = {"aim_point": target.global_position, "hole": null, "fire_now": true}
-
-	if target.health_system == null or target.action_points == null:
-		return centre_shot
-
 	var target_now = {"position": target.global_position, "rotation": target.rotation}
 	var cannon_now = cannon_state(cannon, shooter, {
 		"position": shooter.global_position,
@@ -137,9 +133,6 @@ static func _anticipate(
 	var spent_shot = centre_shot if closest == null else {
 		"aim_point": closest["point"], "hole": closest["hole"], "fire_now": true
 	}
-
-	if shooter.motion_predictor == null or target.motion_predictor == null:
-		return spent_shot
 
 	var exposure = _first_exposure(cannon, shooter, target)
 

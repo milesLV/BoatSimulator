@@ -8,11 +8,9 @@ var max_y := 0.0
 func _ready() -> void:
 
 	full_polygon = polygon
-
-	if not full_polygon.is_empty():
-		var ys := Array(full_polygon).map(func(p: Vector2): return p.y)
-		min_y = ys.min()
-		max_y = ys.max()
+	var ys := Array(full_polygon).map(func(p: Vector2): return p.y)
+	min_y = ys.min()
+	max_y = ys.max()
 
 	set_fill(0.0)
 
@@ -21,30 +19,21 @@ func _process(_delta: float) -> void:
 
 	var ship = GlobalShipRegistry.get_player_ship_from_tree(get_tree())
 
-	if ship == null or ship.health_system == null:
+	if ship == null:
 		set_fill(0.0)
 		return
 
 	set_fill(ship.health_system.water_level / ShipHealthSystem.MAX_WATER_LEVEL)
 
 
+## A full ship clips nothing away, but an empty one would leave a sliver along the bottom.
 func set_fill(fill: float) -> void:
 
-	if full_polygon.is_empty():
-		return
-
-	var clamped_fill = clamp(fill, 0.0, 1.0)
-
-	if clamped_fill <= 0.0:
+	if fill <= 0.0:
 		polygon = PackedVector2Array()
 		return
 
-	if clamped_fill >= 1.0:
-		polygon = full_polygon
-		return
-
-	var waterline = lerp(max_y, min_y, clamped_fill)
-	polygon = _clip_below(full_polygon, waterline)
+	polygon = _clip_below(full_polygon, lerp(max_y, min_y, minf(fill, 1.0)))
 
 
 func _clip_below(points: PackedVector2Array, waterline: float) -> PackedVector2Array:

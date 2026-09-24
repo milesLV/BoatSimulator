@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://jgymkhmraq8v" path="res://Scripts/actions/ship_action_point_container.gd" id="2_5lbpi"]
 [ext_resource type="Script" uid="uid://ci0omk7rimasa" path="res://Scripts/actions/transition_deck_point.gd" id="2_b31r2"]
 [ext_resource type="Script" uid="uid://bft7j6jh68rxj" path="res://Scripts/actions/hole_point.gd" id="3_jjglc"]
+[ext_resource type="Script" uid="uid://bu6yfgmvx4hx8" path="res://Scripts/actions/mast_hole.gd" id="3_masthole"]
 [ext_resource type="Script" uid="uid://dlsmaujtp3ish" path="res://Scripts/actions/transition_group.gd" id="4_soy2k"]
 [ext_resource type="Script" uid="uid://dj6maina28jyt" path="res://Scripts/actions/water_throw_zone.gd" id="5_throw_zone"]
 
@@ -135,25 +136,22 @@ script = ExtResource("2_b31r2")
 deck = 3
 
 [node name="MastHole1" type="Node2D" parent="." unique_id=1623574279]
-position = Vector2(0, 0.069999695)
+position = Vector2(0, -2)
 rotation = 1.5707964
-script = ExtResource("3_jjglc")
+script = ExtResource("3_masthole")
 deck = 1
-max_grade = 2
 
 [node name="MastHole2" type="Node2D" parent="." unique_id=240302692]
-position = Vector2(-0.069999695, 0.069999695)
+position = Vector2(2, 0)
 rotation = -3.1415925
-script = ExtResource("3_jjglc")
+script = ExtResource("3_masthole")
 deck = 1
-max_grade = 2
 
 [node name="MastHole3" type="Node2D" parent="." unique_id=685284260]
-position = Vector2(-0.06999969, 0)
+position = Vector2(0, 2)
 rotation = -1.5707963
-script = ExtResource("3_jjglc")
+script = ExtResource("3_masthole")
 deck = 1
-max_grade = 2
 
 [node name="HolePort1" type="Node2D" parent="." unique_id=2117893932]
 position = Vector2(-120, -11)

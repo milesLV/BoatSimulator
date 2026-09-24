@@ -16,11 +16,8 @@ func _init(new_ship: Node2D, new_cannons: Array) -> void:
 
 func refresh_targets(ships: Array) -> void:
 
-	var live = ships.filter(
-		func(candidate): return candidate != ship and not candidate.is_sunk()
-	)
-
-	target_ship = live.front() if not live.is_empty() else null
+	# pop_front is null on an empty array, where front() errors
+	target_ship = ships.filter(func(candidate): return candidate != ship and not candidate.is_sunk()).pop_front()
 
 
 func update_active_cannon(tracking_enabled: bool) -> void:
@@ -43,11 +40,7 @@ func update_active_cannon(tracking_enabled: bool) -> void:
 		active_broadside = CannonSide.Value.STARBOARD
 
 	for cannon in cannons:
-		var is_active_broadside = (
-			tracking_enabled
-			and active_broadside != -1
-			and cannon.broadside == active_broadside
-		)
+		var is_active_broadside = tracking_enabled and cannon.broadside == active_broadside
 
 		cannon.tracking_enabled = is_active_broadside
 		cannon.tracking_target = target_ship if is_active_broadside else null
@@ -76,7 +69,4 @@ func clear_active_cannons() -> void:
 
 func get_target_ship() -> Node:
 
-	if target_ship == null or not is_instance_valid(target_ship) or target_ship.is_sunk():
-		return null
-
-	return target_ship
+	return target_ship if is_instance_valid(target_ship) and not target_ship.is_sunk() else null

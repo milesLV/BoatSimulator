@@ -8,33 +8,21 @@ var station: CannonStationPoint
 
 func _init(new_station: CannonStationPoint) -> void:
 
-	super(
-		new_station,
-		"reload_%s" % String(new_station.name) if new_station != null else "reload_missing_cannon",
-		RELOAD_DURATION if new_station != null else 0.0
-	)
-
+	super(new_station, "reload_%s" % new_station.name, RELOAD_DURATION)
 	station = new_station
 
 
 func on_start(actor, _instance) -> void:
-
-	var cannon = _get_cannon(actor)
-
-	if cannon == null:
-		return
-
-	cannon.loaded = false
+	_set_loaded(actor, false)
 
 
 func on_complete(actor, _instance) -> void:
+	_set_loaded(actor, true)
 
-	var cannon = _get_cannon(actor)
+
+func _set_loaded(actor, loaded: bool) -> void:
+
+	var cannon = station.get_cannon_for_operator(actor)
 
 	if cannon != null:
-		cannon.loaded = true
-
-
-func _get_cannon(actor) -> Cannon:
-
-	return station.get_cannon_for_operator(actor) if station != null else null
+		cannon.loaded = loaded

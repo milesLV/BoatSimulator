@@ -335,7 +335,7 @@ func _test_reload_clock() -> void:
 	))
 
 	var station: CannonStationPoint = shooter.action_points.cannon_stations.filter(
-		func(candidate): return candidate.get_cannon(shooter) == cannon
+		func(candidate): return candidate.cannon == cannon
 	).front()
 
 	check(station != null)

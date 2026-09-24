@@ -11,17 +11,9 @@ func _ready() -> void:
 
 
 func get_position_for_actor(actor: Node2D, _start_position = null) -> Vector2:
-	var actor_parent = actor.get_parent()
-
-	if actor_parent is Node2D:
-		return actor_parent.to_local(global_position)
-
-	return position
+	return actor.get_parent().to_local(global_position)
 
 
 func contains_actor(actor: Node2D, tolerance := 1.0) -> bool:
-
-	if actor == null:
-		return false
 
 	return actor.position.distance_to(get_position_for_actor(actor)) <= tolerance

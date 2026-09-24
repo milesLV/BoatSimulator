@@ -3,14 +3,16 @@ extends Area2D
 
 const SPEED := 500
 const CANNONBALL_HOLE_DAMAGE := 3
+## Sprite size at the top of the arc, relative to launch and landing size.
+const PEAK_SCALE := 1.5
 
 # ponytail: whole-run totals for the session, printed as they change. A stats autoload if
 # they ever need to outlive the run.
 static var shots_fired := 0
 static var shots_hit := 0
 
-# ponytail: height is not modelled, so this chance stands in for how much of a miss goes
-# through the rigging rather than over it. Tests set it to 0 or 1.
+# ponytail: height is only drawn (arc_height), not simulated, so this chance stands in for how
+# much of a miss goes through the rigging rather than over it. Tests set it to 0 or 1.
 static var mast_strike_chance := 0.25
 
 ## False when the accuracy roll at fire time said this shot missed: it flies on through
@@ -19,7 +21,12 @@ var will_hit := true
 
 var travelled_distance := 0.0
 var max_range := 0.0
+## How far the gunner lobbed it: the arc comes back down to deck height here.
+var arc_distance := 0.0
 var owner_node: Node = null
+
+@onready var sprite: Sprite2D = $CannonballSprite
+@onready var base_scale := sprite.scale
 
 func _ready():
 	shots_fired += 1
@@ -32,6 +39,14 @@ func _physics_process(delta):
 
 	if travelled_distance >= max_range:
 		queue_free()
+
+	if arc_distance > 0.0:
+		sprite.scale = base_scale * (1.0 + (PEAK_SCALE - 1.0) * arc_height(travelled_distance / arc_distance))
+
+## Height as a fraction of the peak at arc progress s: 0 at launch, 1 halfway, 0 on landing,
+## and 0 past it, so a miss that flies on stays at deck size.
+static func arc_height(s: float) -> float:
+	return maxf(0.0, 4.0 * s * (1.0 - s))
 
 func _on_body_entered(body):
 	if body == owner_node:

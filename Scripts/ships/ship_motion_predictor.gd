@@ -21,36 +21,12 @@ var _speed_samples: Array[float] = []
 var _time_since_sample := 0.0
 
 
-static func _static_init() -> void:
-	if OS.is_debug_build():
-		_self_check()
-
-
 func _init(new_ship: CharacterBody2D, new_movement: ShipMovementController) -> void:
 	ship = new_ship
 	movement = new_movement
 
 
-## The wheel after [param step] seconds of holding [param turn_input]. It stops dead at the
-## stops, which is what makes a predicted turn flatten out instead of tightening forever.
-static func advance_wheel(wheel: float, turn_input: float, step: float) -> float:
-
-	return clamp(
-		wheel + turn_input * ShipMovementController.WHEEL_TURN_SPEED * step,
-		-ShipMovementController.MAX_WHEEL_TURN,
-		ShipMovementController.MAX_WHEEL_TURN
-	)
-
-
-static func wheel_angular_velocity(wheel: float) -> float:
-
-	return (wheel / ShipMovementController.MAX_WHEEL_TURN) * ShipMovementController.BOAT_TURN_SPEED
-
-
 func physics_process(delta: float) -> void:
-
-	if movement == null:
-		return
 
 	_time_since_sample += delta
 
@@ -67,31 +43,22 @@ func physics_process(delta: float) -> void:
 ## only ours to read for the ship the cannon is bolted to.
 func at(seconds: float, exact := false) -> Dictionary:
 
-	var states = series(seconds, seconds, exact)
-
-	return states.back() if not states.is_empty() else {
-		"position": ship.global_position,
-		"rotation": ship.rotation,
-	}
+	return series(seconds, seconds, exact).back()
 
 
 ## States at every [param sample_step] out to [param seconds], from a single forward
 ## integration, so scanning a timeline costs one pass rather than one per sample.
+## [param exact] replays the ship's own controls; otherwise the last second of watched
+## motion is differenced into an acceleration and held constant.
 func series(seconds: float, sample_step: float, exact := false) -> Array[Dictionary]:
-
-	return _integrate(seconds, sample_step, exact and movement != null)
-
-
-## One forward integration. [param exact] replays the ship's own controls; otherwise the
-## last second of watched motion is differenced into an acceleration and held constant.
-func _integrate(seconds: float, sample_step: float, exact: bool) -> Array[Dictionary]:
 
 	var rotation = ship.rotation
 	var position = ship.global_position
-	var angular_velocity = movement.current_angular_velocity if movement != null else 0.0
-	var speed = movement.current_velocity if movement != null else ship.velocity.length()
+	var angular_velocity = movement.current_angular_velocity
+	var speed = movement.current_velocity
 
 	var wheel := 0.0
+	var mast: MastSystem = null
 	var sail := 0.0
 	var anchored := false
 	var wheel_manned := false
@@ -101,13 +68,11 @@ func _integrate(seconds: float, sample_step: float, exact: bool) -> Array[Dictio
 	if exact:
 		wheel = movement.wheel_rotation
 		sail = movement.sail_length
-		anchored = movement.anchor_system != null and movement.anchor_system.is_holding_ship
+		anchored = movement.anchor_system.is_holding_ship
 
 		# the helm only answers while someone is on it, the same gate _process_wheel uses
-		wheel_manned = (
-			movement.station_controller != null
-			and movement.station_controller.get_operator_by_name(&"Wheel") != null
-		)
+		wheel_manned = movement.station_controller.get_operator_by_name(&"Wheel") != null
+		mast = movement.mast_system.snapshot()
 	else:
 		angular_acceleration = _estimate_rate(_angular_samples)
 		linear_acceleration = _estimate_rate(_speed_samples)
@@ -123,35 +88,26 @@ func _integrate(seconds: float, sample_step: float, exact: bool) -> Array[Dictio
 		remaining -= step
 
 		if not exact:
-			angular_velocity = clamp(
-				angular_velocity + angular_acceleration * step,
-				-ShipMovementController.BOAT_TURN_SPEED,
-				ShipMovementController.BOAT_TURN_SPEED
-			)
-			speed = clamp(
-				speed + linear_acceleration * step,
-				0.0,
-				ShipMovementController.MAX_VELOCITY
-			)
+			var max_turn := ShipMovementController.BOAT_TURN_SPEED
+			angular_velocity = clampf(angular_velocity + angular_acceleration * step, -max_turn, max_turn)
+			speed = clampf(speed + linear_acceleration * step, 0.0, ShipMovementController.MAX_VELOCITY)
 		elif anchored:
-			angular_velocity = movement.anchor_system.damp(
-				angular_velocity,
-				step,
-				AnchorSystem.ANCHOR_ANGULAR_ACELERATION
-			)
+			angular_velocity = movement.anchor_system.damp(angular_velocity, step, AnchorSystem.ANCHOR_ANGULAR_ACELERATION)
 			speed = movement.anchor_system.damp(speed, step, AnchorSystem.ANCHOR_DECELERATION)
 		else:
 			if wheel_manned:
-				wheel = advance_wheel(wheel, movement.turn_input, step)
+				wheel = ShipMovementController.advance_wheel(wheel, movement.turn_input, step)
 
-			sail = clamp(
-				sail + movement.sail_input * ShipMovementController.SAIL_SPEED * step,
-				0.0,
-				100.0
-			)
+			# the mast moves first and a mast that is not standing furls the sails, in the same
+			# order as ShipMovementController
+			mast.physics_process(step)
 
-			# omega tracks the wheel directly, so it flattens out when the wheel hits its stop
-			angular_velocity = wheel_angular_velocity(wheel)
+			if mast.sails_locked():
+				sail = mast.fold_sails(sail, step)
+			else:
+				sail = clampf(sail + movement.sail_input * ShipMovementController.SAIL_SPEED * step, 0.0, 100.0)
+
+			angular_velocity = ShipMovementController.wheel_angular_velocity(wheel)
 			speed = move_toward(
 				speed,
 				(sail / 100.0) * ShipMovementController.MAX_VELOCITY,
@@ -184,28 +140,3 @@ func _estimate_rate(samples: Array[float]) -> float:
 		return 0.0
 
 	return (samples[-1] - samples[0]) / ((samples.size() - 1) * SAMPLE_INTERVAL)
-
-
-static func _self_check() -> void:
-
-	# holding the helm over ramps the wheel up and then it stops at the stop
-	var wheel := 0.0
-
-	for i in 200:
-		wheel = advance_wheel(wheel, 1.0, PREDICT_STEP)
-
-	assert(is_equal_approx(wheel, ShipMovementController.MAX_WHEEL_TURN))
-
-	# so the predicted turn flattens out at the ship's top turn rate rather than tightening forever
-	assert(is_equal_approx(
-		wheel_angular_velocity(wheel),
-		ShipMovementController.BOAT_TURN_SPEED
-	))
-
-	# a wheel already hard over does not creep past the stop
-	assert(is_equal_approx(
-		advance_wheel(ShipMovementController.MAX_WHEEL_TURN, 1.0, PREDICT_STEP),
-		ShipMovementController.MAX_WHEEL_TURN
-	))
-
-	assert(is_zero_approx(wheel_angular_velocity(0.0)))

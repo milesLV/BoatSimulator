@@ -57,16 +57,13 @@ static func for_shot(cannon: Node2D, shooter: Node2D, target: Node2D) -> float:
 	return hit_chance(
 		cannon.global_position.distance_to(target.global_position),
 		cannon.max_range,
-		shooter.movement_controller.current_angular_velocity if shooter.movement_controller != null else 0.0,
+		shooter.movement_controller.current_angular_velocity,
 		(target.velocity - shooter.velocity).length()
 	)
 
 
 ## Fraction of a zero-mean Gaussian falling within +/- half_width. erf(x) ~= tanh(1.2028x).
 static func _gaussian_within(half_width: float, sigma: float) -> float:
-
-	if sigma <= 0.0:
-		return 1.0
 
 	return tanh(1.2028 * half_width / (sigma * sqrt(2.0)))
 

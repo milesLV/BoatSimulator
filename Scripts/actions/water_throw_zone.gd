@@ -1,24 +1,18 @@
 class_name WaterThrowZone
 extends ShipActionPoint
 
+# the node is a CollisionPolygon2D; this script only sees it as a Node2D
+@onready var zone_polygon: PackedVector2Array = get("polygon")
+
 
 func _ready() -> void:
 
 	super._ready()
-	assert(_get_polygon().size() >= 3, "WaterThrowZone requires a polygon.")
+	assert(zone_polygon.size() >= 3, "WaterThrowZone requires a polygon.")
 
 
 func get_position_for_actor(actor: Node2D, start_position = null) -> Vector2:
-	var zone_polygon = _get_polygon()
-
-	if actor == null or zone_polygon.size() < 3:
-		return position
-
 	var actor_parent = actor.get_parent() as Node2D
-
-	if actor_parent == null:
-		return position
-
 	var origin: Vector2 = actor.position
 
 	if start_position is Vector2:
@@ -32,28 +26,21 @@ func get_position_for_actor(actor: Node2D, start_position = null) -> Vector2:
 	elif Geometry2D.is_point_in_polygon(local_origin, zone_polygon):
 		return origin
 
-	return actor_parent.to_local(to_global(_closest_border_point(local_origin, zone_polygon)))
+	return actor_parent.to_local(to_global(_closest_border_point(local_origin)))
 
 
 func contains_actor(actor: Node2D, tolerance := 1.0) -> bool:
-
-	var zone_polygon = _get_polygon()
-
-	if actor == null or zone_polygon.size() < 3:
-		return false
 
 	var local_position = to_local(actor.global_position)
 
 	if Geometry2D.is_point_in_polygon(local_position, zone_polygon):
 		return true
 
-	return local_position.distance_to(
-		_closest_border_point(local_position, zone_polygon)
-	) <= tolerance
+	return local_position.distance_to(_closest_border_point(local_position)) <= tolerance
 
 
 ## Nearest point anywhere on the zone's outline, in zone-local space.
-func _closest_border_point(local_position: Vector2, zone_polygon: PackedVector2Array) -> Vector2:
+func _closest_border_point(local_position: Vector2) -> Vector2:
 	var closest: Vector2 = zone_polygon[0]
 	var closest_distance := INF
 
@@ -72,31 +59,11 @@ func _closest_border_point(local_position: Vector2, zone_polygon: PackedVector2A
 	return closest
 
 
-func _get_polygon() -> PackedVector2Array:
-
-	var value = get("polygon")
-
-	if value is PackedVector2Array:
-		return value
-
-	return PackedVector2Array()
-
-
+## Below mid-deck water the thrower comes up from the lower-deck bucket, so aim from there.
 func _get_lower_deck_exit_position(actor: Node2D):
 
-	var ship = actor.get("ship")
-
-	if (
-		ship == null
-		or ship.health_system == null
-		or ship.health_system.water_level
-		>= ShipHealthSystem.MID_DECK_WATER_LEVEL
-	):
+	# the test actor starts with no ship
+	if actor.ship == null or actor.ship.health_system.water_level >= ShipHealthSystem.MID_DECK_WATER_LEVEL:
 		return null
 
-	var bucket_point = get_parent().get_node_or_null("BucketLD") as ShipActionPoint
-
-	if bucket_point == null:
-		return null
-
-	return to_local(bucket_point.global_position)
+	return to_local(get_parent().get_node("BucketLD").global_position)

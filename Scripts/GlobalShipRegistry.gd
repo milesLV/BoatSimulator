@@ -7,7 +7,7 @@ var ships: Array = []
 ## The map root is the registry; off-map (tests, other scenes) this is null.
 static func from_tree(tree: SceneTree) -> GlobalShipRegistry:
 
-	return tree.current_scene as GlobalShipRegistry if tree != null else null
+	return tree.current_scene as GlobalShipRegistry
 
 
 static func get_player_ship_from_tree(tree: SceneTree) -> PlayerShip:
@@ -15,10 +15,6 @@ static func get_player_ship_from_tree(tree: SceneTree) -> PlayerShip:
 	var registry := from_tree(tree)
 
 	return registry.get_player_ship() if registry != null else null
-
-func register_ship(ship):
-	if ship not in ships:
-		ships.append(ship)
 
 
 func get_player_ship() -> PlayerShip:
@@ -28,8 +24,3 @@ func get_player_ship() -> PlayerShip:
 			return ship
 
 	return null
-
-
-func get_other_ships(ship) -> Array:
-
-	return ships.filter(func(candidate): return candidate != ship)

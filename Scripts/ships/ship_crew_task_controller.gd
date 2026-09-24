@@ -10,7 +10,6 @@ var anchor_system: AnchorSystem
 
 var requested_station_by_crewmate := {}
 var crewmate_by_requested_station := {}
-var manual_bail_modes := {}
 
 
 func _init(
@@ -18,8 +17,8 @@ func _init(
 	new_station_controller: ShipStationController,
 	new_cannon_duty_controller: ShipCannonDutyController,
 	new_repair_duty_controller: ShipRepairDutyController,
-	new_action_planner: ShipActionPlanner = null,
-	new_anchor_system: AnchorSystem = null
+	new_action_planner: ShipActionPlanner,
+	new_anchor_system: AnchorSystem
 ) -> void:
 
 	crew_controller = new_crew_controller
@@ -31,74 +30,78 @@ func _init(
 
 
 func request_station_control(station_name: StringName, requested_input: float) -> bool:
-	var crewmate = _get_current_crewmate()
 
-	if crewmate == null or station_controller == null:
-		return false
-
-	return station_controller.request_station_control(crewmate, station_name, requested_input)
+	return station_controller.request_station_control(
+		crew_controller.current_crewmate, station_name, requested_input
+	)
 
 
-func _request_anchor_actions(builder: StringName) -> bool:
+func _request_planned(builder: StringName) -> bool:
 
-	var crewmate = _get_current_crewmate()
-
-	if crewmate == null or action_planner == null:
-		return false
+	var crewmate := crew_controller.current_crewmate
 
 	return queue_manual_actions(crewmate, action_planner.call(builder, crewmate), "new crew action")
 
 
 func request_anchor_toggle() -> bool:
 
-	if anchor_system == null:
-		return false
-
 	if anchor_system.can_drop():
-		return _request_anchor_actions(&"build_drop_anchor")
+		return _request_planned(&"build_drop_anchor")
 
 	if anchor_system.can_raise():
-		return _request_anchor_actions(&"build_raise_anchor")
+		return _request_planned(&"build_raise_anchor")
 
 	return false
 
 
+## Down or falling: go and haul it up. Propped: let it go from the sail lines, walking there
+## first if need be; the next press hauls it back.
+func request_mast_toggle() -> bool:
+
+	var crewmate := crew_controller.current_crewmate
+	var mast_system: MastSystem = crew_controller.ship.mast_system
+
+	if mast_system.state == MastSystem.State.PROPPED:
+		if station_controller.get_operator_by_name(&"SailLengthStarb") == crewmate:
+			return mast_system.knock_loose()
+
+		return _request_planned(&"build_knock_mast_loose")
+
+	return _request_planned(&"build_raise_mast")
+
+
 func request_bail_water() -> bool:
 
-	var crewmate = _get_current_crewmate()
+	var crewmate := crew_controller.current_crewmate
 
-	if crewmate == null or action_planner == null:
+	if not queue_manual_actions(crewmate, action_planner.build_bail_water(crewmate), "manual bail water"):
 		return false
 
-	return queue_manual_bail_actions(crewmate, action_planner.build_bail_water(crewmate))
+	Crewmate.set_queue_finished_listener(crewmate, _on_manual_bail_queue_finished, true)
+
+	return true
 
 
 func request_repair_ship() -> bool:
 
-	var crewmate = _get_current_crewmate()
-
-	if crewmate == null or repair_duty_controller == null:
-		return false
-
-	prepare_for_repair_duty(crewmate)
-
-	return repair_duty_controller.assign_crewmate(crewmate)
+	return repair_duty_controller.assign_crewmate(crew_controller.current_crewmate)
 
 
 ## Repair duty leaves the mast alone - it lets no water in - so this is the only way it gets
 ## patched: one trip round every mast hole that is open.
 func request_repair_mast() -> bool:
 
-	var crewmate = _get_current_crewmate()
-
-	if crewmate == null or action_planner == null:
-		return false
-
+	var crewmate := crew_controller.current_crewmate
 	var actions: Array[ActionDefinition] = []
+	var start_deck = null
+	var start_position = null
 
 	for hole in action_planner.action_points.mast_holes:
 		if hole.grade > ShipHolePoint.MIN_GRADE:
-			actions.append_array(action_planner.build_repair_hole(crewmate, hole))
+			# each leg sets off from the hole before it, not from where the crewmate stands now
+			actions.append_array(action_planner.build_repair_hole(crewmate, hole, start_deck, start_position))
+			start_deck = hole.deck
+			start_position = hole.get_position_for_actor(crewmate)
 
 	prepare_for_repair_duty(crewmate)
 
@@ -107,10 +110,7 @@ func request_repair_mast() -> bool:
 
 func request_current_cannon_duty() -> bool:
 
-	var crewmate = _get_current_crewmate()
-
-	if crewmate == null or cannon_duty_controller == null:
-		return false
+	var crewmate := crew_controller.current_crewmate
 
 	prepare_for_duty(crewmate, "cannon duty request")
 
@@ -119,26 +119,31 @@ func request_current_cannon_duty() -> bool:
 
 func request_cannon_duty_for(crewmate: Crewmate) -> bool:
 
-	if crewmate == null or cannon_duty_controller == null:
-		return false
-
 	prepare_for_duty(crewmate, "cannon duty assignment")
 
 	return cannon_duty_controller.assign_crewmate(crewmate)
 
 
+## Drops whatever the current crewmate is doing; with nothing to drop, a dropping anchor is
+## hauled back up instead.
 func request_cancel_action() -> bool:
 
-	var crewmate = _get_current_crewmate()
+	var crewmate := crew_controller.current_crewmate
 
-	if crewmate == null:
-		return false
-
-	if cancel_crewmate_action(crewmate):
+	if clear_cannon_duty(crewmate):
 		return true
 
-	if anchor_system != null and anchor_system.state == AnchorSystem.State.DROPPING:
-		return _request_anchor_actions(&"build_raise_anchor")
+	clear_requested_station(crewmate)
+	clear_manual_bail(crewmate)
+	repair_duty_controller.clear_crewmate(crewmate, "cancel action")
+
+	var had_actions = crewmate.action_executor.cancel_plan()
+
+	if station_controller.detach_crewmate(crewmate) or had_actions:
+		return true
+
+	if anchor_system.state == AnchorSystem.State.DROPPING:
+		return _request_planned(&"build_raise_anchor")
 
 	return false
 
@@ -146,46 +151,24 @@ func request_cancel_action() -> bool:
 func prepare_for_repair_duty(crewmate: Crewmate) -> void:
 	clear_manual_bail(crewmate)
 	clear_cannon_duty(crewmate)
-	clear_station(crewmate)
+	station_controller.detach_crewmate(crewmate)
 	clear_requested_station(crewmate)
 
 
 ## Clears whatever duty a crewmate is on so a station or cannon order can take over.
 func prepare_for_duty(crewmate: Crewmate, reason: String) -> void:
 	clear_manual_bail(crewmate)
-	clear_repair_duty(crewmate, reason)
-
-
-func cancel_crewmate_action(crewmate: Crewmate) -> bool:
-	if crewmate == null:
-		return false
-
-	if clear_cannon_duty(crewmate):
-		return true
-
-	clear_requested_station(crewmate)
-	clear_manual_bail(crewmate)
-	clear_repair_duty(crewmate, "cancel action")
-
-	if crewmate.action_executor != null and crewmate.action_executor.has_actions():
-		crewmate.action_executor.cancel_plan()
-		clear_station(crewmate)
-		return true
-
-	return clear_station(crewmate)
+	repair_duty_controller.clear_crewmate(crewmate, reason)
 
 
 func queue_manual_actions(crewmate: Crewmate, actions: Array, reason: String) -> bool:
-	if crewmate == null or actions.is_empty():
+	if actions.is_empty():
 		return false
 
-	clear_repair_duty(crewmate, reason)
+	repair_duty_controller.clear_crewmate(crewmate, reason)
 	clear_manual_bail(crewmate)
 	clear_cannon_duty(crewmate)
 	clear_requested_station(crewmate)
-
-	if crewmate.action_executor == null:
-		return false
 
 	crewmate.action_executor.cancel_plan()
 	crewmate.action_executor.queue_actions(actions)
@@ -193,25 +176,12 @@ func queue_manual_actions(crewmate: Crewmate, actions: Array, reason: String) ->
 	return true
 
 
-func queue_manual_bail_actions(crewmate: Crewmate, actions: Array, drain_to_zero := false) -> bool:
-	if not queue_manual_actions(crewmate, actions, "manual bail water"):
-		return false
-
-	manual_bail_modes[crewmate] = drain_to_zero
-	Crewmate.set_queue_finished_listener(crewmate, _on_manual_bail_queue_finished, true)
-
-	return true
-
-
 func queue_repair_actions(crewmate: Crewmate, actions: Array, replace_current: bool) -> bool:
-	if crewmate == null or actions.is_empty():
+	if actions.is_empty():
 		return false
 
 	clear_manual_bail(crewmate)
 	clear_requested_station(crewmate)
-
-	if crewmate.action_executor == null:
-		return false
 
 	if replace_current:
 		crewmate.action_executor.cancel_plan()
@@ -230,13 +200,7 @@ func queue_station_request(
 	reason := ""
 ) -> bool:
 
-	if (
-		crewmate == null
-		or station == null
-		or actions.is_empty()
-		or crewmate.action_executor == null
-		or is_station_requested_by_other(station, crewmate)
-	):
+	if actions.is_empty() or get_station_requester(station) not in [null, crewmate]:
 		return false
 
 	if reason.is_empty():
@@ -245,71 +209,25 @@ func queue_station_request(
 		prepare_for_duty(crewmate, reason)
 		crewmate.action_executor.cancel_plan()
 
-	if not set_requested_station(crewmate, station):
-		return false
+	clear_requested_station(crewmate)
+	requested_station_by_crewmate[crewmate] = station
+	crewmate_by_requested_station[station] = crewmate
 
 	crewmate.action_executor.queue_actions(actions)
 
 	return true
 
 
-func clear_repair_duty(crewmate: Crewmate, reason: String) -> bool:
-	if repair_duty_controller == null:
-		return false
-
-	return repair_duty_controller.clear_crewmate(crewmate, reason)
-
-
 func clear_cannon_duty(crewmate: Crewmate) -> bool:
-	if (
-		crewmate == null
-		or cannon_duty_controller == null
-		or not cannon_duty_controller.is_duty_crewmate(crewmate)
-	):
+	if not cannon_duty_controller.is_duty_crewmate(crewmate):
 		return false
 
 	return cannon_duty_controller.clear_assignment()
 
 
-func clear_station(crewmate: Crewmate) -> bool:
-	if station_controller == null:
-		return false
-
-	return station_controller.detach_crewmate(crewmate)
-
-
 func clear_requested_station(crewmate: Crewmate) -> void:
-	if crewmate == null:
-		return
-
-	var station = requested_station_by_crewmate.get(crewmate)
-
-	if station != null:
-		crewmate_by_requested_station.erase(station)
-
+	crewmate_by_requested_station.erase(requested_station_by_crewmate.get(crewmate))
 	requested_station_by_crewmate.erase(crewmate)
-
-
-func set_requested_station(crewmate: Crewmate, station: StationPoint) -> bool:
-	if crewmate == null or station == null:
-		return false
-
-	var requesting_crewmate = crewmate_by_requested_station.get(station)
-
-	if requesting_crewmate != null and requesting_crewmate != crewmate:
-		return false
-
-	clear_requested_station(crewmate)
-
-	requested_station_by_crewmate[crewmate] = station
-	crewmate_by_requested_station[station] = crewmate
-
-	return true
-
-
-func get_requested_station(crewmate: Crewmate) -> StationPoint:
-
-	return requested_station_by_crewmate.get(crewmate)
 
 
 func get_station_requester(station: StationPoint) -> Crewmate:
@@ -317,48 +235,31 @@ func get_station_requester(station: StationPoint) -> Crewmate:
 	return crewmate_by_requested_station.get(station)
 
 
-func is_station_requested_by_other(station: StationPoint, crewmate: Crewmate) -> bool:
-	var requester = get_station_requester(station)
-
-	return requester != null and requester != crewmate
-
-
 func clear_station_and_actions(crewmate: Crewmate) -> void:
-	if crewmate == null:
-		return
-
 	clear_manual_bail(crewmate)
 	clear_requested_station(crewmate)
-
-	if crewmate.action_executor != null:
-		crewmate.action_executor.cancel_plan()
-
-	clear_station(crewmate)
+	crewmate.action_executor.cancel_plan()
+	station_controller.detach_crewmate(crewmate)
 
 
 func clear_manual_bail(crewmate: Crewmate) -> void:
-
-	if crewmate == null:
-		return
-
-	manual_bail_modes.erase(crewmate)
 	Crewmate.set_queue_finished_listener(crewmate, _on_manual_bail_queue_finished, false)
 
 
 func _on_manual_bail_queue_finished(crewmate: Crewmate) -> void:
 
-	if crewmate == null or action_planner == null or not manual_bail_modes.has(crewmate):
+	if crewmate.action_executor.has_actions():
 		return
 
-	if crewmate.action_executor != null and crewmate.action_executor.has_actions():
-		return
-
-	if _crewmate_has_incompatible_duty(crewmate):
+	# repair or cannon duty took over while the bucket was in hand
+	if (
+		repair_duty_controller.is_repair_duty_crewmate(crewmate)
+		or cannon_duty_controller.is_duty_crewmate(crewmate)
+	):
 		clear_manual_bail(crewmate)
 		return
 
-	var drain_to_zero: bool = manual_bail_modes.get(crewmate, false)
-	var next_actions = action_planner.build_bail_water(crewmate, drain_to_zero)
+	var next_actions = action_planner.build_bail_water(crewmate)
 
 	if next_actions.is_empty():
 		clear_manual_bail(crewmate)
@@ -367,24 +268,3 @@ func _on_manual_bail_queue_finished(crewmate: Crewmate) -> void:
 	clear_requested_station(crewmate)
 	crewmate.action_executor.queue_actions(next_actions)
 
-
-func _crewmate_has_incompatible_duty(crewmate: Crewmate) -> bool:
-
-	return (
-		(
-			repair_duty_controller != null
-			and repair_duty_controller.is_repair_duty_crewmate(crewmate)
-		)
-		or (
-			cannon_duty_controller != null
-			and cannon_duty_controller.is_duty_crewmate(crewmate)
-		)
-	)
-
-
-func _get_current_crewmate() -> Crewmate:
-
-	if crew_controller == null:
-		return null
-
-	return crew_controller.get_current_crewmate()

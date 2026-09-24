@@ -13,12 +13,29 @@ const ROTATION_TOLERANCE := 0.001
 
 func _run() -> void:
 
+	_test_wheel_stops()
 	await _test_exact_matches_controller()
 	await _test_unmanned_helm_does_not_turn()
+	await _test_downed_mast_furls()
+	await _test_raise_finishes_mid_horizon()
 	await _test_observed_and_clamps()
 	await _test_anchored_and_series()
 
 	finish("test_motion_predictor")
+
+
+## Holding the helm over ramps the wheel up to the stop and no further, so a predicted turn
+## flattens out at the ship's top turn rate rather than tightening forever.
+func _test_wheel_stops() -> void:
+
+	var wheel := 0.0
+
+	for i in 200:
+		wheel = ShipMovementController.advance_wheel(wheel, 1.0, ShipMotionPredictor.PREDICT_STEP)
+
+	check(is_equal_approx(wheel, ShipMovementController.MAX_WHEEL_TURN), "the wheel ran past its stop")
+	check(is_equal_approx(ShipMovementController.wheel_angular_velocity(wheel), ShipMovementController.BOAT_TURN_SPEED))
+	check(is_zero_approx(ShipMovementController.wheel_angular_velocity(0.0)))
 
 
 ## Wake the ship up and wait for the toggle to actually take: enabling physics processing
@@ -74,6 +91,63 @@ func _test_exact_matches_controller() -> void:
 	# and it actually turned and moved, so the agreement above is not two zeroes matching
 	check(absf(ship.rotation) > 0.5, "the ship barely turned: %f" % ship.rotation)
 	check(ship.global_position.length() > 100.0, "the ship barely moved: %s" % ship.global_position)
+
+	await despawn(ship)
+
+
+## With the mast down the controller furls the sails whatever the input says, so the
+## prediction has to slow down with it rather than sail on at full length.
+func _test_downed_mast_furls() -> void:
+
+	var ship = await spawn_frozen_ship()
+	var movement = ship.movement_controller
+
+	movement.mast_system.state = MastSystem.State.DOWN
+	movement.mast_system.angle = MastSystem.FALLEN
+	movement.sail_length = 100.0
+	movement.current_velocity = ShipMovementController.MAX_VELOCITY
+	movement.set_input(0.0, 0.0, 0.0)
+
+	await _start_running(ship)
+
+	var predicted = ship.motion_predictor.at(HORIZON, true)
+
+	await _run_frames(ship)
+
+	check(movement.sail_length == 0.0, "the sails were still at %.1f" % movement.sail_length)
+	check(
+		Vector2(predicted["position"]).distance_to(ship.global_position) < POSITION_TOLERANCE,
+		"predicted %s, actual %s" % [predicted["position"], ship.global_position]
+	)
+
+	await despawn(ship)
+
+
+## Hauled from 90% upright with no holes left open, the mast stands again after 1 s and the
+## sails answer the input for the rest of the horizon; the prediction must see that happen.
+func _test_raise_finishes_mid_horizon() -> void:
+
+	var ship = await spawn_frozen_ship()
+	var movement = ship.movement_controller
+
+	movement.mast_system.state = MastSystem.State.RAISING
+	movement.mast_system.angle = 0.1 * MastSystem.FALLEN
+	movement.sail_length = 50.0
+	movement.current_velocity = 0.5 * ShipMovementController.MAX_VELOCITY
+	movement.set_input(0.0, 1.0, 0.0)
+
+	await _start_running(ship)
+
+	var predicted = ship.motion_predictor.at(HORIZON, true)
+
+	await _run_frames(ship)
+
+	check(movement.mast_system.state == MastSystem.State.STANDING, "the mast did not stand")
+	check(movement.sail_length > 0.0, "the sails never let out again")
+	check(
+		Vector2(predicted["position"]).distance_to(ship.global_position) < POSITION_TOLERANCE,
+		"predicted %s, actual %s" % [predicted["position"], ship.global_position]
+	)
 
 	await despawn(ship)
 

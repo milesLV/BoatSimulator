@@ -5,10 +5,8 @@ class_name DropAnchorAction
 func _init() -> void:
 
 	action_id = "trigger_anchor_drop"
-	base_duration = 0.0
-	progress_policy = ProgressPolicy.ONE_SHOT
 
 
 func on_start(actor, _instance) -> void:
 
-	AnchorSystem.call_for_actor(actor, &"start_dropping")
+	actor.ship.anchor_system.start_dropping()

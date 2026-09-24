@@ -134,13 +134,7 @@ func _run_scenario(scenario: Dictionary) -> Dictionary:
 			func(instance):
 				if instance.definition is RepairHoleAction:
 					counts[String(crewmate.name)]["repair"] += 1
-				elif (
-					instance.definition is BailWaterAction
-					or (
-						instance.definition is MoveAndBailWaterAction
-						and not (instance.definition is MoveAndThrowBucketWaterAction)
-					)
-				):
+				elif instance.definition is MoveAndBailWaterAction and instance.definition.fills_bucket:
 					counts[String(crewmate.name)]["bail"] += 1
 		)
 		ship.repair_duty_controller.assign_crewmate(crewmate)

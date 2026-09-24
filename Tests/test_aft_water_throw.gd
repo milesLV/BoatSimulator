@@ -52,10 +52,10 @@ func _run() -> void:
 
 	actor.bucket_amount = Crewmate.MAX_BUCKET_AMOUNT
 	actor.global_position = zone.to_global(Vector2(60.0, 20.0))
-	assert(not ThrowBucketWaterAction.throw_water(actor, zone))
+	assert(not MoveAndThrowBucketWaterAction.throw_water(actor, zone))
 	assert(actor.bucket_amount == Crewmate.MAX_BUCKET_AMOUNT)
 	actor.global_position = zone.to_global(Vector2(0.0, 20.0))
-	assert(ThrowBucketWaterAction.throw_water(actor, zone))
+	assert(MoveAndThrowBucketWaterAction.throw_water(actor, zone))
 	assert(actor.bucket_amount == 0.0)
 
 	var ship := TestShip.new()

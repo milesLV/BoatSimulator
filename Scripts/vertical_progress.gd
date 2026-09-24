@@ -5,12 +5,7 @@ const BAR_RECT := Rect2(130.0, 10.0, 30.0, 140.0)
 
 enum Source { ANCHOR, MAST }
 
-@export var source := Source.ANCHOR:
-	set(value):
-		source = value
-
-		if is_node_ready():
-			label.text = Source.keys()[source].capitalize()
+@export var source := Source.ANCHOR
 
 @onready var label: Label = $Text/Label
 @onready var percentage: Label = $Text/Percentage
@@ -24,16 +19,16 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 
-	if source != Source.ANCHOR:
-		return
-
 	var ship = GlobalShipRegistry.get_player_ship_from_tree(get_tree())
 
-	if ship == null or ship.anchor_system == null:
+	if ship == null:
 		hide()
 		return
 
-	set_progress(1.0 - ship.anchor_system.drop_progress)
+	set_progress(
+		1.0 - ship.anchor_system.drop_progress if source == Source.ANCHOR
+		else ship.mast_system.upright_progress()
+	)
 
 
 func set_progress(value: float) -> void:

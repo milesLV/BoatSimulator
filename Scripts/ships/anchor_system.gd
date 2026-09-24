@@ -14,33 +14,10 @@ const RAISE_DURATION := 8.0
 const ANCHOR_DECELERATION := 300.0
 const ANCHOR_ANGULAR_ACELERATION := 1.5
 
-var ship
 var state: State = State.RAISED
 var drop_progress := 0.0
 var is_holding_ship := false
 
-
-func _init(new_ship) -> void:
-
-	ship = new_ship
-
-
-## The anchor an action's actor is standing on, or null when it has no ship.
-static func for_actor(actor) -> AnchorSystem:
-
-	if actor == null or actor.ship == null:
-		return null
-
-	return actor.ship.anchor_system
-
-
-## Runs [param method] on the actor's anchor, or nothing when it has none.
-static func call_for_actor(actor, method: StringName, args := []) -> void:
-
-	var anchor_system := for_actor(actor)
-
-	if anchor_system != null:
-		anchor_system.callv(method, args)
 
 func can_drop() -> bool:
 
@@ -73,14 +50,10 @@ func cancel_rigging() -> bool:
 	return _transition([State.RIGGING], State.RAISED)
 
 
-func start_dropping() -> bool:
+func start_dropping() -> void:
 
-	if not _transition([State.RIGGING, State.RAISED], State.DROPPING):
-		return false
-
-	drop_progress = 0.0
-
-	return true
+	if _transition([State.RIGGING, State.RAISED], State.DROPPING):
+		drop_progress = 0.0
 
 
 func begin_raising() -> bool:
@@ -104,14 +77,10 @@ func cancel_raising() -> bool:
 	return _transition([State.RAISING], State.DROPPING)
 
 
-func finish_raising() -> bool:
+func finish_raising() -> void:
 
-	if not _transition([State.RAISING], State.RAISED):
-		return false
-
-	drop_progress = 0.0
-
-	return true
+	if _transition([State.RAISING], State.RAISED):
+		drop_progress = 0.0
 
 
 func physics_process(delta: float) -> void:

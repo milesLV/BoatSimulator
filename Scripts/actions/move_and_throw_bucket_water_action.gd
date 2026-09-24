@@ -1,6 +1,8 @@
 class_name MoveAndThrowBucketWaterAction
 extends MoveAndBailWaterAction
 
+const THROW_DURATION := 1.0
+
 
 func _init(new_point: ShipActionPoint, new_route_points: Array = []) -> void:
 	super(new_point, new_route_points)
@@ -8,13 +10,9 @@ func _init(new_point: ShipActionPoint, new_route_points: Array = []) -> void:
 	fills_bucket = false
 
 
-func on_complete(actor, instance) -> void:
+static func throw_water(actor, throw_point: ShipActionPoint) -> bool:
+	if not throw_point.contains_actor(actor):
+		return false
 
-	actor.position = instance.get_runtime_value(RUNTIME_TARGET_POSITION, actor.position)
-	_update_actor_location(actor)
-	ThrowBucketWaterAction.throw_water(actor, point)
-
-
-func _on_windup_started(_actor) -> void:
-
-	pass
+	actor.bucket_amount = 0.0
+	return true

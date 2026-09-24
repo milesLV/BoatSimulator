@@ -19,9 +19,6 @@ func _init(
 
 func get_operator(station: StationPoint) -> Crewmate:
 
-	if station == null:
-		return null
-
 	return station_operators.get(station)
 
 
@@ -32,26 +29,14 @@ func get_operator_by_name(station_name: StringName) -> Crewmate:
 
 func get_station_operated_by(crewmate: Crewmate) -> StationPoint:
 
-	if crewmate == null:
-		return null
-
 	return crewmate_stations.get(crewmate)
 
 
 func set_operator(station: StationPoint, crewmate: Crewmate) -> void:
-	if station == null or crewmate == null:
-		return
 
-	var current_operator = station_operators.get(station)
-
-	if current_operator != null and current_operator != crewmate:
-		crewmate_stations.erase(current_operator)
-
-	var previous_station = crewmate_stations.get(crewmate)
-
-	if previous_station != null and previous_station != station:
-		station_operators.erase(previous_station)
-
+	# the two maps mirror each other, so unhook both old pairings before making the new one
+	crewmate_stations.erase(station_operators.get(station))
+	station_operators.erase(crewmate_stations.get(crewmate))
 	station_operators[station] = crewmate
 	crewmate_stations[crewmate] = station
 
@@ -60,27 +45,15 @@ func set_operator(station: StationPoint, crewmate: Crewmate) -> void:
 
 func clear_operator(station: StationPoint) -> void:
 
-	if station == null:
-		return
-
-	var crewmate = station_operators.get(station)
-
-	if crewmate != null and crewmate_stations.get(crewmate) == station:
-		crewmate_stations.erase(crewmate)
-
+	crewmate_stations.erase(station_operators.get(station))
 	station_operators.erase(station)
 
 
 func detach_crewmate(crewmate: Crewmate) -> bool:
 
-	var station = get_station_operated_by(crewmate)
+	station_operators.erase(crewmate_stations.get(crewmate))
 
-	if station == null:
-		return false
-
-	clear_operator(station)
-
-	return true
+	return crewmate_stations.erase(crewmate)
 
 
 func request_station_control(
@@ -89,17 +62,7 @@ func request_station_control(
 	requested_input: float
 ) -> bool:
 
-	if crewmate == null:
-		return false
-
-	if crewmate.ship != null and crewmate.ship.is_sunk():
-		return false
-
 	var station = action_points.get_station(station_name)
-
-	if station == null:
-		return false
-
 	var operator = get_operator(station)
 
 	if operator != null:
@@ -108,13 +71,8 @@ func request_station_control(
 
 		return operator == crewmate
 
-	if requested_input == 0.0:
-		return false
-
-	if crew_task_controller.get_requested_station(crewmate) == station:
-		return false
-
-	if crew_task_controller.is_station_requested_by_other(station, crewmate):
+	# already on the way, or someone else is
+	if requested_input == 0.0 or crew_task_controller.get_station_requester(station) != null:
 		return false
 
 	var actions = action_planner.build_go_to_station(
@@ -128,11 +86,7 @@ func request_station_control(
 
 	crew_task_controller.clear_cannon_duty(crewmate)
 	crew_task_controller.queue_station_request(
-		crewmate,
-		station,
-		actions,
-		"station control input for %s"
-		% station_name
+		crewmate, station, actions, "station control input for %s" % station_name
 	)
 
 	return false

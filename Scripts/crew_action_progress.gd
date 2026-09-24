@@ -22,13 +22,12 @@ func _process(_delta: float) -> void:
 
 	var ship = GlobalShipRegistry.get_player_ship_from_tree(get_tree())
 	var actor = get_displayed_crewmate(ship)
-	var executor = actor.action_executor if actor != null else null
 
-	if executor == null or ship.action_planner == null or not executor.has_actions():
+	if actor == null or not actor.action_executor.has_actions():
 		hide()
 		return
 
-	var timing = ship.action_planner.route_planner.get_plan_timing(actor, executor.plan_actions)
+	var timing = ship.action_planner.route_planner.get_plan_timing(actor, actor.action_executor.plan_actions)
 	total_duration = timing["total_duration"]
 
 	if total_duration <= 0.0:
@@ -61,28 +60,10 @@ func get_displayed_crewmate(ship):
 func _draw() -> void:
 
 	var center = size / 2.0
-	draw_arc(
-		center,
-		radius,
-		0.0,
-		TAU,
-		64,
-		Color(1.0, 1.0, 1.0, 0.2),
-		PROGRESS_WIDTH,
-		true
-	)
+	draw_arc(center, radius, 0.0, TAU, 64, Color(1.0, 1.0, 1.0, 0.2), PROGRESS_WIDTH, true)
 
 	if progress > 0.0:
-		draw_arc(
-			center,
-			radius,
-			START_ANGLE,
-			START_ANGLE + TAU * progress,
-			64,
-			Color.WHITE,
-			PROGRESS_WIDTH,
-			true
-		)
+		draw_arc(center, radius, START_ANGLE, START_ANGLE + TAU * progress, 64, Color.WHITE, PROGRESS_WIDTH, true)
 
 	var elapsed := 0.0
 

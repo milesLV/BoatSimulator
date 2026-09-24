@@ -12,20 +12,9 @@ func _draw() -> void:
 
 	draw_circle(Vector2.ZERO, radius, fill_color)
 
-	draw_arc(
-		Vector2.ZERO,
-		radius,
-		0,
-		TAU,
-		100, # number of segments (smoothness)
-		OUTLINE_COLOR,
-		OUTLINE_WIDTH
-	)
+	draw_arc(Vector2.ZERO, radius, 0, TAU, 100, OUTLINE_COLOR, OUTLINE_WIDTH)
 
 func set_location(new_location: int) -> void:
-
-	if not DeckGraph.is_valid_deck(new_location):
-		return
 
 	radius = BASE_RADIUS * DeckGraph.DECK_SIZE_SCALE[new_location]
 	modulate.a = DeckGraph.DECK_ALPHA[new_location]

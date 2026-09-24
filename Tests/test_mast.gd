@@ -3,7 +3,7 @@ extends "res://Tests/harness.gd"
 # godot --headless --script Tests/test_mast.gd
 #
 # A shot the roll said missed flies on over the ship. When it crosses the mast it lodges there
-# and opens one hole, capped at grade 2 instead of the usual 5. Nothing else damages the mast,
+# and opens one hole, capped at grade 1 instead of the usual 5. Nothing else damages the mast,
 # it lets no water in, and repair duty leaves it alone - "H" is its only repair route.
 #
 # The chance is forced to 1 throughout, so a failure here can never be a lucky roll.
@@ -58,7 +58,7 @@ func _hull_grade(ship: Sloop) -> int:
 # --- the tests ----------------------------------------------------------------------------
 
 
-## The whole point: a miss straight over the ship's centre opens one grade-2 mast hole and
+## The whole point: a miss straight over the ship's centre opens one grade-1 mast hole and
 ## stops there, without counting as a hit.
 func _test_strike() -> void:
 
@@ -117,7 +117,7 @@ func _test_only_a_shot_over_the_ship() -> void:
 	await despawn(ship)
 
 
-## Three mast holes, each of them capped at 2, and the cap is the mast's alone.
+## Three mast holes, each of them capped at 1, and the cap is the mast's alone.
 func _test_cap() -> void:
 
 	var ship = await spawn_frozen_ship()
@@ -130,11 +130,11 @@ func _test_cap() -> void:
 		"mast grade %d after four strikes" % _mast_grade(ship)
 	)
 
-	var mast_hole: ShipHolePoint = ship.action_points.mast_holes.front()
+	var mast_hole: MastHole = ship.action_points.mast_holes.front()
 
 	mast_hole.set_grade(ShipHolePoint.MAX_GRADE)
 
-	check(mast_hole.grade == 2, "%s went past its cap: %d" % [mast_hole.name, mast_hole.grade])
+	check(mast_hole.grade == 1, "%s went past its cap: %d" % [mast_hole.name, mast_hole.grade])
 
 	var hull_hole: ShipHolePoint = ship.action_points.hull_holes.front()
 

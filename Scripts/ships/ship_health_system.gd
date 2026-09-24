@@ -9,7 +9,7 @@ const MOVING_MID_HOLE_EFFICIENCY := 0.333
 const STILL_LOWER_HOLE_EFFICIENCY := 1.0
 const STILL_MID_HOLE_EFFICIENCY := 0.166
 const MAST_RADIUS := 8.0
-const MAST_HOLE_DAMAGE := 2
+const MAST_HOLE_DAMAGE := 1
 
 var ship
 var action_points: ShipActionPointContainer
@@ -23,9 +23,6 @@ func _init(new_ship, new_action_points: ShipActionPointContainer) -> void:
 	ship = new_ship
 	action_points = new_action_points
 
-	if action_points == null:
-		return
-
 	for hole in action_points.hull_holes:
 		_add_flood_rate(hole.deck, float(hole.grade))
 		hole.grade_changed.connect(_on_hole_grade_changed)
@@ -36,12 +33,7 @@ func physics_process(delta: float) -> void:
 	if sunk_state:
 		return
 
-	water_level = _project_water_level(
-		water_level,
-		delta,
-		lower_deck_flood_rate_cache,
-		mid_deck_flood_rate_cache
-	)
+	water_level = _project_water_level(water_level, delta, lower_deck_flood_rate_cache, mid_deck_flood_rate_cache)
 
 	if water_level >= MAX_WATER_LEVEL:
 		_sink()
@@ -51,36 +43,22 @@ func get_projected_water_level(seconds: float, water_removals: Array = []) -> fl
 	var projected_water = water_level
 	var elapsed := 0.0
 	var removals = water_removals.duplicate()
-	removals.sort_custom(
-		func(a, b): return float(a.get("time", 0.0)) < float(b.get("time", 0.0))
-	)
+	removals.sort_custom(func(a, b): return a["time"] < b["time"])
 
 	for removal in removals:
-		var time = float(removal.get("time", 0.0))
-		var removal_time = clamp(time, elapsed, seconds)
+		var removal_time = clampf(removal["time"], elapsed, seconds)
 		projected_water = _project_water_level(
-			projected_water,
-			removal_time - elapsed,
-			lower_deck_flood_rate_cache,
-			mid_deck_flood_rate_cache
+			projected_water, removal_time - elapsed, lower_deck_flood_rate_cache, mid_deck_flood_rate_cache
 		)
 		elapsed = removal_time
 
-		if time <= seconds:
-			projected_water = max(projected_water - float(removal.get("amount", 0.0)), 0.0)
+		if removal["time"] <= seconds:
+			projected_water = maxf(projected_water - removal["amount"], 0.0)
 
-	return _project_water_level(
-		projected_water,
-		seconds - elapsed,
-		lower_deck_flood_rate_cache,
-		mid_deck_flood_rate_cache
-	)
+	return _project_water_level(projected_water, seconds - elapsed, lower_deck_flood_rate_cache, mid_deck_flood_rate_cache)
 
 
 func remove_water(amount: float) -> float:
-
-	if amount <= 0.0:
-		return 0.0
 
 	var removed = min(amount, water_level)
 
@@ -91,27 +69,22 @@ func remove_water(amount: float) -> float:
 
 ## Where the ball struck decides which hole it opened - the gunner may have picked a hole the
 ## far end of the hull, and grading it there is the ball phasing through. Returns the hole that
-## took the damage, or null. A hole already at its cap absorbs nothing: set_grade clamps, and
+## took the damage. A hole already at its cap absorbs nothing: set_grade clamps, and
 ## the damage does not spill onto the next hole along.
 func apply_cannonball_hit(hit_position: Vector2, hole_damage: int) -> ShipHolePoint:
 
-	if action_points == null:
-		return null
-
 	var hole = _closest_facing_hole(hit_position)
-
-	if hole != null:
-		hole.set_grade(hole.grade + hole_damage)
+	hole.set_grade(hole.grade + hole_damage)
 
 	return hole
 
 
 ## A ball that missed the hull but crossed the mast on its way past. [param from] and
-## [param to] are the ends of the flight it has left. Opens one fresh mast hole - they cap at
-## grade 2 - and does nothing once all three are open.
+## [param to] are the ends of the flight it has left. Opens one fresh mast hole; once all three
+## are open there is nothing left to hole, but it still knocks a propped-up mast back down.
 func apply_mast_hit(from: Vector2, to: Vector2) -> bool:
 
-	if action_points == null or action_points.mast_holes.is_empty():
+	if action_points.mast_holes.is_empty():
 		return false
 
 	var mast = action_points.mast_holes.front().global_position
@@ -124,7 +97,7 @@ func apply_mast_hit(from: Vector2, to: Vector2) -> bool:
 			hole.set_grade(hole.grade + MAST_HOLE_DAMAGE)
 			return true
 
-	return false
+	return ship.mast_system.knock_loose()
 
 
 ## The hole whose footprint is nearest the impact, out of those cut into plating facing the same
@@ -167,11 +140,7 @@ func get_deck_efficiency(deck: int) -> float:
 
 func get_flood_rate() -> float:
 
-	return _get_flood_rate_for_water_level(
-		water_level,
-		lower_deck_flood_rate_cache,
-		mid_deck_flood_rate_cache
-	)
+	return _get_flood_rate_for_water_level(water_level, lower_deck_flood_rate_cache, mid_deck_flood_rate_cache)
 
 
 func can_survive_repair_trip(
@@ -184,11 +153,7 @@ func can_survive_repair_trip(
 
 	var flood_rate_offset = effective_flood_rate - get_flood_rate()
 	var water_after_repair = _project_water_level(
-		water_level,
-		repair_complete_time,
-		lower_deck_flood_rate_cache,
-		mid_deck_flood_rate_cache,
-		flood_rate_offset
+		water_level, repair_complete_time, lower_deck_flood_rate_cache, mid_deck_flood_rate_cache, flood_rate_offset
 	)
 
 	if water_after_repair >= MAX_WATER_LEVEL:
@@ -197,22 +162,15 @@ func can_survive_repair_trip(
 	var lower_rate = lower_deck_flood_rate_cache
 	var mid_rate = mid_deck_flood_rate_cache
 
-	if hole != null:
-		match hole.deck:
-			DeckGraph.DECKS.LOWER:
-				lower_rate = max(lower_rate - float(hole.grade), 0.0)
-			DeckGraph.DECKS.MID:
-				mid_rate = max(mid_rate - float(hole.grade), 0.0)
+	match hole.deck:
+		DeckGraph.DECKS.LOWER:
+			lower_rate = max(lower_rate - float(hole.grade), 0.0)
+		DeckGraph.DECKS.MID:
+			mid_rate = max(mid_rate - float(hole.grade), 0.0)
 
-	var projected_water_after_trip = _project_water_level(
-		water_after_repair,
-		max(total_time + safety_leeway - repair_complete_time, 0.0),
-		lower_rate,
-		mid_rate,
-		flood_rate_offset
-	)
+	var time_after_repair = maxf(total_time + safety_leeway - repair_complete_time, 0.0)
 
-	return projected_water_after_trip < MAX_WATER_LEVEL
+	return _project_water_level(water_after_repair, time_after_repair, lower_rate, mid_rate, flood_rate_offset) < MAX_WATER_LEVEL
 
 
 func _get_flood_rate_for_water_level(
@@ -222,10 +180,8 @@ func _get_flood_rate_for_water_level(
 	flood_rate_offset := 0.0
 ) -> float:
 
-	return max(
-		lower_rate * _get_lower_deck_efficiency()
-		+ mid_rate * _get_mid_deck_efficiency(projected_water_level)
-		+ flood_rate_offset,
+	return maxf(
+		lower_rate * _get_lower_deck_efficiency() + mid_rate * _get_mid_deck_efficiency(projected_water_level) + flood_rate_offset,
 		0.0
 	)
 
@@ -241,32 +197,17 @@ func _project_water_level(
 	if seconds <= 0.0:
 		return min(start_water_level, MAX_WATER_LEVEL)
 
-	var rate = _get_flood_rate_for_water_level(
-		start_water_level,
-		lower_rate,
-		mid_rate,
-		flood_rate_offset
-	)
+	var rate = _get_flood_rate_for_water_level(start_water_level, lower_rate, mid_rate, flood_rate_offset)
 
+	# the mid-deck holes change pace once the water is up to them
 	if start_water_level < MID_DECK_WATER_LEVEL and rate > 0.0:
-		var time_to_mid_deck = (
-			(MID_DECK_WATER_LEVEL - start_water_level)
-			/ rate
-		)
+		var time_to_mid_deck = (MID_DECK_WATER_LEVEL - start_water_level) / rate
 
 		if time_to_mid_deck < seconds:
-			return min(
-				MID_DECK_WATER_LEVEL
-				+ _get_flood_rate_for_water_level(
-					MID_DECK_WATER_LEVEL,
-					lower_rate,
-					mid_rate,
-					flood_rate_offset
-				) * (seconds - time_to_mid_deck),
-				MAX_WATER_LEVEL
-			)
+			var rate_above = _get_flood_rate_for_water_level(MID_DECK_WATER_LEVEL, lower_rate, mid_rate, flood_rate_offset)
+			return minf(MID_DECK_WATER_LEVEL + rate_above * (seconds - time_to_mid_deck), MAX_WATER_LEVEL)
 
-	return min(start_water_level + rate * seconds, MAX_WATER_LEVEL)
+	return minf(start_water_level + rate * seconds, MAX_WATER_LEVEL)
 
 
 func _get_lower_deck_efficiency() -> float:
@@ -284,7 +225,7 @@ func _get_mid_deck_efficiency(projected_water_level: float) -> float:
 
 func _is_ship_moving() -> bool:
 
-	return ship != null and ship.velocity.length() > 0.01
+	return ship.velocity.length() > 0.01
 
 
 func _on_hole_grade_changed(hole: ShipHolePoint, old_grade: int, new_grade: int) -> void:
@@ -301,15 +242,9 @@ func _add_flood_rate(deck: int, grade_delta: float) -> void:
 
 func _sink() -> void:
 
-	if sunk_state:
-		return
-
 	sunk_state = true
 	water_level = MAX_WATER_LEVEL
 
-	ShipDebugLog.write(&"repair",
-		"%s has sunk."
-		% ship.name
-	)
+	ShipDebugLog.write(&"repair", "%s has sunk." % ship.name)
 
 	ship.on_sunk()

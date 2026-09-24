@@ -29,9 +29,4 @@ static func is_valid_deck(deck: int) -> bool:
 
 static func get_deck_name(deck: int) -> String:
 
-	var deck_key = DECKS.find_key(deck)
-
-	if deck_key == null:
-		return "Unknown Deck"
-
-	return "%s Deck" % String(deck_key).capitalize()
+	return "%s Deck" % String(DECKS.find_key(deck)).capitalize()
