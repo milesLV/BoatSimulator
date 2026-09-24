@@ -105,17 +105,24 @@ func _on_mast_repaired(crewmate: Crewmate) -> void:
 	repair_duty_controller.assign_crewmate(crewmate)
 
 
-## Aims this crewmate's cannon at [param target], sending them to one if they are not on it.
-func request_cannon_aim(target: Cannon.AimTarget) -> bool:
+## Aims the cannon the selected crewmate mans at [param target], and only that one. Off the guns,
+## the order goes to the next crewmate who is on one; with nobody on them, or with
+## [param crew_wide] (every crewmate gets their own order), they go man one if one is free.
+func request_cannon_aim(target: Cannon.AimTarget, crew_wide := false) -> bool:
 
-	var crewmate := crew_controller.current_crewmate
-	var station = station_controller.get_station_operated_by(crewmate)
+	var crew := crew_controller.get_crewmates()
+	var start := crew.find(crew_controller.current_crewmate)
 
-	crewmate.aim_target = target
+	for i in (1 if crew_wide else crew.size()):
+		var crewmate := crew[(start + i) % crew.size()]
+		var station = station_controller.get_station_operated_by(crewmate)
 
-	if station is CannonStationPoint:
-		station.cannon.aim_target = target
-		return true
+		if station is CannonStationPoint:
+			crewmate.aim_target = target
+			station.cannon.aim_target = target
+			return true
+
+	crew_controller.current_crewmate.aim_target = target
 
 	return request_current_cannon_duty()
 

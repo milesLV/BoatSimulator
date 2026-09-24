@@ -22,24 +22,38 @@ func _bind_radial_menu() -> void:
 	if menu == null:
 		return
 
-	menu.bind(&"repairShip", REPAIR_OPTIONS, _on_repair_option, func():
+	menu.bind(&"repairShip", REPAIR_OPTIONS, _on_repair_option, func(crew_wide):
 		# just after the mast is hauled up, R goes to patch it so it stays up
-		request(&"request_repair_mast" if mast_system.just_raised() else &"request_repair_ship")
+		_order(crew_wide, &"request_repair_mast" if mast_system.just_raised() else &"request_repair_ship")
 	)
-	menu.bind(&"goToCannon", AIM_OPTIONS, func(i): request(&"request_cannon_aim", [i]), func():
-		request(&"request_cannon_aim", [Cannon.AimTarget.HULL])
+	menu.bind(&"goToCannon", AIM_OPTIONS,
+		func(i, crew_wide): _order(crew_wide, &"request_cannon_aim", [i, crew_wide]),
+		func(crew_wide): _order(crew_wide, &"request_cannon_aim", [Cannon.AimTarget.HULL, crew_wide])
 	)
 
 
-func _on_repair_option(index: int) -> void:
+func _on_repair_option(index: int, crew_wide: bool) -> void:
 
 	match index:
-		0: request(&"request_repair_mast")
-		1: request(&"request_repair_ship")
-		2: request(&"request_bail_water")
-		3: request(&"request_repair_ship", [[DeckGraph.DECKS.MID]])
-		4: request(&"request_repair_ship", [[DeckGraph.DECKS.LOWER]])
-		5: request(&"request_repair_whole_ship")
+		0: _order(crew_wide, &"request_repair_mast")
+		1: _order(crew_wide, &"request_repair_ship")
+		2: _order(crew_wide, &"request_bail_water")
+		3: _order(crew_wide, &"request_repair_ship", [[DeckGraph.DECKS.MID]])
+		4: _order(crew_wide, &"request_repair_ship", [[DeckGraph.DECKS.LOWER]])
+		5: _order(crew_wide, &"request_repair_whole_ship")
+
+
+## Gives the order to the selected crewmate, or with [param crew_wide] to each crewmate in turn
+## as though they were the one selected.
+func _order(crew_wide: bool, method: StringName, args := []) -> void:
+
+	var selected = crew_controller.current_crewmate
+
+	for crewmate in (get_crewmates() if crew_wide else [selected]):
+		crew_controller.current_crewmate = crewmate
+		request(method, args)
+
+	crew_controller.current_crewmate = selected
 
 func _control() -> bool:
 

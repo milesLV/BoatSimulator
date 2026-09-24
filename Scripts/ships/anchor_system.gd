@@ -1,4 +1,4 @@
-extends RefCounted
+extends LiftingSystem
 class_name AnchorSystem
 
 enum State {
@@ -14,9 +14,14 @@ const RAISE_DURATION := 8.0
 const ANCHOR_DECELERATION := 300.0
 const ANCHOR_ANGULAR_ACELERATION := 1.5
 
-var state: State = State.RAISED
 var drop_progress := 0.0
 var is_holding_ship := false
+
+
+func _init() -> void:
+
+	falling_state = State.DROPPING
+	raising_state = State.RAISING
 
 
 func can_drop() -> bool:
@@ -27,17 +32,6 @@ func can_drop() -> bool:
 func can_raise() -> bool:
 
 	return state == State.DROPPING or state == State.DOWN
-
-
-## Moves the anchor to [param next] when it sits in one of [param allowed].
-func _transition(allowed: Array, next: State) -> bool:
-
-	if not state in allowed:
-		return false
-
-	_set_state(next)
-
-	return true
 
 
 func begin_rigging() -> bool:
@@ -64,34 +58,25 @@ func begin_raising() -> bool:
 	return _transition([State.DROPPING, State.DOWN], State.RAISING)
 
 
-func raise_by_delta(delta: float) -> void:
-
-	if state != State.RAISING:
-		return
-
-	drop_progress = clamp(drop_progress - (delta / RAISE_DURATION), 0.0, 1.0)
-
-
 func cancel_raising() -> bool:
 
 	return _transition([State.RAISING], State.DROPPING)
 
 
-func finish_raising() -> void:
+func _fall(delta: float) -> void:
 
-	if _transition([State.RAISING], State.RAISED):
-		drop_progress = 0.0
-
-
-func physics_process(delta: float) -> void:
-
-	if state != State.DROPPING:
-		return
-
-	drop_progress = clamp(drop_progress + delta / DROP_DURATION, 0.0, 1.0)
+	drop_progress = minf(drop_progress + delta / DROP_DURATION, 1.0)
 
 	if drop_progress >= 1.0:
 		_set_state(State.DOWN)
+
+
+func _raise(delta: float) -> void:
+
+	drop_progress = maxf(drop_progress - delta / RAISE_DURATION, 0.0)
+
+	if drop_progress <= 0.0:
+		_set_state(State.RAISED)
 
 
 ## Bleeds a value toward zero while the anchor bites, at rate per drop duration.
@@ -102,7 +87,7 @@ func damp(value: float, delta: float, rate: float) -> float:
 	return move_toward(value, 0.0, (rate / DROP_DURATION) * delta)
 
 
-func _set_state(new_state: State) -> void:
+func _set_state(new_state: int) -> void:
 
 	if state == new_state:
 		return

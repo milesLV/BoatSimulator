@@ -1,7 +1,7 @@
 extends ActionDefinition
 class_name RaiseMastAction
 
-## The mast raises itself in MastSystem.physics_process; this only holds the crewmate to it.
+## The mast comes up in MastSystem.physics_process; this only holds the crewmate to it.
 
 
 func _init() -> void:

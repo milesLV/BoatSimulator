@@ -1,4 +1,4 @@
-extends RefCounted
+extends LiftingSystem
 class_name MastSystem
 
 ## Once every mast hole is open the mast topples like a pole hinged at the deck, bounces once,
@@ -37,7 +37,6 @@ const MAX_SAIL_LENGTH := 100.0
 const REPAIR_PROMPT_WINDOW := 5.0
 
 var mast_holes: Array[MastHole] = []
-var state := State.STANDING
 var angle := 0.0
 var angular_velocity := 0.0
 var has_bounced := false
@@ -49,6 +48,8 @@ var logs := true
 func _init(new_mast_holes: Array[MastHole]) -> void:
 
 	mast_holes = new_mast_holes
+	falling_state = State.FALLING
+	raising_state = State.RAISING
 
 	for hole in mast_holes:
 		hole.grade_changed.connect(_on_grade_changed)
@@ -92,15 +93,10 @@ func sails_locked() -> bool:
 	return state != State.STANDING
 
 
-## Raising runs here rather than in the crewmate's action, so a prediction's copy raises too.
 func physics_process(delta: float) -> void:
 
 	time_since_raised += delta
-
-	if state == State.RAISING:
-		_raise(delta)
-	elif state == State.FALLING:
-		_fall(delta)
+	super(delta)
 
 
 func just_raised() -> bool:
@@ -120,18 +116,25 @@ func raise_time_left() -> float:
 
 
 ## A catch throws away whatever the fall or the bounce was doing.
-func begin_raising() -> void:
+func begin_raising() -> bool:
 
-	if can_raise():
-		state = State.RAISING
-		angular_velocity = 0.0
+	if not _transition([State.FALLING, State.DOWN], State.RAISING):
+		return false
+
+	angular_velocity = 0.0
+
+	return true
 
 
 ## The hauler let go: it falls again, from rest.
-func cancel_raising() -> void:
+func cancel_raising() -> bool:
 
-	if state == State.RAISING:
-		_start_fall()
+	if state != State.RAISING:
+		return false
+
+	_start_fall()
+
+	return true
 
 
 ## A ball through the rigging of a propped mast. The holes are already as open as they go.

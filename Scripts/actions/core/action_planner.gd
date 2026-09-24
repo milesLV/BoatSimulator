@@ -42,30 +42,12 @@ func build_drop_anchor(actor) -> Array[ActionDefinition]:
 	if not actor.ship.anchor_system.can_drop():
 		return []
 
-	var actions = route_planner.build_go_to_point(actor, anchor_point)
-
-	if actions.is_empty():
-		return []
-
-	actions.append(RigAnchorAction.new(anchor_point))
-	actions.append(DropAnchorAction.new())
-
-	return actions
+	return _build_at(actor, anchor_point, [RigAnchorAction.new(anchor_point), DropAnchorAction.new()])
 
 
 func build_raise_anchor(actor) -> Array[ActionDefinition]:
 
-	if not actor.ship.anchor_system.can_raise():
-		return []
-
-	var actions = route_planner.build_go_to_point(actor, anchor_point)
-
-	if actions.is_empty():
-		return []
-
-	actions.append(RaiseAnchorAction.new())
-
-	return actions
+	return _build_at(actor, anchor_point, [RaiseAnchorAction.new()]) if actor.ship.anchor_system.can_raise() else []
 
 
 func build_raise_mast(actor) -> Array[ActionDefinition]:
@@ -78,17 +60,23 @@ func build_knock_mast_loose(actor) -> Array[ActionDefinition]:
 	return _build_at_sail_lines(actor, KnockMastLooseAction.new())
 
 
-## Walk to the sail lines, do [param action], then stay there so S works the mast again.
+## Do [param action] at the sail lines, then stay there so S works the mast again.
 func _build_at_sail_lines(actor, action: ActionDefinition) -> Array[ActionDefinition]:
 
 	var station = action_points.get_station(&"SailLengthStarb")
-	var actions = route_planner.build_go_to_point(actor, station)
+
+	return _build_at(actor, station, [action, HoldStationAction.new(station)])
+
+
+## Walk to [param point], then do [param on_arrival] there; nothing when it cannot be reached.
+func _build_at(actor, point, on_arrival: Array) -> Array[ActionDefinition]:
+
+	var actions = route_planner.build_go_to_point(actor, point)
 
 	if actions.is_empty():
 		return []
 
-	actions.append(action)
-	actions.append(HoldStationAction.new(station))
+	actions.append_array(on_arrival)
 
 	return actions
 

@@ -1,6 +1,8 @@
 extends ActionDefinition
 class_name RaiseAnchorAction
 
+## The anchor comes up in AnchorSystem.physics_process; this only holds the crewmate to it.
+
 
 func _init() -> void:
 
@@ -18,16 +20,6 @@ func on_start(actor, _instance) -> void:
 	actor.ship.anchor_system.begin_raising()
 
 
-func on_tick(actor, _instance, delta: float) -> void:
-
-	actor.ship.anchor_system.raise_by_delta(delta)
-
-
 func on_interrupt(actor, _instance) -> void:
 
 	actor.ship.anchor_system.cancel_raising()
-
-
-func on_complete(actor, _instance) -> void:
-
-	actor.ship.anchor_system.finish_raising()

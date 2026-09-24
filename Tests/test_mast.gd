@@ -97,8 +97,8 @@ func _test_aimed_at_the_mast() -> void:
 	Cannonball.mast_strike_chance = 0.0
 
 	var ship = await spawn_frozen_ship()
-	var ball = spawn_ball(ship, false)
-	ball.strikes_mast = true
+	var ball = spawn_ball(ship, true)
+	ball.aimed_part = ship.action_points.mast_holes[0]
 
 	await _frames_until_gone(ball)
 

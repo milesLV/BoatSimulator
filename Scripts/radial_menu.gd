@@ -3,6 +3,7 @@ extends Control
 
 ## Hold a bound key and a ring of options opens at screen centre; release over one (or click it)
 ## to pick it. A quick tap never opens the ring and does the key's plain action instead.
+## Holding amplify as well turns either into an order for the whole crew.
 
 const RADIUS := 400.0
 const DEAD_ZONE := 20.0
@@ -11,6 +12,7 @@ const LABEL_RADIUS := RADIUS * 0.6
 const HIGHLIGHT := Color("9dffb0")
 const FONT_SIZE := 32
 const MIN_FONT_SIZE := 10
+const AMPLIFIED_PREFIX := "(All crewmates) "
 
 ## action -> {labels, on_pick, on_tap}
 var bindings := {}
@@ -18,6 +20,8 @@ var held_action: StringName = &""
 var held_time := 0.0
 var hovered := -1
 var labels: Array[Label] = []
+## Whether the labels on show carry the whole-crew prefix.
+var amplified := false
 
 
 func _ready() -> void:
@@ -27,7 +31,8 @@ func _ready() -> void:
 	hide()
 
 
-## [param on_pick] gets the index of the chosen label; [param on_tap] runs on a quick press.
+## [param on_pick] gets the index of the chosen label and whether the order is for the whole
+## crew; [param on_tap] runs on a quick press and gets the latter.
 func bind(action: StringName, option_labels: Array[String], on_pick: Callable, on_tap: Callable) -> void:
 
 	bindings[action] = {"labels": option_labels, "on_pick": on_pick, "on_tap": on_tap}
@@ -56,7 +61,10 @@ func _process(delta: float) -> void:
 	held_time += delta
 
 	if not visible and held_time >= OPEN_DELAY:
-		_open()
+		show()
+
+	if visible and (labels.is_empty() or Input.is_action_pressed(&"amplify") != amplified):
+		_build_labels()
 
 	if visible:
 		var count = labels.size()
@@ -69,9 +77,9 @@ func _process(delta: float) -> void:
 		var binding = bindings[held_action]
 
 		if not visible:
-			binding["on_tap"].call()
+			binding["on_tap"].call(Input.is_action_pressed(&"amplify"))
 		elif hovered != -1:
-			binding["on_pick"].call(hovered)
+			binding["on_pick"].call(hovered, amplified)
 
 		_close()
 
@@ -83,12 +91,15 @@ func _input(event: InputEvent) -> void:
 		and event is InputEventMouseButton and event.pressed
 		and event.button_index == MOUSE_BUTTON_LEFT
 	):
-		bindings[held_action]["on_pick"].call(hovered)
+		bindings[held_action]["on_pick"].call(hovered, amplified)
 		get_viewport().set_input_as_handled()
 		_close()
 
 
-func _open() -> void:
+func _build_labels() -> void:
+
+	_free_labels()
+	amplified = Input.is_action_pressed(&"amplify")
 
 	var option_labels: Array = bindings[held_action]["labels"]
 	var step := TAU / option_labels.size()
@@ -99,15 +110,13 @@ func _open() -> void:
 	for i in option_labels.size():
 		var label := Label.new()
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_fit(label, option_labels[i], max_width)
+		_fit(label, (AMPLIFIED_PREFIX if amplified else "") + option_labels[i], max_width)
 		add_child(label)
 		# middle of the section, measured clockwise from the top
 		var mid := Vector2.UP.rotated(step * (i + 0.5)) * LABEL_RADIUS
 		label.position = size / 2.0 + mid - label.get_minimum_size() / 2.0
 		labels.append(label)
 
-	hovered = -1
-	show()
 	queue_redraw()
 
 
@@ -145,13 +154,18 @@ func _fit(label: Label, text: String, max_width: float) -> void:
 ## Forgets the key too, so after a click its release does nothing.
 func _close() -> void:
 
+	_free_labels()
+	held_action = &""
+	hovered = -1
+	hide()
+
+
+func _free_labels() -> void:
+
 	for label in labels:
 		label.queue_free()
 
 	labels.clear()
-	held_action = &""
-	hovered = -1
-	hide()
 
 
 func _draw() -> void:

@@ -14,6 +14,8 @@ const FIRE_ANGLE_TOLERANCE = deg_to_rad(2) # won't fire until cannon lined up wi
 @export var broadside: CannonSide.Value
 
 enum AimTarget { HULL, MAST, CANNON, WHEEL, CREW }
+## The smaller the part, the less often a shot that goes over the hull finds it.
+const AIM_ACCURACY := {AimTarget.MAST: 0.8, AimTarget.CANNON: 0.7, AimTarget.WHEEL: 0.6, AimTarget.CREW: 0.5}
 
 var max_range := 0.0
 
@@ -29,6 +31,8 @@ var hold_fire := false
 
 ## Set from whoever mans it: HULL goes hunting holes, the rest aim straight at that part.
 var aim_target := AimTarget.HULL
+## The part a non-hull aim is on this frame; null while it hunts holes instead.
+var aimed_part: Node2D = null
 
 var tracking_enabled := false
 var tracking_target: Node = null
@@ -44,9 +48,11 @@ func _physics_process(delta):
 	if not tracking_enabled or not is_instance_valid(tracking_target):
 		return
 
+	aimed_part = _aimed_part(tracking_target)
+
 	var shot = (
-		AimForHoles.pick_shot(self, get_parent(), tracking_target) if aim_target == AimTarget.HULL
-		else {"aim_point": _part_position(tracking_target), "hole": null, "fire_now": true}
+		AimForHoles.pick_shot(self, get_parent(), tracking_target) if aimed_part == null
+		else {"aim_point": aimed_part.global_position, "hole": null, "fire_now": true}
 	)
 
 	var aim_point: Vector2 = shot["aim_point"]
@@ -55,7 +61,10 @@ func _physics_process(delta):
 
 	if arc_contains(global_rotation, aim_point - global_position) and global_position.distance_to(aim_point) <= max_range:
 		current_target = tracking_target
-		aim_point = calculate_intercept_position(aim_point, tracking_target.velocity)
+		aim_point = (
+			calculate_intercept_position(aim_point, tracking_target.velocity) if aimed_part == null
+			else _part_intercept(aimed_part)
+		)
 
 	last_aim_point = aim_point
 	last_direction_aimed = (aim_point - global_position).normalized()
@@ -63,15 +72,15 @@ func _physics_process(delta):
 	var angle_to_aim = Vector2.RIGHT.rotated(global_rotation).angle_to(last_direction_aimed)
 	sprite.rotation = move_toward(sprite.rotation, clamp(angle_to_aim, -MAX_ANGLE, MAX_ANGLE), ROTATION_SPEED * delta)
 
-## Where on [param ship] a non-hull aim points: its mast, nearest cannon, wheel or crewmate.
-func _part_position(ship: Node2D) -> Vector2:
+## What on [param ship] a non-hull aim is after: its mast, nearest cannon, wheel or nearest
+## crewmate up top. Null for the hull, and while every crewmate is below decks.
+func _aimed_part(ship: Node2D) -> Node2D:
 
-	var nearest := func(nodes: Array) -> Vector2:
-		var closest = nodes.reduce(func(best, node): return (
+	var nearest := func(nodes: Array) -> Node2D:
+		return nodes.reduce(func(best, node): return (
 			node if best == null or global_position.distance_to(node.global_position)
 				< global_position.distance_to(best.global_position) else best
 		), null)
-		return closest.global_position if closest != null else ship.global_position
 
 	match aim_target:
 		AimTarget.MAST:
@@ -79,9 +88,28 @@ func _part_position(ship: Node2D) -> Vector2:
 		AimTarget.CANNON:
 			return nearest.call(ship.cannons)
 		AimTarget.WHEEL:
-			return ship.action_points.get_station(&"Wheel").global_position
-		_:
-			return nearest.call(ship.get_crewmates())
+			return ship.action_points.get_station(&"Wheel")
+		AimTarget.CREW:
+			return nearest.call(ship.get_crewmates().filter(
+				func(crewmate): return crewmate.location in DeckGraph.EXPOSED_DECKS
+			))
+
+	return null
+
+
+## Where [param part] will be when a ball fired now gets there. A part is small enough that
+## leading the ship's drift alone misses it once the ship is turning, so this rides the turn too.
+func _part_intercept(part: Node2D) -> Vector2:
+
+	var local = tracking_target.to_local(part.global_position)
+	var at := part.global_position
+
+	# the flight time depends on where it lands; twice round is plenty
+	for i in 2:
+		var flight = global_position.distance_to(at) / Cannonball.SPEED
+		at = AimForHoles._world_position(local, tracking_target.motion_predictor.at(flight))
+
+	return at
 
 
 ## The firing arc rule on its own, so the aim code can ask it of a mount bearing the ship
@@ -143,11 +171,17 @@ func fire() -> bool:
 	new_cannonball.owner_node = get_parent()
 	new_cannonball.max_range = max_range
 	new_cannonball.arc_distance = minf(cannon_mouth.global_position.distance_to(last_aim_point), max_range)
-	new_cannonball.will_hit = randf() < CannonAccuracy.for_shot(self, get_parent(), current_target)
 
-	# a good shot at the mast goes into the rigging, not the hull in front of it
-	if aim_target == AimTarget.MAST and new_cannonball.will_hit:
-		new_cannonball.will_hit = false
-		new_cannonball.strikes_mast = true
+	var hull_odds = CannonAccuracy.for_shot(self, get_parent(), current_target)
+
+	if aimed_part == null:
+		new_cannonball.will_hit = randf() < hull_odds
+		return true
+
+	# a shot at a part flips the hull roll: what would have struck the hull goes over it, the rest
+	# is caught by it, and the part's size says whether one that goes over finds it
+	var over = randf() < hull_odds
+	new_cannonball.aimed_part = aimed_part if over else null
+	new_cannonball.will_hit = not over or randf() < AIM_ACCURACY[aim_target]
 
 	return true
