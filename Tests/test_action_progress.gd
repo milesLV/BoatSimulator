@@ -8,7 +8,7 @@ func _run() -> void:
 	await process_frame
 	ship.process_mode = Node.PROCESS_MODE_DISABLED
 
-	var actor = ship.get_current_crewmate()
+	var actor = ship.current_crewmate
 	var progress = load("res://Scenes/crewActionProgress.tscn").instantiate()
 	assert(progress.get_node_or_null("Countdown") != null)
 	assert(progress.get_displayed_crewmate(ship) == actor)

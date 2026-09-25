@@ -1,9 +1,15 @@
 class_name PlayerShip
 extends Sloop
 
-const REPAIR_OPTIONS: Array[String] = [
-	"Repair mast", "Repair whole hull", "Bail water",
-	"Repair mid deck", "Repair lower deck", "Repair whole ship",
+## [label, crew task request, its args], in ring order.
+const REPAIR_ORDERS := [
+	["Repair mast", &"request_repair_mast", []],
+	["Repair wheel", &"request_repair_wheel", []],
+	["Repair whole hull", &"request_repair_ship", []],
+	["Bail water", &"request_bail_water", []],
+	["Repair mid deck", &"request_repair_ship", [[DeckGraph.DECKS.MID]]],
+	["Repair lower deck", &"request_repair_ship", [[DeckGraph.DECKS.LOWER]]],
+	["Repair whole ship", &"request_repair_whole_ship", []],
 ]
 const AIM_LABELS := {
 	Cannon.AimTarget.HULL: "Fire at hull", Cannon.AimTarget.MAST: "Fire at mast",
@@ -12,7 +18,6 @@ const AIM_LABELS := {
 }
 const CYCLE_HINT := "Press Tab to cycle through ammunition"
 
-## The ammunition whose aims the open C ring shows.
 var _ring_ammo := Ammunition.CANNONBALL
 
 
@@ -30,8 +35,11 @@ func _bind_radial_menu() -> void:
 	if menu == null:
 		return
 
-	menu.bind(&"repairShip", func(_crew_wide, _cycle): return REPAIR_OPTIONS, _on_repair_option, func(crew_wide):
-		# just after the mast is hauled up, R goes to patch it so it stays up
+	menu.bind(&"repairShip",
+		func(_crew_wide, _cycle): return REPAIR_ORDERS.map(func(order): return order[0]),
+		func(i, crew_wide): _order(crew_wide, REPAIR_ORDERS[i][1], REPAIR_ORDERS[i][2]),
+		func(crew_wide):
+		# just after the mast is hauled up, R patches it so it stays up
 		_order(crew_wide, &"request_repair_mast" if mast_system.just_raised() else &"request_repair_ship")
 	)
 	menu.bind(&"goToCannon",
@@ -40,7 +48,6 @@ func _bind_radial_menu() -> void:
 		func(crew_wide): _order(crew_wide, &"request_cannon_default_aim", [crew_wide])
 	)
 
-	# 1, 2, ...: a tap loads that ammunition at its usual aim, a hold offers its other aims
 	for ammo in Ammunition.ALL:
 		menu.bind(ammo.key_action,
 			func(_crew_wide, _cycle): return _aim_labels(ammo),
@@ -49,9 +56,7 @@ func _bind_radial_menu() -> void:
 		)
 
 
-## The C ring shows the aims of whatever the order's recipient has loaded. An order for the
-## whole crew with no gunner selected has no one ammunition to go by, so it starts on the first
-## and Tab pages through the rest.
+## A crew-wide order with no gunner selected has no ammunition to go by, so Tab pages through all.
 func _cannon_ring(menu: RadialMenu, crew_wide: bool, cycle: int) -> Array:
 
 	var recipient := crew_task_controller.cannon_order_recipient(crew_wide)
@@ -73,28 +78,15 @@ func _order_ammo(crew_wide: bool, ammo: Ammunition, target: Cannon.AimTarget) ->
 	_order(crew_wide, &"request_cannon_aim", [ammo, target, crew_wide])
 
 
-func _on_repair_option(index: int, crew_wide: bool) -> void:
-
-	match index:
-		0: _order(crew_wide, &"request_repair_mast")
-		1: _order(crew_wide, &"request_repair_ship")
-		2: _order(crew_wide, &"request_bail_water")
-		3: _order(crew_wide, &"request_repair_ship", [[DeckGraph.DECKS.MID]])
-		4: _order(crew_wide, &"request_repair_ship", [[DeckGraph.DECKS.LOWER]])
-		5: _order(crew_wide, &"request_repair_whole_ship")
-
-
-## Gives the order to the selected crewmate, or with [param crew_wide] to each crewmate in turn
-## as though they were the one selected.
 func _order(crew_wide: bool, method: StringName, args := []) -> void:
 
-	var selected = crew_controller.current_crewmate
+	var selected = current_crewmate
 
-	for crewmate in (get_crewmates() if crew_wide else [selected]):
-		crew_controller.current_crewmate = crewmate
+	for crewmate in (crewmates if crew_wide else [selected]):
+		current_crewmate = crewmate
 		request(method, args)
 
-	crew_controller.current_crewmate = selected
+	current_crewmate = selected
 
 func _control() -> bool:
 
@@ -117,18 +109,17 @@ func _control() -> bool:
 	var turn = _get_station_axis_input(&"Wheel", &"turnWheelLeft", &"turnWheelRight")
 	var sail_length := 0.0
 
-	# a mast off its feet takes S as an order to raise it, like X for the anchor
 	if mast_system.sails_locked():
 		if Input.is_action_just_pressed("lowerSailsDown"):
 			request(&"request_mast_toggle")
 	else:
 		sail_length = _get_station_axis_input(
-			&"SailLengthStarb", # TODO: make so can choose port or starboard size depending on whatever's closest
+			&"SailLengthStarb", # TODO: use whichever side's station is closest
 			&"raiseSailsUp",
 			&"lowerSailsDown"
 		)
 	var sail_rotation = _get_station_axis_input(
-		&"SailRotationStarb", # TODO: make so can choose port or starboard size depending on whatever's closest
+		&"SailRotationStarb",
 		&"adjustSailLeft",
 		&"adjustSailRight"
 	)
@@ -148,11 +139,6 @@ func _get_station_axis_input(
 ) -> float:
 
 	var requested_input = Input.get_axis(negative_action, positive_action)
+	var manned = station_controller.get_operator_by_name(station_name) != null
 
-	if station_controller.get_operator_by_name(station_name) != null:
-		return requested_input
-
-	if requested_input == 0.0 or not request(&"request_station_control", [station_name, requested_input]):
-		return 0.0
-
-	return requested_input
+	return requested_input if manned or request(&"request_station_control", [station_name, requested_input]) else 0.0

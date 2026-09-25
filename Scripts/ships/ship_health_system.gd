@@ -8,7 +8,7 @@ const MOVING_LOWER_HOLE_EFFICIENCY := 0.9
 const MOVING_MID_HOLE_EFFICIENCY := 0.333
 const STILL_LOWER_HOLE_EFFICIENCY := 1.0
 const STILL_MID_HOLE_EFFICIENCY := 0.166
-const MAST_RADIUS := 8.0
+const PART_RADIUS := 8.0
 const MAST_HOLE_DAMAGE := 1
 
 var ship
@@ -25,7 +25,7 @@ func _init(new_ship, new_action_points: ShipActionPointContainer) -> void:
 
 	for hole in action_points.hull_holes:
 		_add_flood_rate(hole.deck, float(hole.grade))
-		hole.grade_changed.connect(_on_hole_grade_changed)
+		hole.grade_changed.connect(func(changed, old_grade, new_grade): _add_flood_rate(changed.deck, new_grade - old_grade))
 
 
 func physics_process(delta: float) -> void:
@@ -67,10 +67,7 @@ func remove_water(amount: float) -> float:
 	return removed
 
 
-## Where the ball struck decides which hole it opened - the gunner may have picked a hole the
-## far end of the hull, and grading it there is the ball phasing through. Returns the hole that
-## took the damage. A hole already at its cap absorbs nothing: set_grade clamps, and
-## the damage does not spill onto the next hole along.
+## The impact point, not the aimed hole, decides which hole opens; a capped hole absorbs it all.
 func apply_cannonball_hit(hit_position: Vector2, hole_damage: int) -> ShipHolePoint:
 
 	var hole = _closest_facing_hole(hit_position)
@@ -79,35 +76,40 @@ func apply_cannonball_hit(hit_position: Vector2, hole_damage: int) -> ShipHolePo
 	return hole
 
 
-## A ball that missed the hull but crossed the mast on its way past. [param from] and
-## [param to] are the ends of the flight it has left. Opens the next [param holes] fresh mast
-## holes; once all three are open there is nothing left to hole, but it still knocks a
-## propped-up mast back down. [param reach] widens the shot, for one that is not a point.
+## With no hole left to open, a hit still knocks a propped mast back down.
 func apply_mast_hit(from: Vector2, to: Vector2, holes := 1, reach := 0.0) -> bool:
 
-	if action_points.mast_holes.is_empty():
-		return false
+	var opened := _part_hit(action_points.mast_holes, from, to, holes, reach)
 
-	var mast = action_points.mast_holes.front().global_position
+	return opened > 0 or (opened == 0 and ship.mast_system.knock_loose())
 
-	if Geometry2D.get_closest_point_to_segment(mast, from, to).distance_to(mast) > MAST_RADIUS + reach:
-		return false
 
-	var fresh = action_points.mast_holes.filter(func(hole): return hole.grade < hole.max_grade)
+## A ball still stops at the wheel once every hole is open.
+func apply_wheel_hit(from: Vector2, to: Vector2, holes := 1, reach := 0.0) -> bool:
 
-	if fresh.is_empty():
-		return ship.mast_system.knock_loose()
+	return _part_hit(action_points.wheel_holes, from, to, holes, reach) >= 0
 
-	for hole in fresh.slice(0, holes):
+
+## Holes opened, or -1 if the flight passed clear of the part.
+func _part_hit(part_holes: Array, from: Vector2, to: Vector2, holes: int, reach: float) -> int:
+
+	if part_holes.is_empty():
+		return -1
+
+	var part: Vector2 = part_holes.front().global_position
+
+	if Geometry2D.get_closest_point_to_segment(part, from, to).distance_to(part) > PART_RADIUS + reach:
+		return -1
+
+	var opened = part_holes.filter(func(hole): return hole.grade < hole.max_grade).slice(0, holes)
+
+	for hole in opened:
 		hole.set_grade(hole.grade + MAST_HOLE_DAMAGE)
 
-	return true
+	return opened.size()
 
 
-## The hole whose footprint is nearest the impact, out of those cut into plating facing the same
-## way as the plating the ball went through. Both points are on the hull: the hole nodes sit
-## 10 to 70px inside it, so measuring an impact against a node compares two different things and
-## hands the hit to whichever hole happens to be buried deepest.
+## Measured to footprints: hole nodes sit 10-70px inside the hull, so the deepest would lose.
 func _closest_facing_hole(hit_position: Vector2) -> ShipHolePoint:
 
 	var struck = AimForHoles.outward_normal(ship.to_local(hit_position))
@@ -230,10 +232,6 @@ func _get_mid_deck_efficiency(projected_water_level: float) -> float:
 func _is_ship_moving() -> bool:
 
 	return ship.velocity.length() > 0.01
-
-
-func _on_hole_grade_changed(hole: ShipHolePoint, old_grade: int, new_grade: int) -> void:
-	_add_flood_rate(hole.deck, float(new_grade - old_grade))
 
 
 func _add_flood_rate(deck: int, grade_delta: float) -> void:

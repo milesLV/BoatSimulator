@@ -17,9 +17,6 @@ class TestShip:
 	var health_system = null
 	var crewmates: Array = []
 
-	func get_crewmates() -> Array:
-		return crewmates
-
 
 func _run() -> void:
 

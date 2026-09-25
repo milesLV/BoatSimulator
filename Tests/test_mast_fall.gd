@@ -1,11 +1,5 @@
 extends "res://Tests/harness.gd"
 
-# godot --headless --script Tests/test_mast_fall.gd
-#
-# With every mast hole open the mast topples in 5.93 s and bounces once for 0.91 s. A crewmate
-# catches it and hauls it up at 10%/s; let go and it falls again from rest. Raised while still
-# holed it is only propped: S or a ball brings it down, patching a hole makes it sound.
-
 const DT := 1.0 / 60.0
 
 
@@ -22,9 +16,6 @@ func _run() -> void:
 	await _test_ball_knocks_it_loose()
 
 	finish("test_mast_fall")
-
-
-# --- helpers ------------------------------------------------------------------------------
 
 
 func _holes(open_count: int) -> Array[MastHole]:
@@ -45,7 +36,6 @@ func _free(holes: Array[MastHole]) -> void:
 		hole.free()
 
 
-## Steps until [param done] says so, or 20 s pass; returns the seconds taken.
 func _step_until(mast: MastSystem, done: Callable) -> float:
 
 	var elapsed := 0.0
@@ -57,10 +47,6 @@ func _step_until(mast: MastSystem, done: Callable) -> float:
 	return elapsed
 
 
-# --- the tests ----------------------------------------------------------------------------
-
-
-## Only all three at their cap brings it down, and a hole mid-repair still counts.
 func _test_trigger() -> void:
 
 	var holes := _holes(2)
@@ -104,7 +90,6 @@ func _test_fall_and_bounce() -> void:
 	_free(holes)
 
 
-## Let go at 45 degrees it lands slower, so it bounces lower and shorter.
 func _test_half_fall_bounce() -> void:
 
 	var holes := _holes(3)
@@ -147,7 +132,6 @@ func _test_raise_and_release() -> void:
 		"a second's hauling raised it %.3f" % mast.upright_progress()
 	)
 
-	# let go: it falls again, from rest
 	mast.cancel_raising()
 	mast.physics_process(DT)
 
@@ -157,7 +141,6 @@ func _test_raise_and_release() -> void:
 		"the fall carried speed over from the haul: %f" % mast.angular_velocity
 	)
 
-	# and a catch mid-bounce throws the bounce away
 	_step_until(mast, func(): return mast.has_bounced)
 	mast.begin_raising()
 
@@ -166,7 +149,7 @@ func _test_raise_and_release() -> void:
 	_free(holes)
 
 
-## Caught high up, hauling takes under the 2 s the sails need on their own, so they hurry.
+## Caught high up, the raise beats the sails' 2 s furl, so they have to hurry.
 func _test_sails_furled_by_the_top() -> void:
 
 	var holes := _holes(3)
@@ -176,7 +159,7 @@ func _test_sails_furled_by_the_top() -> void:
 
 	var sail_length := 100.0
 
-	# same order as ShipMovementController: the mast, then the sails
+	# same order as ShipMovementController: mast first, then sails
 	mast.begin_raising()
 
 	while mast.state != MastSystem.State.PROPPED:
@@ -210,7 +193,6 @@ func _test_propped() -> void:
 	check(mast.state == MastSystem.State.FALLING)
 	check(not mast.knock_loose(), "a falling mast was knocked loose twice")
 
-	# propped, then patched: sound again, and neither S nor a ball bothers it
 	mast.angle = 0.0
 	mast.state = MastSystem.State.PROPPED
 	holes[0].set_grade(0)
@@ -225,8 +207,6 @@ func _test_propped() -> void:
 	_free(holes)
 
 
-## The real ship: a ball through the rigging of a propped, fully holed mast stops there and
-## brings it down, though there is no hole left for it to open.
 func _test_ball_knocks_it_loose() -> void:
 
 	Cannonball.mast_strike_chance = 1.0

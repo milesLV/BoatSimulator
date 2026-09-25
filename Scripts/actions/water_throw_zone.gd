@@ -13,11 +13,7 @@ func _ready() -> void:
 
 func get_position_for_actor(actor: Node2D, start_position = null) -> Vector2:
 	var actor_parent = actor.get_parent() as Node2D
-	var origin: Vector2 = actor.position
-
-	if start_position is Vector2:
-		origin = start_position
-
+	var origin := MoveToPointAction.resolve_start_position(actor, start_position)
 	var local_origin = to_local(actor_parent.to_global(origin))
 	var exit_position = _get_lower_deck_exit_position(actor)
 
@@ -33,13 +29,9 @@ func contains_actor(actor: Node2D, tolerance := 1.0) -> bool:
 
 	var local_position = to_local(actor.global_position)
 
-	if Geometry2D.is_point_in_polygon(local_position, zone_polygon):
-		return true
-
-	return local_position.distance_to(_closest_border_point(local_position)) <= tolerance
+	return Geometry2D.is_point_in_polygon(local_position, zone_polygon) or local_position.distance_to(_closest_border_point(local_position)) <= tolerance
 
 
-## Nearest point anywhere on the zone's outline, in zone-local space.
 func _closest_border_point(local_position: Vector2) -> Vector2:
 	var closest: Vector2 = zone_polygon[0]
 	var closest_distance := INF

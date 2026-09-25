@@ -1,8 +1,6 @@
 extends ActionDefinition
 class_name KnockMastLooseAction
 
-## Lets a propped mast go, from the sail lines.
-
 
 func _init() -> void:
 

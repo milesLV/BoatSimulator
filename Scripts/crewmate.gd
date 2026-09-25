@@ -1,8 +1,6 @@
 class_name Crewmate
 extends Node2D
 
-signal location_changed(deck)
-
 const RUN_SPEED := 100.0
 const DEFAULT_ACTION_IDLE_DELAY := 3.0
 const MAX_BUCKET_AMOUNT := 50.0
@@ -14,20 +12,14 @@ const SAIL_CONTACT_ALPHA := 0.50
 @onready var action_executor = $ActionExecutor
 @onready var ship: Sloop = get_parent()
 @onready var body = $Body
-@onready var sail: Sprite2D = ship.get_node("Sail")
 
 var location := -1
-var transition_to_deck := -1
 var bucket_amount := 0.0
-## What a cannon they man aims at; set from the C menu.
-var aim_target := Cannon.AimTarget.HULL
-## What they load a cannon they man with; set from the 1 and 2 keys and their menus.
+var aim_target := Cannon.AimTarget.WHEEL # TODO: back to HULL after wheel-damage testing
 var ammo := Ammunition.CANNONBALL
 var _idle_time := 0.0
 
 func _ready() -> void:
-
-	location_changed.connect(body.set_location)
 
 	await get_tree().process_frame
 	_try_default_action()
@@ -51,7 +43,7 @@ func _update_sail_contact_alpha() -> void:
 
 	var touching_sail := (
 		location == DeckGraph.DECKS.MAIN
-		and sail.get_rect().has_point(sail.to_local(global_position))
+		and ship.sail.get_rect().has_point(ship.sail.to_local(global_position))
 	)
 
 	modulate.a = SAIL_CONTACT_ALPHA if touching_sail else 1.0
@@ -59,61 +51,32 @@ func _update_sail_contact_alpha() -> void:
 
 func set_location(new_location: int) -> void:
 
-	clear_deck_transition()
-
 	if location == new_location:
 		return
 
 	location = new_location
-	location_changed.emit(location)
-
-
-func begin_deck_transition(from_deck: int, to_deck: int) -> void:
-	if location != from_deck:
-		set_location(from_deck)
-
-	transition_to_deck = to_deck
-
-
-func complete_deck_transition() -> void:
-
-	if transition_to_deck != -1:
-		set_location(transition_to_deck)
-
-
-func clear_deck_transition() -> void:
-
-	transition_to_deck = -1
+	body.set_location(location)
 
 
 func _can_run_default_action() -> bool:
 
 	return (
 		not ship.is_sunk()
-		and _has_default_action()
-		and not ship.repair_duty_controller.is_repair_duty_crewmate(self)
+		and (default_station_name != StringName() or defaults_to_cannon_duty)
+		and not ship.repair_duty_controller.active_crewmates.has(self)
 		and not action_executor.has_actions()
-		and not ship.is_crewmate_selected(self)
+		and ship.current_crewmate != self
 	)
-
-
-func _has_default_action() -> bool:
-
-	return default_station_name != StringName() or defaults_to_cannon_duty
 
 
 func _default_action_is_satisfied() -> bool:
 
-	if defaults_to_cannon_duty and ship.cannon_duty_controller.is_duty_crewmate(self):
-		return true
-
 	return (
-		default_station_name != StringName()
-		and ship.station_controller.get_operator_by_name(default_station_name) == self
+		(defaults_to_cannon_duty and ship.cannon_duty_controller.is_duty_crewmate(self))
+		or (default_station_name != StringName() and ship.station_controller.get_operator_by_name(default_station_name) == self)
 	)
 
 
-## Requests the default duty unless the crewmate is already doing it.
 func _try_default_action() -> void:
 
 	if _default_action_is_satisfied():
@@ -128,8 +91,7 @@ func _try_default_action() -> void:
 	_idle_time = 0.0
 
 
-# A bound Callable compares equal to any identical rebuild, so this finds the
-# connection made from the same crewmate without a handler cache.
+# A rebuilt bound Callable compares equal, so no handler cache is needed to find the connection.
 static func set_queue_finished_listener(
 	crewmate: Crewmate,
 	handler: Callable,

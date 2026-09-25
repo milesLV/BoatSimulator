@@ -1,30 +1,18 @@
 class_name AimForHoles
 extends RefCounted
 
-## Pick a specific hole worth damaging, aim at it, and decide whether firing
-## right now is actually the best use of the ball.
-##
-## Value of a ball is the flood rate it buys: how many grade points it lands (the clamp at 5
-## makes topping up a partly-open hole worth less than opening a fresh one) weighted by how
-## fast that deck actually floods. A lower-deck hole is worth several times a mid-deck one
-## while the target is dry, and that advantage fades on its own as its water rises.
+## Picks which hole to shoot at, and whether firing now is the best use of the ball.
 
-## A better-scoring hole is worth waiting for, but only this long past when we could
-## otherwise have fired.
+## Seconds past the earliest possible shot worth waiting for a better-scoring hole.
 const DECK_HOLD_TOLERANCE := 0.25
 
-## A ball must land at least this long after a hole comes into view, so we are not betting
-## on an exposure that lasts a single frame.
+## Seconds a hole must have been in view before the ball lands.
 const EXPOSURE_INSURANCE := 0.3
 
-# ponytail: the anticipation scan is a linear walk of horizon/step samples against every
-# hole. It only runs when nothing is currently damageable, so it stays off the hot path.
 const ANTICIPATION_HORIZON := 8.0
 const ANTICIPATION_STEP := 0.2
 
-## SloopCollision's outline in ship space, with the node's own rotation and 0.58 scale already
-## applied, wound bow-ward down the starboard side. test_aim_for_holes checks it still matches
-## the scene, a copy being a copy.
+## Copy of SloopCollision's outline in ship space; test_aim_for_holes checks it still matches.
 const HULL := [
 	Vector2(-150.8, 0.0), Vector2(-139.2, 29.0), Vector2(-104.4, 43.5), Vector2(-72.5, 43.5),
 	Vector2(-34.8, 49.3), Vector2(0.0, 52.2), Vector2(31.9, 49.3), Vector2(89.9, 20.3),
@@ -33,13 +21,9 @@ const HULL := [
 	Vector2(-104.4, -43.5), Vector2(-139.2, -29.0),
 ]
 
-# ponytail: a hole seen edge-on is behind its own hull. The cosine against the hull's real
-# normal stands in for a full occlusion test; trace the segment against HULL if it ever
-# misjudges.
 const MIN_EXPOSURE := 0.35 # ~70 degrees off the hole's own normal
 
-# ponytail: keyed on the rounded local position - holes never move in ship space, but to_local
-# hands back a slightly different float every frame, which would miss an exact key every time.
+# Keyed on rounded positions: to_local returns slightly different floats every frame.
 static var _normals := {}
 static var _footprints := {}
 
@@ -49,11 +33,9 @@ static func _static_init() -> void:
 		_self_check()
 
 
-## Returns {aim_point, hole, fire_now}. [code]hole[/code] is null when falling back to the
-## target's centre; [code]fire_now[/code] false means hold a loaded gun and keep slewing.
+## Returns {aim_point, hole (null = target centre), fire_now (false = hold and keep slewing)}.
 static func pick_shot(cannon: Cannon, shooter: Node2D, target: Node2D) -> Dictionary:
 
-	var centre_shot = {"aim_point": target.global_position, "hole": null, "fire_now": true}
 	var target_now = {"position": target.global_position, "rotation": target.rotation}
 	var cannon_now = cannon_state(cannon, shooter, {
 		"position": shooter.global_position,
@@ -66,7 +48,7 @@ static func pick_shot(cannon: Cannon, shooter: Node2D, target: Node2D) -> Dictio
 	for hole in target.action_points.hull_holes:
 		var candidate = {"hole": hole, "local": target.to_local(hole.global_position)}
 
-		if not is_hittable(cannon_now, candidate["local"], target_now, cannon.max_range):
+		if not is_hittable(cannon_now, candidate["local"], target_now, cannon.ammo.max_range):
 			continue
 
 		candidate["point"] = _world_position(candidate["local"], target_now)
@@ -79,11 +61,9 @@ static func pick_shot(cannon: Cannon, shooter: Node2D, target: Node2D) -> Dictio
 	if not damageable.is_empty():
 		return _pick_damageable(cannon, target, damageable)
 
-	return _anticipate(cannon, shooter, target, spent, centre_shot)
+	return _anticipate(cannon, shooter, target, spent)
 
 
-## Take the best-scoring hole when the barrel can be on it soon enough, otherwise take
-## whatever is nearest — a hole the gun cannot reach in time is worth nothing.
 static func _pick_damageable(
 	cannon: Cannon,
 	target: Node2D,
@@ -97,12 +77,9 @@ static func _pick_damageable(
 		target.health_system.get_deck_efficiency(candidate["hole"].deck),
 		cannon.ammo.hole_damage
 	)
-	var range_to := func(candidate): return candidate["point"].distance_to(cannon_position)
 
 	var best = damageable.reduce(func(a, b): return b if score.call(b) > score.call(a) else a)
-	var nearest = damageable.reduce(
-		func(a, b): return b if range_to.call(b) < range_to.call(a) else a
-	)
+	var nearest = _nearest(damageable, cannon_position)
 
 	var ready_in = _ready_in(cannon)
 
@@ -115,23 +92,16 @@ static func _pick_damageable(
 	return {"aim_point": shot["point"], "hole": shot["hole"], "fire_now": true}
 
 
-## Everything in view is spent. Work out whether the two ships are about to turn a fresh
-## hole into the open, and whether a ball can be put on it late enough to count.
+## Everything in view is spent, so aim for a fresh hole about to come into view.
 static func _anticipate(
 	cannon: Cannon,
 	shooter: Node2D,
 	target: Node2D,
-	spent: Array[Dictionary],
-	centre_shot: Dictionary
+	spent: Array[Dictionary]
 ) -> Dictionary:
 
-	var cannon_position = cannon.global_position
-	var closest = spent.reduce(func(a, b): return (
-		b
-		if b["point"].distance_to(cannon_position) < a["point"].distance_to(cannon_position)
-		else a
-	))
-	var spent_shot = centre_shot if closest == null else {
+	var closest = _nearest(spent, cannon.global_position)
+	var spent_shot = {"aim_point": target.global_position, "hole": null, "fire_now": true} if closest == null else {
 		"aim_point": closest["point"], "hole": closest["hole"], "fire_now": true
 	}
 
@@ -142,24 +112,20 @@ static func _anticipate(
 
 	var aim_point: Vector2 = exposure["aim_point"]
 
-	# measured from where the gun will be by then, not where it stands now
 	var to_aim = aim_point - exposure["cannon_position"]
 	var deadline = float(exposure["time"]) + EXPOSURE_INSURANCE
 	var anticipated = {"aim_point": aim_point, "hole": exposure["hole"], "fire_now": false}
 
-	# firing at the first chance we get still lands late enough to count: take the shot
 	if _arrival(cannon, _ready_in(cannon), to_aim) >= deadline:
 		anticipated["fire_now"] = true
 		return anticipated
 
-	# too early. The slack is worth a shot at a spent hole only if the reload after it still
-	# leaves the anticipated shot late enough; otherwise sit on the aim and wait.
+	# Too early: spend the wait on a spent hole only if the reload still makes the deadline.
 	var after_reload = _arrival(cannon, ReloadCannonAction.RELOAD_DURATION, to_aim)
 
 	return spent_shot if after_reload >= deadline else anticipated
 
 
-## First moment inside the horizon at which a hole worth damaging is in view, if any.
 static func _first_exposure(cannon: Cannon, shooter: Node2D, target: Node2D) -> Dictionary:
 
 	var shooter_states = shooter.motion_predictor.series(
@@ -179,7 +145,7 @@ static func _first_exposure(cannon: Cannon, shooter: Node2D, target: Node2D) -> 
 
 			var local = target.to_local(hole.global_position)
 
-			if not is_hittable(future_cannon, local, target_states[index], cannon.max_range):
+			if not is_hittable(future_cannon, local, target_states[index], cannon.ammo.max_range):
 				continue
 
 			return {
@@ -192,7 +158,11 @@ static func _first_exposure(cannon: Cannon, shooter: Node2D, target: Node2D) -> 
 	return {}
 
 
-## Where the cannon's muzzle sits and which way its mount faces, for a given ship state.
+static func _nearest(candidates: Array, from: Vector2):
+
+	return candidates.reduce(func(a, b): return b if b["point"].distance_to(from) < a["point"].distance_to(from) else a)
+
+
 static func cannon_state(cannon: Cannon, shooter: Node2D, ship_state: Dictionary) -> Dictionary:
 
 	var mount_offset = shooter.to_local(cannon.global_position)
@@ -203,8 +173,6 @@ static func cannon_state(cannon: Cannon, shooter: Node2D, ship_state: Dictionary
 	}
 
 
-## A hole is worth shooting at only if it faces us squarely enough, sits inside the mount's
-## arc, and is close enough to reach.
 static func is_hittable(
 	cannon_now: Dictionary,
 	hole_local: Vector2,
@@ -227,10 +195,7 @@ static func is_hittable(
 	return Cannon.arc_contains(cannon_now["rotation"], -to_cannon)
 
 
-## Which way a hole faces, in ship space: the hull's outward normal where it is cut, blended
-## from the panels around it by inverse square distance. The blend is what gives the bow hole a
-## forward normal - both bow panels pull on it equally - and the shoulder holes one that is half
-## forward, which is the difference between a shot and a graze on a bow-on target.
+## Hull normals blended by inverse square distance, so the bow hole faces forward.
 static func outward_normal(hole_local: Vector2) -> Vector2:
 
 	var key = hole_local.round()
@@ -252,16 +217,13 @@ static func outward_normal(hole_local: Vector2) -> Vector2:
 	return _normals[key]
 
 
-## Where a hole breaks the surface: out along its own normal to the hull outline. The nodes sit
-## anywhere from 10 to 70px inside the plating, so this is the only point on a hole that a ball
-## can actually strike, and the only one worth measuring an impact against.
+## Where a hole breaks the hull surface; the hole nodes sit 10-70px inside the plating.
 static func hull_footprint(hole_local: Vector2) -> Vector2:
 
 	var key = hole_local.round()
 
 	if not _footprints.has(key):
-		# 400 is longer than the ship, so the ray always clears the hull and the clip is the
-		# stretch of it still inside - ending exactly where the hole breaks the surface
+		# 400 is longer than the ship, so the clipped ray ends where it exits the hull
 		var ray = PackedVector2Array([key, key + outward_normal(key) * 400.0])
 		var inside = Geometry2D.intersect_polyline_with_polygon(ray, PackedVector2Array(HULL))
 
@@ -270,9 +232,7 @@ static func hull_footprint(hole_local: Vector2) -> Vector2:
 	return _footprints[key]
 
 
-# ponytail: defaults are a cannonball's, written out because the self-check runs before
-# Ammunition's statics exist.
-## Flood rate bought by one ball: grade points landed, weighted by how fast that deck floods.
+# Default is a cannonball's damage; Ammunition's statics don't exist yet when _self_check runs.
 static func score_for(grade: int, deck_efficiency: float, damage := 3) -> float:
 
 	return mini(damage, ShipHolePoint.MAX_GRADE - grade) * deck_efficiency
@@ -290,14 +250,12 @@ static func _slew_time(cannon: Cannon, aim_direction: Vector2) -> float:
 	return absf(barrel.angle_to(aim_direction)) / Cannon.ROTATION_SPEED
 
 
-## Seconds until the gun is loaded again, asked of the gunner working it. Cannons only track
-## a target while the duty controller exists, so it is always there to ask.
+# Cannons only track a target while the duty controller exists.
 static func _ready_in(cannon: Cannon) -> float:
 
 	return cannon.get_parent().cannon_duty_controller.get_reload_remaining(cannon)
 
 
-## When a ball would land, given the earliest the gun could go off.
 static func _arrival(cannon: Cannon, fire_delay: float, to_aim: Vector2) -> float:
 
 	return (
@@ -308,33 +266,21 @@ static func _arrival(cannon: Cannon, fire_delay: float, to_aim: Vector2) -> floa
 
 static func _self_check() -> void:
 
-	# holes face out the side they are cut into; the bow hole faces forward
 	assert(outward_normal(Vector2(-63.0, -29.0)).dot(Vector2.UP) > 0.9)
 	assert(outward_normal(Vector2(-63.0, 29.0)).dot(Vector2.DOWN) > 0.9)
 	assert(outward_normal(Vector2(80.0, 0.0)).dot(Vector2.RIGHT) > 0.99)
 
-	# and the bow shoulder faces half forward, which is what makes it a shot when bow-on
 	assert(outward_normal(Vector2(67.0, -20.0)).dot(Vector2.RIGHT) > MIN_EXPOSURE)
 
-	# the bow hole surfaces at the stem, 69px ahead of its own node; the shoulder 10px out
 	assert(hull_footprint(Vector2(80.0, 0.0)).distance_to(Vector2(149.06, 0.0)) < 1.0)
 	assert(hull_footprint(Vector2(67.0, 20.0)).distance_to(Vector2(72.1, 29.2)) < 1.0)
 
 	var lower = ShipHealthSystem.STILL_LOWER_HOLE_EFFICIENCY
 	var mid = ShipHealthSystem.STILL_MID_HOLE_EFFICIENCY
 
-	# while the target is dry: open a fresh lower hole, then finish it, before touching the mid deck
 	assert(score_for(0, lower) > score_for(3, lower))
 	assert(score_for(3, lower) > score_for(0, mid))
 
-	# once its mid deck is under water both decks flood alike, so that last ordering flips
-	# and a fresh mid hole outranks topping up a lower one
-	var flooded_mid = lower
-
-	assert(score_for(0, flooded_mid) > score_for(3, lower))
-
-	# topping a hole up beats scraping the last point off it
 	assert(score_for(3, lower) > score_for(4, lower))
 
-	# a spent hole is worth nothing at all
 	assert(is_zero_approx(score_for(ShipHolePoint.MAX_GRADE, lower)))

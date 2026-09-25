@@ -1,5 +1,8 @@
 extends Polygon2D
 
+## Wider than any hull, so the clip box only ever cuts along the waterline.
+const INF_EXTENT := 100000.0
+
 var full_polygon := PackedVector2Array()
 var min_y := 0.0
 var max_y := 0.0
@@ -33,27 +36,11 @@ func set_fill(fill: float) -> void:
 		polygon = PackedVector2Array()
 		return
 
-	polygon = _clip_below(full_polygon, lerp(max_y, min_y, minf(fill, 1.0)))
+	var waterline: float = lerp(max_y, min_y, minf(fill, 1.0))
+	var below := PackedVector2Array([
+		Vector2(-INF_EXTENT, waterline), Vector2(INF_EXTENT, waterline),
+		Vector2(INF_EXTENT, max_y), Vector2(-INF_EXTENT, max_y),
+	])
+	var clipped := Geometry2D.intersect_polygons(full_polygon, below)
 
-
-func _clip_below(points: PackedVector2Array, waterline: float) -> PackedVector2Array:
-
-	var result := PackedVector2Array()
-	var previous = points[-1]
-	var previous_inside = previous.y >= waterline
-
-	for current in points:
-		var current_inside = current.y >= waterline
-
-		if current_inside != previous_inside:
-			result.append(
-				previous.lerp(current, (waterline - previous.y) / (current.y - previous.y))
-			)
-
-		if current_inside:
-			result.append(current)
-
-		previous = current
-		previous_inside = current_inside
-
-	return result
+	polygon = clipped[0] if not clipped.is_empty() else PackedVector2Array()

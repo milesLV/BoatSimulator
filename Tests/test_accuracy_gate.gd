@@ -1,13 +1,6 @@
 extends "res://Tests/harness.gd"
 
-# godot --headless --script Tests/test_accuracy_gate.gd
-#
-# The gate end to end, with real cannonballs and real collisions: a missing ball has to pass
-# through, a hitting ball has to damage the hole the gunner picked, and the fraction that hit
-# has to be the fraction the model asked for.
-#
-# Ships are left processing here rather than disabled, so their collision stays live for the
-# Area2D. They have no sail set and no target, so they sit still.
+# Ships keep processing so their collision stays live for the ball's Area2D.
 
 const SAMPLES := 300
 const FREQUENCY_TOLERANCE := 0.10 # ~4 standard errors at n = 300
@@ -27,23 +20,11 @@ func _run() -> void:
 	finish("test_accuracy_gate")
 
 
-# --- helpers ------------------------------------------------------------------------------
-
-
-func _total_grade(ship: Sloop) -> int:
-
-	return ship.action_points.holes.reduce(func(total, hole): return total + hole.grade, 0)
-
-
-# --- the tests ----------------------------------------------------------------------------
-
-
-## The gate is the whole point: a shot the roll said missed goes straight through the hull.
 func _test_miss_passes_through() -> void:
 
 	var ship = await spawn_frozen_ship()
 
-	# this shot runs straight over the mast, which is test_mast's business, not the gate's
+	# this shot crosses the mast; mast strikes are test_mast's concern
 	var mast_chance = Cannonball.mast_strike_chance
 	Cannonball.mast_strike_chance = 0.0
 
@@ -54,20 +35,18 @@ func _test_miss_passes_through() -> void:
 
 	Cannonball.mast_strike_chance = mast_chance
 
-	check(_total_grade(ship) == 0)
+	check(grade_sum(ship.action_points.holes) == 0)
 	check(Cannonball.shots_hit == before)
 
 	await despawn(ship)
 
 
-## And a shot that connects damages the hole nearest where it struck, whatever the gunner had
-## picked - a hole the far end of the hull is the ball phasing through it.
 func _test_impact_decides_the_hole() -> void:
 
 	var ship = await spawn_frozen_ship()
 	var far_end: ShipHolePoint = ship.action_points.get_point(&"HolePort1")
 
-	# the ball comes in amidships, a long way from the stern
+	# the ball comes in amidships
 	var struck = ship.action_points.get_closest_hole(ship.global_position + Vector2(0.0, -52.0))
 
 	check(struck != far_end, "the test aimed at the hole it means to rule out")
@@ -79,12 +58,11 @@ func _test_impact_decides_the_hole() -> void:
 		"%s took %d" % [struck.name, struck.grade]
 	)
 	check(far_end.grade == 0, "a hole the far end of the hull took the damage")
-	check(_total_grade(ship) == Ammunition.CANNONBALL.hole_damage)
+	check(grade_sum(ship.action_points.holes) == Ammunition.CANNONBALL.hole_damage)
 
 	await despawn(ship)
 
 
-## A hole at its cap swallows the shot: the damage does not spill onto the next hole along.
 func _test_a_capped_hole_absorbs_nothing() -> void:
 
 	var ship = await spawn_frozen_ship()
@@ -95,18 +73,16 @@ func _test_a_capped_hole_absorbs_nothing() -> void:
 
 	struck.set_grade(ShipHolePoint.MAX_GRADE)
 
-	var before = _total_grade(ship)
+	var before = grade_sum(ship.action_points.holes)
 
 	await frames_until_gone(spawn_ball(ship, true))
 
-	check(_total_grade(ship) == before, "the shot spilled past %s" % struck.name)
+	check(grade_sum(ship.action_points.holes) == before, "the shot spilled past %s" % struck.name)
 
 	await despawn(ship)
 
 
-## Seen in a playtest: a ball graded a hole on the side of the hull it never reached. The
-## gun aims at a hole that is in view when it fires (or, anticipating, one about to be), and
-## the target can turn right out from under the ball in the second it spends in the air.
+## Regression: the target can turn mid-flight, so the aimed hole may end up on the far side.
 func _test_far_side_hole_is_not_graded() -> void:
 
 	var ship = await spawn_frozen_ship()
@@ -122,8 +98,8 @@ func _test_far_side_hole_is_not_graded() -> void:
 
 	check(far_side.grade == 0, "the far-side hole took the damage: grade %d" % far_side.grade)
 	check(
-		_total_grade(ship) == Ammunition.CANNONBALL.hole_damage,
-		"the hit went nowhere: total grade %d" % _total_grade(ship)
+		grade_sum(ship.action_points.holes) == Ammunition.CANNONBALL.hole_damage,
+		"the hit went nowhere: total grade %d" % grade_sum(ship.action_points.holes)
 	)
 
 	for hole in ship.action_points.holes:
@@ -135,9 +111,7 @@ func _test_far_side_hole_is_not_graded() -> void:
 	await despawn(ship)
 
 
-## Both halves of the bow, reported from play one after the other: a ball into the starboard
-## shoulder belongs to HoleStarb9, not to HoleBow buried 69px back in the stem, and a ball into
-## the protruding bow itself belongs to HoleBow, not to the shoulders either side of it.
+## Regression: HoleBow sits 69px back in the stem, so nearest-node lookup stole shoulder hits.
 func _test_the_shoulder_is_not_the_stem() -> void:
 
 	var ship = await spawn_frozen_ship()
@@ -149,7 +123,6 @@ func _test_the_shoulder_is_not_the_stem() -> void:
 
 	await despawn(ship)
 
-	# down the centreline and onto the forefoot either side of it: all three are the bow hole
 	for offset in [0.0, 6.0, -6.0]:
 		ship = await spawn_frozen_ship()
 
@@ -168,8 +141,6 @@ func _test_the_shoulder_is_not_the_stem() -> void:
 		await despawn(ship)
 
 
-## Fire the same shot a few hundred times and count. If fire() were wired to anything other
-## than the model - a constant, the wrong ship's speed - the fraction would not land here.
 func _test_observed_frequency() -> void:
 
 	seed(20260830)
@@ -180,12 +151,12 @@ func _test_observed_frequency() -> void:
 	target.velocity = Vector2(300.0, 0.0)
 
 	var cannon: Cannon = shooter.cannons.filter(
-		func(candidate): return candidate.broadside == CannonSide.Value.STARBOARD
+		func(candidate): return candidate.broadside == Cannon.Side.STARBOARD
 	).front()
 
 	var expected = CannonAccuracy.for_shot(cannon, shooter, target)
 
-	# a middling shot, so the count can actually tell the model from a constant
+	# a middling chance, so the count can tell the model from a constant
 	check(expected > 0.1 and expected < 0.9)
 
 	var hits := 0

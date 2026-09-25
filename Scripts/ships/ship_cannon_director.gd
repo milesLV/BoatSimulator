@@ -26,24 +26,21 @@ func update_active_cannon(tracking_enabled: bool) -> void:
 		clear_active_cannons()
 		return
 
-	var port_closest = _get_closest_distance(CannonSide.Value.PORT)
-	var starboard_closest = _get_closest_distance(CannonSide.Value.STARBOARD)
+	var port_closest = _get_closest_distance(Cannon.Side.PORT)
+	var starboard_closest = _get_closest_distance(Cannon.Side.STARBOARD)
 
 	if port_closest == INF and starboard_closest == INF:
 		active_broadside = -1
 	elif abs(port_closest - starboard_closest) <= SIDE_TIE_EPSILON:
 		if active_broadside == -1:
-			active_broadside = CannonSide.Value.PORT
+			active_broadside = Cannon.Side.PORT
 	elif port_closest < starboard_closest:
-		active_broadside = CannonSide.Value.PORT
+		active_broadside = Cannon.Side.PORT
 	else:
-		active_broadside = CannonSide.Value.STARBOARD
+		active_broadside = Cannon.Side.STARBOARD
 
 	for cannon in cannons:
-		var is_active_broadside = tracking_enabled and cannon.broadside == active_broadside
-
-		cannon.tracking_enabled = is_active_broadside
-		cannon.tracking_target = target_ship if is_active_broadside else null
+		cannon.tracking_target = target_ship if tracking_enabled and cannon.broadside == active_broadside else null
 
 
 ## Distance from the target to the nearest cannon on [param side], INF when it has none.
@@ -63,7 +60,6 @@ func clear_active_cannons() -> void:
 	active_broadside = -1
 
 	for cannon in cannons:
-		cannon.tracking_enabled = false
 		cannon.tracking_target = null
 
 

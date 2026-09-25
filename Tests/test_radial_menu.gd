@@ -1,9 +1,5 @@
 extends "res://Tests/harness.gd"
 
-# godot --headless --script Tests/test_radial_menu.gd
-#
-# Which section the mouse is over: 0 straight up, counting clockwise, -1 off the ring.
-
 
 func _run() -> void:
 
@@ -22,13 +18,12 @@ func _run() -> void:
 	check(RadialMenu.sector_at(Vector2.RIGHT * (RadialMenu.DEAD_ZONE - 1.0), 5) == -1, "the dead zone picked")
 	check(RadialMenu.sector_at(Vector2.RIGHT * (RadialMenu.RADIUS + 1.0), 5) == -1, "outside the ring picked")
 
-	# a label too wide for its section breaks between words; a word that cannot fit shrinks
 	var menu := RadialMenu.new()
 	var label := Label.new()
 	menu.add_child(label)
 	root.add_child(menu)
 
-	# the left half of a two-way ring: a wide label wraps rather than running off the rim
+	# the left half of a two-way ring
 	var mid := Vector2.LEFT * RadialMenu.LABEL_RADIUS
 	menu._fit(label, RadialMenu.AMPLIFIED_PREFIX + "Fire at mast", mid, 0, 2)
 	var half := label.get_minimum_size() / 2.0

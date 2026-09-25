@@ -1,15 +1,13 @@
 extends CanvasLayer
 
-## Distance from the screen edge to the medallion centre.
-## Left at 0 it is derived from the arrow's reach, so the arrow stays on screen.
+## Screen edge to medallion centre; 0 derives it from the arrow's reach.
 @export var edge_padding: float = 0.0
 ## Render target size, in pixels, for each boat view.
 @export var view_px: int = 160
-## Used when a ship has no CollisionPolygon2D to measure; guards the zoom divide.
+## For a ship with no CollisionPolygon2D to measure.
 const DEFAULT_HULL_RADIUS := 150.0
 
-## How far past the screen edge, in screen pixels, a boat has to be before its
-## arrow reaches full opacity. Right on the edge the arrow is 99% transparent.
+## Screen pixels past the edge before the arrow is fully opaque.
 const ARROW_FADE_DISTANCE := 400.0
 const ARROW_MIN_ALPHA := 0.01
 
@@ -72,21 +70,17 @@ static func project_to_edge(screen_pos: Vector2, rect: Rect2, padding: float) ->
 	return centre + d * minf(q.x, q.y)
 
 
-## Shortest distance from `point` to the inside of `rect`; 0 when it is within.
 static func distance_outside_rect(point: Vector2, rect: Rect2) -> float:
 
 	return (rect.position - point).max(point - rect.end).max(Vector2.ZERO).length()
 
 
-## Arrow opacity: barely there as the boat slips off the edge, solid once it is
-## `ARROW_FADE_DISTANCE` beyond it.
 static func arrow_alpha(edge_distance: float) -> float:
 
 	return lerpf(ARROW_MIN_ALPHA, 1.0, clampf(edge_distance / ARROW_FADE_DISTANCE, 0.0, 1.0))
 
 
-## Where the arrow sits and how it is turned, keeping its authored radius and
-## art direction, so that it points from the medallion towards `target`.
+## Returns [position, rotation] swinging the arrow round the medallion toward `target`.
 static func place_arrow(medallion_pos: Vector2, target: Vector2, arrow_offset: Vector2, base_rotation: float) -> Array:
 
 	var to_target := target - medallion_pos
@@ -178,15 +172,12 @@ func _update_indicator(indicator: Dictionary, ship: Node2D, xform: Transform2D, 
 		sprite.show()
 
 
-## Puts the whole ship on its own visibility layer, leaving the cannon range
-## cones behind on the default one so they never reach the medallion.
+## Cannon range cones stay on the default layer so they never reach the medallion.
 func _assign_visibility_layer(ship: Node2D, mask: int) -> void:
 
 	_set_subtree_layer(ship, mask)
 
-	# Godot only draws a CanvasItem when it *and every ancestor* share a bit with
-	# the viewport's cull mask, so the ship's parents have to carry the bit too.
-	# They keep their own bits, so the main view is unaffected.
+	# Godot only draws an item when every ancestor also shares a bit with the cull mask
 	var ancestor := ship.get_parent()
 
 	while ancestor is CanvasItem:

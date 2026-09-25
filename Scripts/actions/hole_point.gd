@@ -6,14 +6,8 @@ signal grade_changed(hole: ShipHolePoint, old_grade: int, new_grade: int)
 const MIN_GRADE := 0
 const MAX_GRADE := 5
 const DEBUG_RADIUS := 5.0
-## Flip to true to draw each hole's estimated repair trip time above it.
-const SHOW_REPAIR_TRIP_DEBUG := false
-const DEBUG_TRIP_LABEL_OFFSET := Vector2(0.0, -12.0)
-const DEBUG_TRIP_FONT_SIZE := 12
-const DEBUG_TRIP_COLOR := Color(0.1, 0.35, 1.0)
 
-# ColorBrewer 5-class YlOrRd (colorbrewer2.org). A hole with fewer grades uses the darkest end,
-# so a hole at its max_grade is always the same red however far it can open.
+# ColorBrewer 5-class YlOrRd; a hole at its max_grade is always the darkest red.
 const GRADE_COLORS: Array[Color] = [
 	Color("ffffb2"),
 	Color("fecc5c"),
@@ -22,10 +16,9 @@ const GRADE_COLORS: Array[Color] = [
 	Color("bd0026"),
 ]
 
-@export_range(MIN_GRADE, MAX_GRADE) # exporting just for now for testing, delete later
-var grade: int = MIN_GRADE # default = no hole
+@export_range(MIN_GRADE, MAX_GRADE) # TODO: stop exporting once testing is done
+var grade: int = MIN_GRADE
 
-## How far this hole can be opened. [MastHole] caps at 1; hull holes go the whole way.
 @export_range(MIN_GRADE, MAX_GRADE) var max_grade: int = MAX_GRADE
 
 
@@ -37,18 +30,8 @@ func _draw() -> void:
 	draw_circle(
 		Vector2.ZERO,
 		DEBUG_RADIUS * DeckGraph.DECK_SIZE_SCALE[deck],
-		Color(GRADE_COLORS[GRADE_COLORS.size() - 1 - (max_grade - grade)], DeckGraph.DECK_ALPHA[deck])
+		Color(GRADE_COLORS[grade - max_grade - 1], DeckGraph.DECK_ALPHA[deck])
 	)
-
-	if SHOW_REPAIR_TRIP_DEBUG:
-		_draw_repair_trip_debug_label()
-
-
-## Only the trip label changes between grade changes, so this idles without it.
-func _process(_delta: float) -> void:
-
-	if SHOW_REPAIR_TRIP_DEBUG and grade > MIN_GRADE:
-		queue_redraw()
 
 
 func set_grade(new_grade: int) -> void:
@@ -63,36 +46,9 @@ func set_grade(new_grade: int) -> void:
 	queue_redraw()
 
 
-## Seconds of work to patch this hole as it stands now.
 func repair_duration() -> float:
 
 	return float(grade) + RepairHoleAction.EXTRA_REPAIR_SECONDS
-
-
-func _draw_repair_trip_debug_label() -> void:
-
-	var font = ThemeDB.get_fallback_font()
-	var label = _get_repair_trip_debug_text()
-	var text_width = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, DEBUG_TRIP_FONT_SIZE).x
-	var label_position = DEBUG_TRIP_LABEL_OFFSET - Vector2(text_width / 2.0, DEBUG_RADIUS)
-
-	draw_string(font, label_position, label, HORIZONTAL_ALIGNMENT_LEFT, -1.0, DEBUG_TRIP_FONT_SIZE, DEBUG_TRIP_COLOR)
-
-
-func _get_repair_trip_debug_text() -> String:
-
-	var ship = _get_ship()
-
-	if ship == null:
-		return "--"
-
-	var crewmate = ship.get_current_crewmate()
-
-	if crewmate == null:
-		return "--"
-
-	# an unreachable hole's INF prints as "inf"
-	return "%.1f" % ship.action_planner.estimate_repair_trip(crewmate, self)["total_time"]
 
 
 func _get_ship() -> Sloop:

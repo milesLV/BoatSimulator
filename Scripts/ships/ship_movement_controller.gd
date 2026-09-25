@@ -3,6 +3,8 @@ extends RefCounted
 
 const MAX_WHEEL_TURN := 2 * TAU
 const WHEEL_TURN_SPEED := 2.0
+## Turn speed each open wheel hole takes off: WHEEL_TURN_SPEED / 8, so four holes halve it.
+const WHEEL_DAMAGE_SLOWDOWN := 0.25
 const BOAT_TURN_SPEED := 1.5
 
 const BASE_SAIL_ANGLE = deg_to_rad(90)
@@ -12,11 +14,7 @@ const SAIL_SPEED := 40.0
 const MAX_VELOCITY := 300.0
 const ACCELERATION := 60.0
 
-var ship: CharacterBody2D
-var sail: Node2D
-var station_controller: ShipStationController
-var anchor_system: AnchorSystem
-var mast_system: MastSystem
+var ship: Sloop
 
 var wheel_rotation := 0.0
 var sail_length := 0.0
@@ -28,26 +26,30 @@ var sail_input := 0.0
 var sail_rotation_input := 0.0
 
 
-func _init(
-	new_ship: CharacterBody2D,
-	new_sail: Node2D,
-	new_station_controller: ShipStationController,
-	new_anchor_system: AnchorSystem,
-	new_mast_system: MastSystem
-) -> void:
+func _init(new_ship: Sloop) -> void:
 
 	ship = new_ship
-	sail = new_sail
-	station_controller = new_station_controller
-	anchor_system = new_anchor_system
-	mast_system = new_mast_system
 
 
-## The wheel after [param step] seconds of holding [param turn]. It stops dead at the
-## stops, which is what makes a turn flatten out instead of tightening forever.
-static func advance_wheel(wheel: float, turn: float, step: float) -> float:
+## Clamped at the stops, so a held turn flattens out instead of tightening forever.
+static func advance_wheel(wheel: float, turn: float, step: float, damage := 0) -> float:
 
-	return clamp(wheel + turn * WHEEL_TURN_SPEED * step, -MAX_WHEEL_TURN, MAX_WHEEL_TURN)
+	return clamp(wheel + turn * (WHEEL_TURN_SPEED - damage * WHEEL_DAMAGE_SLOWDOWN) * step, -MAX_WHEEL_TURN, MAX_WHEEL_TURN)
+
+
+func wheel_damage() -> int:
+
+	return ship.action_points.wheel_holes.filter(func(hole): return hole.grade > 0).size()
+
+
+static func advance_sail(sail: float, input: float, mast: MastSystem, step: float) -> float:
+
+	return mast.fold_sails(sail, step) if mast.sails_locked() else clampf(sail + input * SAIL_SPEED * step, 0.0, 100.0)
+
+
+static func advance_speed(speed: float, sail: float, step: float) -> float:
+
+	return move_toward(speed, sail / 100.0 * MAX_VELOCITY, ACCELERATION * step)
 
 
 ## Omega is read straight off the wheel: the ship has no angular inertia of its own.
@@ -69,24 +71,23 @@ func set_input(
 
 func physics_process(delta: float) -> void:
 
-	anchor_system.physics_process(delta)
+	ship.anchor_system.physics_process(delta)
 
-	# sail input only arrives from a crewmate on the station, so this is them hauling on it
-	mast_system.physics_process(delta)
+	ship.mast_system.physics_process(delta)
 
 	_process_wheel(delta)
 	_process_ship_velocity(delta)
-	_process_sail_rotation(delta)
+	ship.sail.rotation = clampf(ship.sail.rotation + sail_rotation_input * SAIL_TURN_SPEED * delta, 0.0, 2.0 * BASE_SAIL_ANGLE)
 
 
 func _process_wheel(delta: float) -> void:
 
-	if station_controller.get_operator_by_name(&"Wheel") != null:
-		wheel_rotation = advance_wheel(wheel_rotation, turn_input, delta)
+	if ship.station_controller.get_operator_by_name(&"Wheel") != null:
+		wheel_rotation = advance_wheel(wheel_rotation, turn_input, delta, wheel_damage())
 
 	current_angular_velocity = (
-		anchor_system.damp(current_angular_velocity, delta, AnchorSystem.ANCHOR_ANGULAR_ACELERATION)
-		if anchor_system.is_holding_ship
+		ship.anchor_system.damp(current_angular_velocity, delta, AnchorSystem.ANCHOR_ANGULAR_ACELERATION)
+		if ship.anchor_system.is_holding_ship
 		else wheel_angular_velocity(wheel_rotation)
 	)
 
@@ -95,23 +96,13 @@ func _process_wheel(delta: float) -> void:
 
 func _process_ship_velocity(delta: float) -> void:
 
-	if mast_system.sails_locked():
-		sail_length = mast_system.fold_sails(sail_length, delta)
-	else:
-		sail_length = clampf(sail_length + sail_input * SAIL_SPEED * delta, 0.0, 100.0)
-
-	var target_velocity = sail_length / 100.0 * MAX_VELOCITY
+	sail_length = advance_sail(sail_length, sail_input, ship.mast_system, delta)
 
 	current_velocity = (
-		anchor_system.damp(current_velocity, delta, AnchorSystem.ANCHOR_DECELERATION)
-		if anchor_system.is_holding_ship
-		else move_toward(current_velocity, target_velocity, ACCELERATION * delta)
+		ship.anchor_system.damp(current_velocity, delta, AnchorSystem.ANCHOR_DECELERATION)
+		if ship.anchor_system.is_holding_ship
+		else advance_speed(current_velocity, sail_length, delta)
 	)
 
 	ship.velocity = Vector2.RIGHT.rotated(ship.rotation) * current_velocity
 	ship.move_and_slide()
-
-
-func _process_sail_rotation(delta: float) -> void:
-
-	sail.rotation = clampf(sail.rotation + sail_rotation_input * SAIL_TURN_SPEED * delta, 0.0, 2.0 * BASE_SAIL_ANGLE)

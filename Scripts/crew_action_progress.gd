@@ -45,12 +45,12 @@ func get_displayed_crewmate(ship):
 	if ship == null:
 		return null
 
-	var selected = ship.get_current_crewmate()
+	var selected = ship.current_crewmate
 
 	if not show_other_crewmate:
 		return selected
 
-	for crewmate in ship.get_crewmates():
+	for crewmate in ship.crewmates:
 		if crewmate != selected:
 			return crewmate
 

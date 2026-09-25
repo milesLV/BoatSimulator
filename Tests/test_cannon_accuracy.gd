@@ -1,10 +1,5 @@
 extends "res://Tests/harness.gd"
 
-# godot --headless --script Tests/test_cannon_accuracy.gd
-#
-# The probability model itself: does it move the right way with each condition, does it stay
-# a probability everywhere, and does for_shot read the conditions off the right things.
-
 const MAX_RANGE := 1200.0
 
 
@@ -19,7 +14,6 @@ func _run() -> void:
 	finish("test_cannon_accuracy")
 
 
-## Every condition the design called out has to push the number the right way.
 func _test_monotonic() -> void:
 
 	# further is harder
@@ -47,8 +41,7 @@ func _test_monotonic() -> void:
 		previous = chance
 
 
-## It is a probability for every input, including the degenerate ones. max_range 0 divides by
-## zero on the way in, so pin down what that does rather than meeting it in a playtest.
+## Includes max_range 0, which divides by zero on the way in.
 func _test_bounds() -> void:
 
 	for distance in [0.0, 1.0, 100.0, 700.0, 5000.0]:
@@ -60,42 +53,28 @@ func _test_bounds() -> void:
 					check(not is_nan(chance))
 					check(chance >= 0.0 and chance <= 1.0)
 
-	# no range to speak of: everything past the hull is a guess, not a certainty
 	check(CannonAccuracy.hit_chance(700.0, 0.0, 0.0, 0.0) < 0.01)
 
 
-## The calibration the model was built around, run here as well as at class load.
 func _test_anchors() -> void:
 
-	# point-blank at a sitting duck while under way: cannot realistically miss
 	check(CannonAccuracy.hit_chance(150.0, MAX_RANGE, 0.0, 300.0) > 0.98)
 
-	# parallel run, matched speed: the lead term vanishes, so range barely matters
 	check(CannonAccuracy.hit_chance(600.0, MAX_RANGE, 0.0, 0.0) > 0.9)
 
-	# max range at a target crossing at full speed: roughly the Trafalgar hit rate
 	var long_shot = CannonAccuracy.hit_chance(1200.0, MAX_RANGE, 0.0, 300.0)
 	check(long_shot > 0.05 and long_shot < 0.30)
 
-	# hauling the helm over throws the shot
 	check(
 		CannonAccuracy.hit_chance(400.0, MAX_RANGE, 1.5, 0.0)
 		< CannonAccuracy.hit_chance(400.0, MAX_RANGE, 0.0, 0.0)
 	, "helm hard over shoots no worse than steady")
 
 
-## for_shot has to take the range from the gun, the lead from the closing speed, and the slew
-## error from the firing ship's own turn rate. Reading any of those off the wrong node is a
-## silent bug: the gate still returns a plausible number, just not the right one.
 func _test_for_shot() -> void:
 
-	var shooter: Sloop = load("res://Scenes/Sloop.tscn").instantiate()
-	var target: Sloop = load("res://Scenes/Sloop.tscn").instantiate()
-
-	root.add_child(shooter)
-	root.add_child(target)
-
-	await _settle()
+	var shooter: Sloop = await spawn_ship()
+	var target: Sloop = await spawn_ship()
 
 	shooter.process_mode = Node.PROCESS_MODE_DISABLED
 	target.process_mode = Node.PROCESS_MODE_DISABLED
@@ -109,7 +88,7 @@ func _test_for_shot() -> void:
 
 	var cannon: Cannon = shooter.cannons.front()
 
-	check(cannon.max_range > 0.0)
+	check(cannon.ammo.max_range > 0.0)
 
 	# the gun is not at the ship's origin, so this comparison is meaningful
 	check(cannon.global_position.distance_to(shooter.global_position) > 1.0)
@@ -118,7 +97,7 @@ func _test_for_shot() -> void:
 		CannonAccuracy.for_shot(cannon, shooter, target),
 		CannonAccuracy.hit_chance(
 			cannon.global_position.distance_to(target.global_position),
-			cannon.max_range,
+			cannon.ammo.max_range,
 			0.4,
 			150.0
 		)
@@ -132,7 +111,6 @@ func _test_for_shot() -> void:
 	await despawn(target)
 
 
-## Godot has no %g, so the 3-sig-fig percentage is hand-rolled. It has been wrong before.
 func _test_percent_format() -> void:
 
 	check(Cannonball.format_percent(100.0) == "100")

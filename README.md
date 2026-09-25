@@ -79,7 +79,7 @@ These are the actions that are assumed can be done by the player, along with the
 | Ship max velocity against wind w/ waves | 0.01615grids/sec (1 min 1.9143secs per grid) | Testing in-game |
 | Ship max velocity against wind against waves | 0.92735grids/sec (1 min 4.7002secs per grid) | Testing in-game |
 | Ship rotational speed | \_\_\_ \* \|degrees wheel rotated\| |  |
-| Wheel rotational speed with n damage | \_\_\_ \* \|degrees wheel rotated\| |  |
+| Wheel rotational speed with n damage | \_\_\_ \* \|degrees wheel rotated\| * constant*n |  |
 | Ship health | 67 buckets of seawater (57 for death groan) | Testing in-game |
 | Tier 1 hull hole | 2s | https://www.youtube.com/shorts/4k7ZDjENFyc |
 | Tier 2 hull hole | 3s | https://www.youtube.com/shorts/4k7ZDjENFyc |

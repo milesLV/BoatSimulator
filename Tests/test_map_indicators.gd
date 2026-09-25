@@ -9,18 +9,14 @@ func _run() -> void:
 	var padding := 125.0  # what map_indicators derives from the authored arrow reach
 	var half := rect.size * 0.5 - Vector2(padding, padding)
 
-	# a ship up and to the right lands in the top-right corner region
 	var edge = script.project_to_edge(centre + Vector2(4000, -4000), rect, padding)
 	assert(edge.x > centre.x and edge.y < centre.y)
-	# and stays inside the padded border
 	assert(absf(edge.x - centre.x) <= half.x + 0.01)
 	assert(absf(edge.y - centre.y) <= half.y + 0.01)
-	# far off to the right pins to the right border exactly
 	assert(is_equal_approx(script.project_to_edge(centre + Vector2(9000, 10), rect, padding).x, centre.x + half.x))
-	# degenerate direction does not divide by zero
+	# a zero direction must not divide by zero
 	assert(script.project_to_edge(centre, rect, padding) == centre)
 
-	# the arrow keeps its authored radius and swings to face the ship
 	var offset := Vector2(-3, -98)
 	var base_rotation := 0.0
 	var target := Vector2(500, 300)
@@ -28,14 +24,10 @@ func _run() -> void:
 	var placement = script.place_arrow(medallion, target, offset, base_rotation)
 	var arrow_pos: Vector2 = placement[0]
 	assert(is_equal_approx((arrow_pos - medallion).length(), offset.length()))
-	# arrow sits on the medallion-to-ship line, on the ship's side
 	assert(is_equal_approx((arrow_pos - medallion).angle(), (target - medallion).angle()))
-	# the art's authored direction is preserved as a pure rotation
 	assert(is_equal_approx(placement[1], (target - medallion).angle() - offset.angle() + base_rotation))
-	# a ship already at the medallion leaves the arrow untouched
 	assert(script.place_arrow(medallion, medallion, offset, base_rotation)[0] == medallion + offset)
 
-	# whichever way a boat lies, the arrow stays inside the screen
 	for degrees in range(0, 360, 15):
 		var dir := Vector2.RIGHT.rotated(deg_to_rad(degrees)) * 5000.0
 		var med = script.project_to_edge(centre + dir, rect, padding)
@@ -43,25 +35,21 @@ func _run() -> void:
 		assert(rect.has_point(med))
 		assert(rect.has_point(arrow))
 
-	# arrow fade: invisible at the edge, solid once well past it
 	assert(is_equal_approx(script.arrow_alpha(0.0), 0.01))
 	assert(is_equal_approx(script.arrow_alpha(script.ARROW_FADE_DISTANCE), 1.0))
 	assert(is_equal_approx(script.arrow_alpha(99999.0), 1.0))
-	assert(is_equal_approx(script.arrow_alpha(-50.0), 0.01))  # still onscreen, clamped
+	assert(is_equal_approx(script.arrow_alpha(-50.0), 0.01))
 	assert(script.arrow_alpha(script.ARROW_FADE_DISTANCE * 0.5) > script.arrow_alpha(script.ARROW_FADE_DISTANCE * 0.25))
 
-	# distance to the screen: zero inside, edge-relative outside
 	assert(is_equal_approx(script.distance_outside_rect(centre, rect), 0.0))
 	assert(is_equal_approx(script.distance_outside_rect(Vector2(rect.end.x + 300.0, centre.y), rect), 300.0))
 	assert(is_equal_approx(script.distance_outside_rect(Vector2(-40.0, -30.0), rect), Vector2(40.0, 30.0).length()))
 
-	# a boat one hull-length past the corner is faint, far away it is solid
+	# 151 is the sloop's hull radius
 	var near: float = script.distance_outside_rect(rect.end + Vector2(10, 10), rect) - 151.0
 	assert(script.arrow_alpha(near) < 0.2)
 	assert(is_equal_approx(script.arrow_alpha(script.distance_outside_rect(rect.end + Vector2(2000, 2000), rect) - 151.0), 1.0))
 
-	# a CanvasItem only draws when it AND every ancestor share a bit with the
-	# viewport's cull mask, so the ship's parents must carry its bit as well
 	var gui = load("res://Scenes/gameGui.tscn").instantiate()
 	root.add_child(gui)
 	await process_frame
@@ -81,9 +69,9 @@ func _run() -> void:
 	gui._assign_visibility_layer(ship, 8)
 	assert(ship.visibility_layer == 8)
 	assert(hull.visibility_layer == 8)
-	assert(world.visibility_layer & 8 != 0)   # ancestor carries the bit
-	assert(world.visibility_layer & 1 != 0)   # without losing its own
-	assert(range_area.visibility_layer == 1)  # cannon range stays off the medallion
+	assert(world.visibility_layer & 8 != 0)
+	assert(world.visibility_layer & 1 != 0)
+	assert(range_area.visibility_layer == 1)
 	assert(cone.visibility_layer == 1)
 
 	print("map indicator geometry ok")

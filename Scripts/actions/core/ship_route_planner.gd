@@ -11,12 +11,8 @@ func _init(new_action_points: ShipActionPointContainer) -> void:
 	action_points = new_action_points
 
 
-func build_route_plan(
-	actor,
-	point: ShipActionPoint,
-	start_deck = null,
-	start_position = null
-) -> Dictionary:
+## The route's points, ending at [param point]; empty when it cannot be reached.
+func find_route(actor, point: ShipActionPoint, start_deck = null, start_position = null) -> Array:
 
 	var nodes = _build_route_nodes(
 		actor,
@@ -41,11 +37,7 @@ func build_route_plan(
 			break
 
 		if is_same(current_key, TARGET_NODE_KEY):
-			return {
-				"reachable": true,
-				"route_points": _reconstruct_route_points(nodes, previous_keys),
-				"total_duration": current_distance,
-			}
+			return _reconstruct_route_points(nodes, previous_keys)
 
 		var current_node: Dictionary = nodes[current_key]
 
@@ -53,43 +45,19 @@ func build_route_plan(
 			if not unvisited.has(next_key):
 				continue
 
-			var next_distance = current_distance + MoveToPointAction.get_travel_duration_to_point(
-				actor, nodes[next_key]["point"], current_node["position"], current_node["deck"]
+			var next_distance = current_distance + MoveToPointAction.get_travel_duration_for_points(
+				actor, [nodes[next_key]["point"]], current_node["position"], current_node["deck"]
 			)
 
 			if next_distance < distances[next_key]:
 				distances[next_key] = next_distance
 				previous_keys[next_key] = current_key
 
-	return {"reachable": false, "route_points": [], "total_duration": INF}
+	ShipDebugLog.write(&"route", "No route from %s to %s." % [
+		DeckGraph.get_deck_name(MoveToPointAction.resolve_start_deck(actor, start_deck)), point.name
+	])
 
-
-func build_go_to_point(
-	actor,
-	point: ShipActionPoint,
-	start_deck = null,
-	start_position = null
-) -> Array[ActionDefinition]:
-
-	var route_plan = build_route_plan(actor, point, start_deck, start_position)
-
-	if not route_plan["reachable"]:
-		ShipDebugLog.route_failure(
-			"go_to_point",
-			{
-				"from_deck": DeckGraph.get_deck_name(
-					MoveToPointAction.resolve_start_deck(actor, start_deck)
-				),
-				"to_deck": DeckGraph.get_deck_name(point.deck),
-				"target_point": String(point.name),
-			}
-		)
-		return []
-
-	var actions: Array[ActionDefinition] = []
-	actions.assign(route_plan["route_points"].map(func(route_point): return MoveToPointAction.new(route_point)))
-
-	return actions
+	return []
 
 
 func estimate_total_action_duration(actor, actions: Array) -> float:
@@ -131,19 +99,10 @@ func estimate_action_durations(
 	var current_deck = MoveToPointAction.resolve_start_deck(actor, start_deck)
 
 	for action in actions:
-		# ahead of MoveToPointAction, which it extends
-		if action is MoveAndBailWaterAction:
-			durations.append(max(
-				MoveToPointAction.get_travel_duration_for_points(actor, action.route_points, current_position, current_deck),
-				MoveAndBailWaterAction.SCOOP_DURATION
-			))
-			current_position = MoveToPointAction.get_route_positions_for_points(actor, action.route_points, current_position).back()
-			current_deck = action.point.deck
-			continue
-
 		if action is MoveToPointAction:
-			durations.append(MoveToPointAction.get_travel_duration_to_point(actor, action.point, current_position, current_deck))
-			current_position = action.point.get_position_for_actor(actor, current_position)
+			var travel = MoveToPointAction.get_travel_duration_for_points(actor, action.route_points, current_position, current_deck)
+			durations.append(max(travel, MoveAndBailWaterAction.SCOOP_DURATION) if action is MoveAndBailWaterAction else travel)
+			current_position = MoveToPointAction.get_route_positions_for_points(actor, action.route_points, current_position).back()
 			current_deck = action.point.deck
 			continue
 
@@ -184,7 +143,7 @@ func get_plan_timing(actor, instances: Array[ActionInstance]) -> Dictionary:
 			timing["elapsed"] += min(current.elapsed, current.duration)
 
 		if current.definition is MoveToPointAction:
-			start_position = current.runtime_state[MoveToPointAction.RUNTIME_TARGET_POSITION]
+			start_position = current.runtime_state[&"route_positions"].back()
 			start_deck = current.definition.point.deck
 
 	var queued_durations = estimate_action_durations(
@@ -206,16 +165,6 @@ func get_plan_timing(actor, instances: Array[ActionInstance]) -> Dictionary:
 	timing["remaining"] = max(timing["total_duration"] - timing["elapsed"], 0.0)
 
 	return timing
-
-
-func get_move_route_points(actions: Array, destination_point: ShipActionPoint) -> Array:
-
-	return MoveAndBailWaterAction.build_route_points(
-		destination_point,
-		actions
-			.filter(func(action): return action is MoveToPointAction)
-			.map(func(action): return action.point)
-	)
 
 
 func _build_route_nodes(
@@ -249,8 +198,7 @@ func _build_route_nodes(
 	return nodes
 
 
-## Every transition on this deck, the other end of the stair when standing on one, and the
-## target once on its deck.
+## Transitions on this deck, the stair's far end when on one, and the target once on its deck.
 func _get_neighbour_keys(current_key, current_node: Dictionary, target_point: ShipActionPoint) -> Array:
 
 	var keys: Array = []

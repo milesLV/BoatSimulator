@@ -10,7 +10,7 @@ func _init() -> void:
 	progress_policy = ProgressPolicy.CONTINUOUS
 
 
-func get_duration(actor, _context := {}) -> float:
+func get_duration(actor) -> float:
 
 	return actor.ship.anchor_system.drop_progress * AnchorSystem.RAISE_DURATION
 

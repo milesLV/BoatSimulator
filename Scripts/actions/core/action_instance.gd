@@ -30,12 +30,7 @@ func is_complete() -> bool:
 
 func get_remaining_time(actor) -> float:
 
-	var remaining_duration := duration
+	var total: float = duration if started else definition.get_duration(actor)
 
-	if not started:
-		remaining_duration = definition.get_duration(actor)
-
-	if remaining_duration < 0.0:
-		return 0.0
-
-	return max(remaining_duration - elapsed, 0.0)
+	# a held station runs open-ended, with nothing left to count down
+	return 0.0 if total < 0.0 else maxf(total - elapsed, 0.0)

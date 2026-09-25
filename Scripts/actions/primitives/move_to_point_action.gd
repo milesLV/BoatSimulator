@@ -3,90 +3,63 @@ class_name MoveToPointAction
 
 const MOVE_SPEED := Crewmate.RUN_SPEED
 const FLOODED_LOWER_DECK_SPEED_SCALE := 0.7
-const RUNTIME_START_POSITION := &"start_position"
-const RUNTIME_TARGET_POSITION := &"target_position"
-const RUNTIME_START_DECK := &"start_deck"
 
 var point: ShipActionPoint
+var route_points: Array = []
 
 
-func _init(new_point: ShipActionPoint) -> void:
+func _init(new_point: ShipActionPoint, new_route_points: Array = []) -> void:
 
 	point = new_point
+	route_points = new_route_points.duplicate()
+
+	if route_points.is_empty() or route_points.back() != point:
+		route_points.append(point)
+
 	progress_policy = ProgressPolicy.CONTINUOUS
 	action_id = "go_to_%s" % point.name
 
 
-func get_duration(actor, _context := {}) -> float:
+func get_duration(actor) -> float:
 
-	return get_travel_duration_to_point(actor, point)
+	return get_travel_duration_for_points(actor, route_points)
 
 
 func on_start(actor, instance) -> void:
 
-	instance.runtime_state.merge({
-		RUNTIME_START_POSITION: actor.position,
-		RUNTIME_TARGET_POSITION: point.get_position_for_actor(actor, actor.position),
-		RUNTIME_START_DECK: actor.location,
-	}, true)
+	var route_positions = get_route_positions_for_points(actor, route_points)
 
-	if _is_deck_transition(instance):
-		actor.begin_deck_transition(actor.location, point.deck)
+	instance.runtime_state.merge({
+		&"route_positions": route_positions,
+		&"segments": get_route_segments(actor, route_points, route_positions),
+	}, true)
 
 
 func on_tick(actor, instance, _delta: float) -> void:
 
-	var progress = minf(instance.elapsed / instance.duration, 1.0) if instance.duration > 0.0 else 1.0
+	var positions: Array = instance.runtime_state[&"route_positions"]
+	var time_left: float = instance.elapsed
 
-	actor.position = instance.runtime_state[RUNTIME_START_POSITION].lerp(
-		instance.runtime_state[RUNTIME_TARGET_POSITION], progress
-	)
+	for i in positions.size() - 1:
+		var segment: Dictionary = instance.runtime_state[&"segments"][i]
 
-	if not _is_deck_transition(instance):
-		actor.set_location(point.deck)
+		if time_left < segment["duration"]:
+			actor.position = positions[i].lerp(positions[i + 1], time_left / segment["duration"])
+
+			# on the stairs they still show on the deck they left; one not yet on any deck appears on the target's
+			actor.set_location(segment["from_deck"] if DeckGraph.is_valid_deck(segment["from_deck"]) else segment["to_deck"])
+			return
+
+		time_left -= segment["duration"]
+
+	actor.position = positions.back()
+	actor.set_location(point.deck)
 
 
 func on_complete(actor, instance) -> void:
 
-	actor.position = instance.runtime_state[RUNTIME_TARGET_POSITION]
-
-	if _is_deck_transition(instance):
-		actor.complete_deck_transition()
-	else:
-		actor.set_location(point.deck)
-
-
-func on_interrupt(actor, _instance) -> void:
-
-	actor.clear_deck_transition()
-
-
-## An actor not yet placed on any deck just appears on the target's.
-func _is_deck_transition(instance) -> bool:
-
-	var start_deck = instance.runtime_state[RUNTIME_START_DECK]
-
-	return DeckGraph.is_valid_deck(start_deck) and start_deck != point.deck
-
-
-static func get_travel_duration_to_point(
-	actor,
-	target_point: ShipActionPoint,
-	start_position = null,
-	start_deck = null
-) -> float:
-
-	var origin = resolve_start_position(actor, start_position)
-	var target_position = target_point.get_position_for_actor(actor, origin)
-	var origin_deck = resolve_start_deck(actor, start_deck)
-
-	return _get_segment_travel_duration(
-		actor,
-		origin,
-		target_position,
-		origin_deck,
-		target_point.deck
-	)
+	actor.position = instance.runtime_state[&"route_positions"].back()
+	actor.set_location(point.deck)
 
 
 static func get_travel_duration_for_points(
@@ -119,13 +92,8 @@ static func get_route_segments(
 		var target_deck = route_points[i].deck
 
 		segments.append({
-			"duration": _get_segment_travel_duration(
-				actor,
-				route_positions[i],
-				route_positions[i + 1],
-				current_deck,
-				target_deck
-			),
+			"duration": route_positions[i].distance_to(route_positions[i + 1])
+				/ get_effective_run_speed(actor, current_deck, target_deck),
 			"from_deck": current_deck,
 			"to_deck": target_deck
 		})
@@ -170,17 +138,6 @@ static func get_effective_run_speed(actor, from_deck: int, to_deck: int) -> floa
 	)
 
 	return MOVE_SPEED * (FLOODED_LOWER_DECK_SPEED_SCALE if wading else 1.0)
-
-
-static func _get_segment_travel_duration(
-	actor,
-	from_position: Vector2,
-	to_position: Vector2,
-	from_deck: int,
-	to_deck: int
-) -> float:
-
-	return from_position.distance_to(to_position) / get_effective_run_speed(actor, from_deck, to_deck)
 
 
 static func _is_water_at_or_above(actor, threshold: float) -> bool:

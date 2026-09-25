@@ -4,17 +4,15 @@ class_name ShipActionPointContainer
 var points: Dictionary = {}
 var cannon_stations: Array[CannonStationPoint] = []
 var holes: Array[ShipHolePoint] = []
-## Holes that let water in, and the mast holes that do not. Everything automatic - flooding,
-## gunnery, repair duty - works off hull_holes; the mast is damaged and repaired on its own.
+## Holes that let water in, unlike the mast and wheel holes.
 var hull_holes: Array[ShipHolePoint] = []
 var mast_holes: Array[MastHole] = []
+var wheel_holes: Array[WheelHole] = []
 var transitions: Array[DeckTransitionPoint] = []
 
 func _ready() -> void:
 
-	for child in get_children():
-		_register_recursive(child)
-
+	_register_recursive(self)
 	_connect_stairs()
 
 
@@ -33,7 +31,9 @@ func _register_recursive(node: Node) -> void:
 		if node is ShipHolePoint:
 			holes.append(node)
 
-			if node is MastHole:
+			if node is WheelHole:
+				wheel_holes.append(node)
+			elif node is MastHole:
 				mast_holes.append(node)
 			else:
 				hull_holes.append(node)
@@ -45,8 +45,6 @@ func _register_recursive(node: Node) -> void:
 		_register_recursive(child)
 
 
-## Each stair holds its two ends and says which way it runs: from_deck to to_deck, and back
-## again when bidirectional.
 func _connect_stairs() -> void:
 
 	for stair in get_children():
@@ -78,7 +76,7 @@ func get_station(point_name: StringName) -> StationPoint:
 
 func get_closest_hole(from_position: Vector2) -> ShipHolePoint:
 
-	# reduce seeds the accumulator with the first hole, so closest is never null.
+	# reduce seeds the accumulator with the first hole, so closest is never null
 	return hull_holes.reduce(func(closest, hole): return (
 		hole
 		if hole.global_position.distance_to(from_position)

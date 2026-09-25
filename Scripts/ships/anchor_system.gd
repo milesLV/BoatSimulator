@@ -80,11 +80,9 @@ func _raise(delta: float) -> void:
 
 
 ## Bleeds a value toward zero while the anchor bites, at rate per drop duration.
-func damp(value: float, delta: float, rate: float) -> float:
-	if not is_holding_ship:
-		return value
+static func damp(value: float, delta: float, rate: float) -> float:
 
-	return move_toward(value, 0.0, (rate / DROP_DURATION) * delta)
+	return move_toward(value, 0.0, rate / DROP_DURATION * delta)
 
 
 func _set_state(new_state: int) -> void:

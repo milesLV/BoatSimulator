@@ -126,7 +126,7 @@ func _run_scenario(scenario: Dictionary) -> Dictionary:
 	ship.velocity = Vector2(100.0, 0.0) if scenario["moving"] else Vector2.ZERO
 
 	var counts := {}
-	var crewmates = ship.get_crewmates()
+	var crewmates = ship.crewmates
 
 	for crewmate in crewmates:
 		counts[String(crewmate.name)] = {"repair": 0, "bail": 0}

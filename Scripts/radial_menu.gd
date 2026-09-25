@@ -1,10 +1,7 @@
 class_name RadialMenu
 extends Control
 
-## Hold a bound key and a ring of options opens at screen centre; release over one (or click it)
-## to pick it. A quick tap never opens the ring and does the key's plain action instead.
-## Holding amplify as well turns either into an order for the whole crew. A ring that sets a
-## hint can be turned over with Tab.
+## Hold a bound key to open a ring of options; a quick tap does the key's plain action instead.
 
 const RADIUS := 400.0
 const DEAD_ZONE := 20.0
@@ -13,7 +10,6 @@ const LABEL_RADIUS := RADIUS * 0.6
 const HIGHLIGHT := Color("9dffb0")
 const FONT_SIZE := 32
 const MIN_FONT_SIZE := 10
-## Clear space kept between a label and its section's edges and rim.
 const LABEL_PADDING := 12.0
 const AMPLIFIED_PREFIX := "(All crewmates) "
 
@@ -23,11 +19,10 @@ var held_action: StringName = &""
 var held_time := 0.0
 var hovered := -1
 var labels: Array[Label] = []
-## Whether the labels on show carry the whole-crew prefix.
 var amplified := false
-## Tab presses since the ring opened, for the labels callable to page through.
+## Tab presses since the ring opened.
 var cycle := 0
-## Shown at the ring's top-right corner when set by the labels callable; Tab only turns a ring with one.
+## Set by the labels callable; only a ring with a hint pages with Tab.
 var hint := ""
 var _hint_label: Label = null
 
@@ -39,16 +34,13 @@ func _ready() -> void:
 	hide()
 
 
-## [param option_labels] gets whether the order is for the whole crew and [member cycle], and
-## returns the labels to show. [param on_pick] gets the index of the chosen label and the
-## former; [param on_tap] runs on a quick press and gets the former.
+## option_labels(amplified, cycle) -> Array, on_pick(index, amplified), on_tap(amplified).
 func bind(action: StringName, option_labels: Callable, on_pick: Callable, on_tap: Callable) -> void:
 
 	bindings[action] = {"labels": option_labels, "on_pick": on_pick, "on_tap": on_tap}
 
 
-## The section under [param offset] from the centre, -1 off the ring. Section 0 ends at the top,
-## so the first option sits on the left (top-left with more of them) and the rest go clockwise.
+## -1 off the ring. Section 0 ends at the top, so options run clockwise from the left.
 static func sector_at(offset: Vector2, count: int) -> int:
 
 	if offset.length() < DEAD_ZONE or offset.length() > RADIUS:
@@ -81,8 +73,7 @@ func _process(delta: float) -> void:
 		_build_labels()
 
 	if visible:
-		var count = labels.size()
-		var now = sector_at(get_local_mouse_position() - size / 2.0, count)
+		var now = sector_at(get_local_mouse_position() - size / 2.0, labels.size())
 		if now != hovered:
 			hovered = now
 			queue_redraw()
@@ -119,7 +110,6 @@ func _build_labels() -> void:
 	var step := TAU / option_labels.size()
 
 	for i in option_labels.size():
-		# middle of the section, measured clockwise from the top
 		var mid := Vector2.UP.rotated(step * (i - 0.5)) * LABEL_RADIUS
 		var label := Label.new()
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -138,9 +128,7 @@ func _build_labels() -> void:
 	queue_redraw()
 
 
-## Wraps [param text] at the widest width whose block, centred on [param mid], stays
-## [constant LABEL_PADDING] clear of section [param index]'s edges and rim, and shrinks the
-## font only when no width fits.
+## Wraps at the widest width that fits the section, shrinking the font only when none does.
 func _fit(label: Label, text: String, mid: Vector2, index: int, count: int) -> void:
 
 	var font := label.get_theme_font(&"font")
@@ -150,7 +138,6 @@ func _fit(label: Label, text: String, mid: Vector2, index: int, count: int) -> v
 		var width := func(line: String) -> float:
 			return font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 
-		# ponytail: tries widths 8px apart, a few hundred measurements at worst per rebuild
 		for max_width in range(int(2.0 * RADIUS), 0, -8):
 			var lines: Array[String] = []
 
@@ -221,7 +208,6 @@ func _draw() -> void:
 	if hovered == -1:
 		return
 
-	# the hovered section's whole outline: both edges and the rim between them
 	var start := Vector2.UP.rotated(step * (hovered - 1))
 	var end := Vector2.UP.rotated(step * hovered)
 	draw_line(centre, centre + start * RADIUS, HIGHLIGHT, 3.0)

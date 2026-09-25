@@ -22,7 +22,6 @@ func _process(delta: float) -> void:
 	var zoom_input := Input.get_axis("ZoomOut", "ZoomIn")
 
 	if zoom_input != 0.0:
-		# shift zooms twice as fast
 		_apply_zoom(KEY_ZOOM_SPEED * (2.0 if Input.is_key_pressed(KEY_SHIFT) else 1.0) * zoom_input * delta)
 
 func _input(event):

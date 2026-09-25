@@ -6,9 +6,8 @@ const REPAIR_SAFETY_LEEWAY := 0.5
 
 var action_points
 var route_planner
-## The two fixed bailing points: where the bucket is filled on the lower deck,
-## and the mid deck's entrance, which doubles as a bucket point once it floods.
 var lower_bucket_point: ShipActionPoint
+## Doubles as a bucket point once the mid deck floods.
 var mid_entry_point: ShipActionPoint
 var anchor_point: ShipActionPoint
 var throw_points: Array[ShipActionPoint] = []
@@ -24,30 +23,14 @@ func _init(new_action_points) -> void:
 	throw_points.assign([&"WaterThrowSpot", &"AftBuckettingZone"].map(action_points.get_point))
 
 
-func build_go_to_station(
-	actor,
-	station: ShipActionPoint,
-	on_arrival: ActionDefinition
-) -> Array[ActionDefinition]:
-
-	var actions = route_planner.build_go_to_point(actor, station)
-
-	actions.append(on_arrival)
-
-	return actions
-
-
 func build_drop_anchor(actor) -> Array[ActionDefinition]:
 
-	if not actor.ship.anchor_system.can_drop():
-		return []
-
-	return _build_at(actor, anchor_point, [RigAnchorAction.new(anchor_point), DropAnchorAction.new()])
+	return build_at(actor, anchor_point, [RigAnchorAction.new(anchor_point), DropAnchorAction.new()]) if actor.ship.anchor_system.can_drop() else []
 
 
 func build_raise_anchor(actor) -> Array[ActionDefinition]:
 
-	return _build_at(actor, anchor_point, [RaiseAnchorAction.new()]) if actor.ship.anchor_system.can_raise() else []
+	return build_at(actor, anchor_point, [RaiseAnchorAction.new()]) if actor.ship.anchor_system.can_raise() else []
 
 
 func build_raise_mast(actor) -> Array[ActionDefinition]:
@@ -60,23 +43,22 @@ func build_knock_mast_loose(actor) -> Array[ActionDefinition]:
 	return _build_at_sail_lines(actor, KnockMastLooseAction.new())
 
 
-## Do [param action] at the sail lines, then stay there so S works the mast again.
+## Holds the station afterwards so S works the mast again.
 func _build_at_sail_lines(actor, action: ActionDefinition) -> Array[ActionDefinition]:
 
 	var station = action_points.get_station(&"SailLengthStarb")
 
-	return _build_at(actor, station, [action, HoldStationAction.new(station)])
+	return build_at(actor, station, [action, HoldStationAction.new(station)])
 
 
-## Walk to [param point], then do [param on_arrival] there; nothing when it cannot be reached.
-func _build_at(actor, point, on_arrival: Array) -> Array[ActionDefinition]:
+## A walk to [param point], one leg per stair, then [param on_arrival]; empty when there is no route.
+func build_at(actor, point, on_arrival: Array, start_deck = null, start_position = null) -> Array[ActionDefinition]:
 
-	var actions = route_planner.build_go_to_point(actor, point)
+	var route = route_planner.find_route(actor, point, start_deck, start_position)
+	var actions: Array[ActionDefinition] = []
 
-	if actions.is_empty():
-		return []
-
-	actions.append_array(on_arrival)
+	if not route.is_empty():
+		actions.assign(route.map(func(route_point): return MoveToPointAction.new(route_point)) + on_arrival)
 
 	return actions
 
@@ -97,22 +79,7 @@ func build_bail_water(actor, drain_to_zero := false) -> Array[ActionDefinition]:
 
 func build_repair_hole(actor, hole: ShipHolePoint, start_deck = null, start_position = null) -> Array[ActionDefinition]:
 
-	var actions = route_planner.build_go_to_point(actor, hole, start_deck, start_position)
-
-	if MoveToPointAction.resolve_start_deck(actor, start_deck) != hole.deck and actions.is_empty():
-		ShipDebugLog.route_failure(
-			"repair_hole",
-			{
-				"actor_deck": DeckGraph.get_deck_name(actor.location),
-				"target_hole": hole.name,
-				"target_deck": DeckGraph.get_deck_name(hole.deck)
-			}
-		)
-		return []
-
-	actions.append(RepairHoleAction.new(hole))
-
-	return actions
+	return build_at(actor, hole, [RepairHoleAction.new(hole)], start_deck, start_position)
 
 
 func build_flooded_mid_deck_entry_bail(
@@ -127,17 +94,9 @@ func build_flooded_mid_deck_entry_bail(
 	):
 		return []
 
-	var builder := func(throw_point):
-		if actor.location in DeckGraph.FLOODED_DECKS:
-			return _build_mid_deck_bail_cycle(actor, throw_point)
-
-		return _build_scoop_and_throw(actor, mid_entry_point, throw_point, "flooded_mid_deck_entry_bail")
-
-	return _best_over_throw_points(actor, builder)
+	return _best_over_throw_points(actor, func(throw_point): return _build_mid_deck_bail_cycle(actor, throw_point))
 
 
-## True when the mid deck is still flooded by the time the actor reaches
-## [param point], so bailing there is worth planning for.
 func _is_mid_deck_flooded_by_arrival(actor, point: ShipActionPoint) -> bool:
 
 	var time_to_mid_deck = _estimate_move_and_bail_duration(actor, point)
@@ -171,10 +130,9 @@ func _build_mid_deck_bail_cycle(actor, throw_point: ShipActionPoint) -> Array[Ac
 
 	var bucket_point = _get_bucket_point_for_deck(actor.location, throw_point)
 
-	return _build_scoop_and_throw(actor, bucket_point, throw_point, "mid_deck_bail_cycle")
+	return _build_scoop_and_throw(actor, bucket_point, throw_point)
 
 
-## One bail plan for a single throw point: throw what is carried, else scoop first.
 func _build_bail_candidate(actor, throw_point: ShipActionPoint) -> Array[ActionDefinition]:
 
 	if actor.bucket_amount > 0.0:
@@ -186,71 +144,33 @@ func _build_bail_candidate(actor, throw_point: ShipActionPoint) -> Array[ActionD
 		actions = _build_mid_deck_bail_cycle(actor, throw_point)
 
 	if actions.is_empty():
-		actions = _build_scoop_and_throw(actor, lower_bucket_point, throw_point, "single_bail_cycle")
+		actions = _build_scoop_and_throw(actor, lower_bucket_point, throw_point)
 
 	return actions
 
 
-## Route to the bucket, scoop there, then route on to the throw point and throw.
-func _build_scoop_and_throw(
-	actor,
-	bucket_point: ShipActionPoint,
-	throw_point: ShipActionPoint,
-	log_name: String
-) -> Array[ActionDefinition]:
+func _build_scoop_and_throw(actor, bucket_point: ShipActionPoint, throw_point: ShipActionPoint) -> Array[ActionDefinition]:
 
-	var actions = route_planner.build_go_to_point(actor, bucket_point)
-
-	if actor.location != bucket_point.deck and actions.is_empty():
-		ShipDebugLog.route_failure(
-			log_name,
-			{
-				"actor_deck": DeckGraph.get_deck_name(actor.location),
-				"bucket_point": bucket_point.name,
-				"bucket_deck": DeckGraph.get_deck_name(bucket_point.deck)
-			}
-		)
-		return []
-
-	var scoop_route = route_planner.get_move_route_points(actions, bucket_point)
-	actions.assign([MoveAndBailWaterAction.new(bucket_point, scoop_route)])
-
-	var throw_route = route_planner.build_go_to_point(
-		actor,
-		throw_point,
-		bucket_point.deck,
-		bucket_point.get_position_for_actor(actor)
+	var scoop_route = route_planner.find_route(actor, bucket_point)
+	var throw_route = route_planner.find_route(
+		actor, throw_point, bucket_point.deck, bucket_point.get_position_for_actor(actor)
 	)
 
-	if bucket_point.deck != throw_point.deck and throw_route.is_empty():
-		ShipDebugLog.route_failure(
-			log_name + "_throw_route",
-			{
-				"from_deck": DeckGraph.get_deck_name(bucket_point.deck),
-				"to_deck": DeckGraph.get_deck_name(throw_point.deck),
-				"bucket_point": bucket_point.name,
-				"throw_point": throw_point.name
-			}
-		)
+	if scoop_route.is_empty() or throw_route.is_empty():
 		return []
 
-	_append_buffered_throw(actions, throw_route, throw_point)
-
-	return actions
+	return [MoveAndBailWaterAction.new(bucket_point, scoop_route), MoveAndThrowBucketWaterAction.new(throw_point, throw_route)]
 
 
 func _build_throw_actions(actor, throw_point: ShipActionPoint) -> Array[ActionDefinition]:
-	var throw_route = route_planner.build_go_to_point(actor, throw_point)
+	var throw_route = route_planner.find_route(actor, throw_point)
 
-	if actor.location != throw_point.deck and throw_route.is_empty():
+	if throw_route.is_empty():
 		return []
 
-	var actions: Array[ActionDefinition] = []
-	_append_buffered_throw(actions, throw_route, throw_point)
-	return actions
+	return [MoveAndThrowBucketWaterAction.new(throw_point, throw_route)]
 
 
-## Best-scoring plan across every throw point [param builder] can serve.
 func _best_over_throw_points(actor, builder: Callable) -> Array[ActionDefinition]:
 	var best_actions: Array[ActionDefinition] = []
 	var best_score := INF
@@ -308,19 +228,14 @@ func _get_pending_bail_events(actor) -> Array:
 
 	var events: Array = []
 
-	for crewmate in actor.ship.get_crewmates():
+	for crewmate in actor.ship.crewmates:
 		if crewmate == actor or crewmate.action_executor == null:
 			continue
 
+		var executor = crewmate.action_executor
 		var elapsed := 0.0
-		var instances: Array = []
 
-		if crewmate.action_executor.current_action != null:
-			instances.append(crewmate.action_executor.current_action)
-
-		instances.append_array(crewmate.action_executor.queued_actions)
-
-		for instance in instances:
+		for instance in ([executor.current_action] if executor.current_action != null else []) + executor.queued_actions:
 			elapsed += instance.get_remaining_time(crewmate)
 
 			if instance.definition.fills_bucket:
@@ -330,7 +245,6 @@ func _get_pending_bail_events(actor) -> Array:
 	return events
 
 
-## Where a crewmate standing on [param deck] should fill the bucket.
 func _get_bucket_point_for_deck(deck, throw_point: ShipActionPoint) -> ShipActionPoint:
 
 	match deck:
@@ -343,7 +257,6 @@ func _get_bucket_point_for_deck(deck, throw_point: ShipActionPoint) -> ShipActio
 	return throw_point
 
 
-## Time to reach the bucket and scoop, starting from [param start_point] or the actor.
 func _estimate_move_and_bail_duration(
 	actor,
 	bucket_point: ShipActionPoint,
@@ -356,8 +269,6 @@ func _estimate_move_and_bail_duration(
 	return _estimate_route_duration(actor, bucket_point, start_deck, start_position, MoveAndBailWaterAction.SCOOP_DURATION)
 
 
-## Travel time to [param target] from [param from_deck]/[param from_position],
-## never below [param floor_duration]. INF when a cross-deck route fails to build.
 func _estimate_route_duration(
 	actor,
 	target: ShipActionPoint,
@@ -366,14 +277,12 @@ func _estimate_route_duration(
 	floor_duration: float
 ) -> float:
 
-	var route_actions = route_planner.build_go_to_point(actor, target, from_deck, from_position)
+	var route = route_planner.find_route(actor, target, from_deck, from_position)
 
-	if from_deck != target.deck and route_actions.is_empty():
+	if route.is_empty():
 		return INF
 
-	var route_points = route_planner.get_move_route_points(route_actions, target)
-
-	return max(MoveToPointAction.get_travel_duration_for_points(actor, route_points, from_position, from_deck), floor_duration)
+	return max(MoveToPointAction.get_travel_duration_for_points(actor, route, from_position, from_deck), floor_duration)
 
 
 func is_repair_trip_safe(
@@ -382,9 +291,6 @@ func is_repair_trip_safe(
 	repair_trip,
 	flood_rate: float
 ) -> bool:
-
-	if not repair_trip["reachable"]:
-		return false
 
 	if flood_rate <= 0.0:
 		return actor.ship.health_system.water_level < ShipHealthSystem.MAX_WATER_LEVEL
@@ -399,46 +305,29 @@ func is_repair_trip_safe(
 
 
 func estimate_repair_trip(actor, hole: ShipHolePoint) -> Dictionary:
-	var hole_route = route_planner.build_route_plan(actor, hole)
+	var hole_route = route_planner.find_route(actor, hole)
 
-	if not hole_route["reachable"]:
-		return _repair_trip(INF, INF)
+	if hole_route.is_empty():
+		return {"total_time": INF, "repair_complete_time": INF}
 
-	var repair_complete_time = hole_route["total_duration"] + hole.repair_duration()
+	var repair_complete_time = MoveToPointAction.get_travel_duration_for_points(actor, hole_route) + hole.repair_duration()
+	var bail_time: float
 
 	if actor.bucket_amount > 0.0:
-		var bucket_throw_time = _estimate_throw_duration_from_bucket(actor, hole)
+		bail_time = _estimate_throw_duration_from_bucket(actor, hole)
+	else:
+		var projected_after_repair = actor.ship.health_system.get_projected_water_level(repair_complete_time)
+		var bucket_point = (
+			lower_bucket_point
+			if projected_after_repair < ShipHealthSystem.MID_DECK_WATER_LEVEL
+			else _get_bucket_point_for_deck(hole.deck, action_points.get_point(&"WaterThrowSpot"))
+		)
+		bail_time = _estimate_move_and_bail_duration(actor, bucket_point, hole) + _estimate_throw_duration_from_bucket(actor, bucket_point)
 
-		if bucket_throw_time == INF:
-			return _repair_trip(INF, INF)
-
-		return _repair_trip(repair_complete_time + bucket_throw_time, repair_complete_time)
-
-	var projected_after_repair = actor.ship.health_system.get_projected_water_level(repair_complete_time)
-	var bucket_point = (
-		lower_bucket_point
-		if projected_after_repair < ShipHealthSystem.MID_DECK_WATER_LEVEL
-		else _get_bucket_point_for_deck(hole.deck, action_points.get_point(&"WaterThrowSpot"))
-	)
-
-	var time_to_bucket = _estimate_move_and_bail_duration(actor, bucket_point, hole)
-
-	if time_to_bucket == INF:
-		return _repair_trip(INF, INF)
-
-	var time_to_throw = _estimate_throw_duration_from_bucket(actor, bucket_point)
-
-	if time_to_throw == INF:
-		return _repair_trip(INF, INF)
-
-	return _repair_trip(repair_complete_time + time_to_bucket + time_to_throw, repair_complete_time)
+	# an unroutable bail leg is INF, which carries through to the total
+	return {"total_time": repair_complete_time + bail_time, "repair_complete_time": repair_complete_time}
 
 
-func _repair_trip(total_time: float, repair_complete_time: float) -> Dictionary:
-	return {"total_time": total_time, "repair_complete_time": repair_complete_time, "reachable": total_time < INF}
-
-
-## Quickest way to empty a bucket filled at [param bucket_point], over every throw point.
 func _estimate_throw_duration_from_bucket(actor, bucket_point: ShipActionPoint) -> float:
 
 	var from_position = bucket_point.get_position_for_actor(actor)
@@ -465,8 +354,3 @@ func _should_queue_bail_cycle(actor, actions: Array, drain_to_zero: bool) -> boo
 		return projected_water > 0.0
 
 	return projected_water >= LOW_WATER_LEVEL
-
-
-func _append_buffered_throw(actions: Array, throw_route: Array, throw_point: ShipActionPoint) -> void:
-	var route_points = route_planner.get_move_route_points(throw_route, throw_point)
-	actions.append(MoveAndThrowBucketWaterAction.new(throw_point, route_points))

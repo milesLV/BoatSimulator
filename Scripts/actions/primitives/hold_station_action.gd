@@ -13,4 +13,4 @@ func _init(new_station: StationPoint) -> void:
 func on_interrupt(actor, _instance) -> void:
 
 	if actor.ship.station_controller.get_operator(station) == actor:
-		actor.ship.station_controller.clear_operator(station)
+		actor.ship.station_controller.station_operators.erase(station)

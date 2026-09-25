@@ -1,9 +1,5 @@
 extends "res://Tests/harness.gd"
 
-# godot --headless --script Tests/test_arc_height.gd
-#
-# The drawn arc: flat at launch, full height halfway, flat again on landing and after it.
-
 
 func _run() -> void:
 

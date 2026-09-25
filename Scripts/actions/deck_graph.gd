@@ -3,13 +3,10 @@ class_name DeckGraph
 
 enum DECKS {UPPER, MAIN, MID, LOWER}
 
-# The decks that take on water.
 const FLOODED_DECKS := [DECKS.MID, DECKS.LOWER]
-## Open to the sky, so in the line of fire.
 const EXPOSED_DECKS := [DECKS.UPPER, DECKS.MAIN]
 
-# Universal per-deck fade/shrink schema: anything drawn on a lower deck
-# is fainter and smaller. Used by crewmates and hole points alike.
+# Anything drawn on a lower deck is fainter and smaller.
 const DECK_ALPHA := {
 	DECKS.UPPER: 1.0,
 	DECKS.MAIN: 0.85,

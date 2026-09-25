@@ -27,6 +27,28 @@ func queue_actions(definitions: Array) -> void:
 		_start_next_action()
 
 
+## A new plan that resumes the current action at the same point keeps its progress.
+func replace_plan(definitions: Array) -> void:
+
+	var current = current_action.definition if current_action else null
+
+	for i in definitions.size():
+		if current == null or definitions[i].get("point") != current.get("point"):
+			break
+
+		if definitions[i].action_id == current.action_id:
+			queued_actions.clear()
+			plan_actions = plan_actions.slice(0, plan_actions.find(current_action) + 1)
+			queue_actions(definitions.slice(i + 1))
+			return
+
+		if not definitions[i] is MoveToPointAction:
+			break
+
+	cancel_plan()
+	queue_actions(definitions)
+
+
 func has_actions() -> bool:
 
 	return current_action != null or not queued_actions.is_empty()
@@ -37,7 +59,9 @@ func cancel_plan() -> bool:
 	var had_actions = has_actions()
 
 	if current_action != null:
-		current_action.definition.apply_interrupt_policy(actor, current_action)
+		if current_action.definition.progress_policy == ActionDefinition.ProgressPolicy.ONE_SHOT:
+			current_action.elapsed = 0.0
+
 		current_action.definition.on_interrupt(actor, current_action)
 		current_action = null
 

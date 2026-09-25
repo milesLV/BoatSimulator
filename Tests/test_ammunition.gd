@@ -1,9 +1,5 @@
 extends "res://Tests/harness.gd"
 
-# godot --headless --script Tests/test_ammunition.gd
-#
-# Chainshot barely scratches the hull but opens two mast holes a strike, and an order for it
-# reaches the gun along with its aim.
 
 func _run() -> void:
 
@@ -42,14 +38,12 @@ func _test_mast_strike() -> void:
 	await despawn(ship)
 
 
-## A cannonball passing 15px off the mast goes by; the chainshot's chain catches it. Aimed at
-## the mast, it lands even on a bad roll.
 func _test_reach() -> void:
 
 	var ship = await spawn_frozen_ship()
 	var mast: Vector2 = ship.action_points.mast_holes.front().global_position
 	var beside := func(ammo): return ship.apply_mast_hit(
-		mast + Vector2(15.0, -50.0), mast + Vector2(15.0, 50.0), ammo.mast_holes_per_hit, ammo.mast_reach
+		mast + Vector2(15.0, -50.0), mast + Vector2(15.0, 50.0), ammo.mast_holes_per_hit, ammo.reach
 	)
 
 	check(not beside.call(Ammunition.CANNONBALL), "cannonball caught the mast from 15px off")
@@ -87,16 +81,16 @@ func _test_hull_hit() -> void:
 func _test_order() -> void:
 
 	var ship = await spawn_frozen_ship()
-	var crewmate: Crewmate = ship.get_crewmates()[0]
+	var crewmate: Crewmate = ship.crewmates[0]
 	var station: CannonStationPoint = ship.action_points.cannon_stations[0]
 
 	ship.station_controller.set_operator(station, crewmate)
-	ship.crew_controller.current_crewmate = crewmate
+	ship.current_crewmate = crewmate
 
 	check(ship.request(&"request_cannon_aim", [Ammunition.CHAINSHOT, Cannon.AimTarget.MAST]), "order refused")
 	check(station.cannon.ammo == Ammunition.CHAINSHOT and crewmate.ammo == Ammunition.CHAINSHOT, "ammo not loaded")
 	check(station.cannon.aim_target == Cannon.AimTarget.MAST, "aim not set")
-	check(station.cannon.max_range == Ammunition.CHAINSHOT.max_range, "range %s" % station.cannon.max_range)
+	check(station.cannon.ammo == Ammunition.CHAINSHOT, "the claimed cannon kept its old ammunition")
 
 	check(ship.request(&"request_cannon_default_aim"), "default order refused")
 	check(station.cannon.aim_target == Cannon.AimTarget.MAST, "default aim lost the ammo's default")

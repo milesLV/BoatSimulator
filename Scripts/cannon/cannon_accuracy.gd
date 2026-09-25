@@ -1,20 +1,14 @@
 class_name CannonAccuracy
 extends RefCounted
 
-## Chance that a shot connects, given how hard the shot is.
-##
-## Error is modelled as a Gaussian angular dispersion around the aim point, with the
-## independent sources added in quadrature. Hit chance then falls out of how much of the
-## target that dispersion covers, on two axes: cross-range (did it go wide) and down-range
-## (did it go over or short).
+## Gaussian angular dispersion (error sources in quadrature) measured against the hull on both axes.
 
 const SIGMA_BASE := deg_to_rad(0.5) # irreducible gun/crew error
 const K_RANGE := deg_to_rad(5.0) # elevation guesswork, at full range
 const K_SLEW := 0.12 # rad of error per rad/sec the firing ship is turning
 const K_LEAD := 0.20 # fraction of the lead angle left unresolved
 
-# ponytail: one nominal silhouette for the only hull in the game, between the Sloop's
-# ~300px length and ~104px beam. Measure the target's collision shape if a second hull ships.
+# between the Sloop's ~300px length and ~104px beam
 const HULL_HALF_SIZE := 100.0
 
 
@@ -40,7 +34,7 @@ static func hit_chance(
 		SIGMA_BASE * SIGMA_BASE
 		+ pow(K_RANGE * range_fraction * range_fraction, 2.0)
 		+ pow(K_SLEW * abs(own_turn_rate), 2.0)
-		+ pow(K_LEAD * relative_speed / ball_speed, 2.0) # flight time over lead distance
+		+ pow(K_LEAD * relative_speed / ball_speed, 2.0)
 	)
 
 	var cross_chance = _gaussian_within(atan(HULL_HALF_SIZE / distance), sigma_angle)
@@ -49,7 +43,6 @@ static func hit_chance(
 	return cross_chance * down_chance
 
 
-## Same thing, reading the conditions off the ships involved.
 static func for_shot(cannon: Node2D, shooter: Node2D, target: Node2D) -> float:
 
 	if cannon == null or shooter == null or target == null:
@@ -57,7 +50,7 @@ static func for_shot(cannon: Node2D, shooter: Node2D, target: Node2D) -> float:
 
 	return hit_chance(
 		cannon.global_position.distance_to(target.global_position),
-		cannon.max_range,
+		cannon.ammo.max_range,
 		shooter.movement_controller.current_angular_velocity,
 		(target.velocity - shooter.velocity).length(),
 		cannon.ammo.speed
@@ -82,5 +75,4 @@ static func _self_check() -> void:
 	var long_shot = hit_chance(1200.0, 1200.0, 0.0, 300.0)
 	assert(long_shot > 0.05 and long_shot < 0.30)
 
-	# hauling the helm over throws the shot
 	assert(hit_chance(400.0, 1200.0, 1.5, 0.0) < hit_chance(400.0, 1200.0, 0.0, 0.0))

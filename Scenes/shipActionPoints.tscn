@@ -6,6 +6,7 @@
 [ext_resource type="Script" uid="uid://ci0omk7rimasa" path="res://Scripts/actions/transition_deck_point.gd" id="2_b31r2"]
 [ext_resource type="Script" uid="uid://bft7j6jh68rxj" path="res://Scripts/actions/hole_point.gd" id="3_jjglc"]
 [ext_resource type="Script" uid="uid://bu6yfgmvx4hx8" path="res://Scripts/actions/mast_hole.gd" id="3_masthole"]
+[ext_resource type="Script" uid="uid://b8sgtcnu7pyxn" path="res://Scripts/actions/wheel_hole.gd" id="3_wheelhole"]
 [ext_resource type="Script" uid="uid://dlsmaujtp3ish" path="res://Scripts/actions/transition_group.gd" id="4_soy2k"]
 [ext_resource type="Script" uid="uid://dj6maina28jyt" path="res://Scripts/actions/water_throw_zone.gd" id="5_throw_zone"]
 
@@ -152,6 +153,26 @@ position = Vector2(0, 2)
 rotation = -1.5707963
 script = ExtResource("3_masthole")
 deck = 1
+
+[node name="WheelHole1" type="Node2D" parent="." unique_id=46332297]
+position = Vector2(-30, 0)
+rotation = -1.5707963
+script = ExtResource("3_wheelhole")
+
+[node name="WheelHole2" type="Node2D" parent="." unique_id=2067580310]
+position = Vector2(-30, 0)
+rotation = -1.5707963
+script = ExtResource("3_wheelhole")
+
+[node name="WheelHole3" type="Node2D" parent="." unique_id=1969972127]
+position = Vector2(-30, 0)
+rotation = -1.5707963
+script = ExtResource("3_wheelhole")
+
+[node name="WheelHole4" type="Node2D" parent="." unique_id=360824089]
+position = Vector2(-30, 0)
+rotation = -1.5707963
+script = ExtResource("3_wheelhole")
 
 [node name="HolePort1" type="Node2D" parent="." unique_id=2117893932]
 position = Vector2(-120, -11)
