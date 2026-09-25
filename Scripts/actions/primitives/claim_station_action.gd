@@ -16,3 +16,4 @@ func on_start(actor, _instance) -> void:
 
 	if station is CannonStationPoint and station.cannon != null:
 		station.cannon.aim_target = actor.aim_target
+		station.cannon.ammo = actor.ammo

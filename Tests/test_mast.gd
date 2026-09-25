@@ -8,7 +8,6 @@ extends "res://Tests/harness.gd"
 #
 # The chance is forced to 1 throughout, so a failure here can never be a lucky roll.
 
-const FRAME_LIMIT := 240
 ## The mast is 120px from where the balls start, ~15 physics frames at 500px/s. A ball that
 ## lasts longer than this flew past it.
 const MAST_FRAMES := 25
@@ -33,21 +32,6 @@ func _run() -> void:
 # --- helpers ------------------------------------------------------------------------------
 
 
-## Physics frames the ball lasted, which says where it died: the mast at 120px, the hull just
-## short of it, or its own range limit.
-func _frames_until_gone(ball: Cannonball) -> int:
-
-	for frame in FRAME_LIMIT:
-		if not is_instance_valid(ball):
-			return frame
-
-		await physics_frame
-
-	check(false, "ball neither hit nor expired within %d frames" % FRAME_LIMIT)
-
-	return FRAME_LIMIT
-
-
 func _mast_grade(ship: Sloop) -> int:
 	return ship.action_points.mast_holes.reduce(func(total, hole): return total + hole.grade, 0)
 
@@ -65,7 +49,7 @@ func _test_strike() -> void:
 
 	var ship = await spawn_frozen_ship()
 	var shots_hit_before = Cannonball.shots_hit
-	var frames = await _frames_until_gone(spawn_ball(ship, false))
+	var frames = await frames_until_gone(spawn_ball(ship, false))
 
 	check(frames < MAST_FRAMES, "the ball flew on past the mast: %d frames" % frames)
 	check(
@@ -83,7 +67,7 @@ func _test_strike() -> void:
 func _test_geometry_gates_it() -> void:
 
 	var ship = await spawn_frozen_ship()
-	var frames = await _frames_until_gone(spawn_ball(ship, false, Vector2(60.0, -120.0)))
+	var frames = await frames_until_gone(spawn_ball(ship, false, Vector2(60.0, -120.0)))
 
 	check(frames >= MAST_FRAMES, "something stopped the ball short: %d frames" % frames)
 	check(_mast_grade(ship) == 0, "a miss clear of the mast still holed it")
@@ -100,7 +84,7 @@ func _test_aimed_at_the_mast() -> void:
 	var ball = spawn_ball(ship, true)
 	ball.aimed_part = ship.action_points.mast_holes[0]
 
-	await _frames_until_gone(ball)
+	await frames_until_gone(ball)
 
 	check(_mast_grade(ship) == ShipHealthSystem.MAST_HOLE_DAMAGE, "the aimed shot missed the mast")
 	check(_hull_grade(ship) == 0, "the aimed shot holed the hull")
@@ -115,21 +99,21 @@ func _test_only_a_shot_over_the_ship() -> void:
 	var ship = await spawn_frozen_ship()
 
 	# a shot that connects stops in the hull, well short of the mast
-	await _frames_until_gone(spawn_ball(ship, true))
+	await frames_until_gone(spawn_ball(ship, true))
 
 	check(_mast_grade(ship) == 0, "a hull hit holed the mast")
 	check(
-		_hull_grade(ship) == Cannonball.CANNONBALL_HOLE_DAMAGE,
+		_hull_grade(ship) == Ammunition.CANNONBALL.hole_damage,
 		"the hull hit went nowhere: %d" % _hull_grade(ship)
 	)
 
 	# a miss that runs out of range before it gets there
-	await _frames_until_gone(spawn_ball(ship, false, Vector2(0.0, -120.0), PI / 2.0, 60.0))
+	await frames_until_gone(spawn_ball(ship, false, Vector2(0.0, -120.0), PI / 2.0, 60.0))
 
 	check(_mast_grade(ship) == 0, "a ball that never reached the ship holed the mast")
 
 	# and a miss that passes the ship entirely, never touching the hull
-	await _frames_until_gone(spawn_ball(ship, false, Vector2(400.0, -120.0)))
+	await frames_until_gone(spawn_ball(ship, false, Vector2(400.0, -120.0)))
 
 	check(_mast_grade(ship) == 0, "a ball that missed the ship holed the mast")
 
@@ -142,7 +126,7 @@ func _test_cap() -> void:
 	var ship = await spawn_frozen_ship()
 
 	for shot in 4:
-		await _frames_until_gone(spawn_ball(ship, false))
+		await frames_until_gone(spawn_ball(ship, false))
 
 	check(
 		_mast_grade(ship) == ship.action_points.mast_holes.size() * ShipHealthSystem.MAST_HOLE_DAMAGE,

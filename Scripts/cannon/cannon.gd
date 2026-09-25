@@ -6,7 +6,6 @@ extends Node2D
 @onready var range_area = $CannonRange
 @onready var range_detection = $CannonRange/CannonDetection
 
-const CANNONBALL = preload("res://Scenes/cannonball.tscn")
 const MAX_ANGLE = deg_to_rad(45)
 const ROTATION_SPEED = deg_to_rad(18) # 18 degrees/sec
 const FIRE_ANGLE_TOLERANCE = deg_to_rad(2) # won't fire until cannon lined up with target with this error
@@ -17,7 +16,14 @@ enum AimTarget { HULL, MAST, CANNON, WHEEL, CREW }
 ## The smaller the part, the less often a shot that goes over the hull finds it.
 const AIM_ACCURACY := {AimTarget.MAST: 0.8, AimTarget.CANNON: 0.7, AimTarget.WHEEL: 0.6, AimTarget.CREW: 0.5}
 
-var max_range := 0.0
+## What the next shot will be; switching needs no reload.
+var ammo := Ammunition.CANNONBALL:
+	set(value):
+		ammo = value
+		if is_node_ready():
+			_show_range()
+var max_range: float:
+	get: return ammo.max_range
 
 var loaded := true
 var current_target = null
@@ -37,8 +43,15 @@ var aimed_part: Node2D = null
 var tracking_enabled := false
 var tracking_target: Node = null
 
+## The drawn cone at the detection circle's full size. That circle is shared by every cannon, so
+## it stays at the longest range and only the drawing shrinks to what is loaded.
+@onready var _full_range_scale: Vector2 = range_area.get_node(^"VisualRange").scale
+
 func _ready():
-	max_range = range_detection.shape.radius
+	_show_range()
+
+func _show_range() -> void:
+	range_area.get_node(^"VisualRange").scale = _full_range_scale * ammo.max_range / range_detection.shape.radius
 
 func _physics_process(delta):
 	current_target = null
@@ -106,7 +119,7 @@ func _part_intercept(part: Node2D) -> Vector2:
 
 	# the flight time depends on where it lands; twice round is plenty
 	for i in 2:
-		var flight = global_position.distance_to(at) / Cannonball.SPEED
+		var flight = global_position.distance_to(at) / ammo.speed
 		at = AimForHoles._world_position(local, tracking_target.motion_predictor.at(flight))
 
 	return at
@@ -119,7 +132,7 @@ static func arc_contains(mount_rotation: float, direction: Vector2) -> bool:
 
 func calculate_intercept_position(target_position: Vector2, target_velocity: Vector2) -> Vector2:
 
-	var projectile_speed := float(Cannonball.SPEED)
+	var projectile_speed := ammo.speed
 	var dist_to_target = target_position - global_position
 
 	# time when a ball and the target arrive at the same point
@@ -162,13 +175,14 @@ func fire() -> bool:
 
 	loaded = false
 
-	var new_cannonball = CANNONBALL.instantiate()
+	var new_cannonball = ammo.scene.instantiate()
 
 	cannon_mouth.add_child(new_cannonball)
 	new_cannonball.global_position = cannon_mouth.global_position
 	new_cannonball.global_rotation = cannon_mouth.global_rotation
 
 	new_cannonball.owner_node = get_parent()
+	new_cannonball.ammo = ammo
 	new_cannonball.max_range = max_range
 	new_cannonball.arc_distance = minf(cannon_mouth.global_position.distance_to(last_aim_point), max_range)
 

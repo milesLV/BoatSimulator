@@ -1,8 +1,6 @@
 class_name Cannonball
 extends Area2D
 
-const SPEED := 500
-const CANNONBALL_HOLE_DAMAGE := 3
 ## Sprite size at the top of the arc, relative to launch and landing size.
 const PEAK_SCALE := 1.5
 ## How close an aimed shot has to pass a part to take it, about a crewmate's width.
@@ -29,6 +27,8 @@ var max_range := 0.0
 ## How far the gunner lobbed it: the arc comes back down to deck height here.
 var arc_distance := 0.0
 var owner_node: Node = null
+## What was fired: how fast it flies and what it does to what it hits.
+var ammo := Ammunition.CANNONBALL
 
 @onready var sprite: Sprite2D = $CannonballSprite
 @onready var base_scale := sprite.scale
@@ -40,11 +40,16 @@ func _physics_process(delta):
 	var direction = Vector2.RIGHT.rotated(global_rotation)
 	var from := global_position
 
-	global_position += SPEED * direction * delta
-	travelled_distance += SPEED * delta
+	global_position += ammo.speed * direction * delta
+	travelled_distance += ammo.speed * delta
 
-	if (will_hit and _strikes_part(from)) or travelled_distance >= max_range:
+	# something with reach catches the mast on any contact, so a bad roll at it still lands
+	var lands = will_hit or (aimed_part is MastHole and ammo.mast_reach > 0.0)
+
+	if (lands and _strikes_part(from)) or travelled_distance >= max_range:
 		queue_free()
+
+	sprite.rotation += ammo.spin * delta
 
 	if arc_distance > 0.0:
 		sprite.scale = base_scale * (1.0 + (PEAK_SCALE - 1.0) * arc_height(travelled_distance / arc_distance))
@@ -64,7 +69,7 @@ func _on_body_entered(body):
 		return
 
 	if body.has_method("apply_cannonball_hit"):
-		_log_hit(body.apply_cannonball_hit(global_position, CANNONBALL_HOLE_DAMAGE))
+		_log_hit(body.apply_cannonball_hit(global_position, ammo.hole_damage))
 
 	queue_free()
 
@@ -92,7 +97,7 @@ func _strikes_part(from: Vector2) -> bool:
 
 	var at := aimed_part.global_position
 	var struck: bool = (
-		aimed_part._get_ship().apply_mast_hit(from, global_position) if aimed_part is MastHole
+		aimed_part._get_ship().apply_mast_hit(from, global_position, ammo.mast_holes_per_hit, ammo.mast_reach) if aimed_part is MastHole
 		else not (aimed_part is Crewmate and (aimed_part as Crewmate).location not in DeckGraph.EXPOSED_DECKS)
 			and Geometry2D.get_closest_point_to_segment(at, from, global_position).distance_to(at) <= PART_HIT_RADIUS
 	)
@@ -113,5 +118,5 @@ func _try_mast_strike(body) -> void:
 
 	var remaining = Vector2.RIGHT.rotated(global_rotation) * (max_range - travelled_distance)
 
-	if body.apply_mast_hit(global_position, global_position + remaining):
+	if body.apply_mast_hit(global_position, global_position + remaining, ammo.mast_holes_per_hit, ammo.mast_reach):
 		queue_free()

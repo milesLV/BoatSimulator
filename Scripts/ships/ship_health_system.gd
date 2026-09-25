@@ -80,24 +80,28 @@ func apply_cannonball_hit(hit_position: Vector2, hole_damage: int) -> ShipHolePo
 
 
 ## A ball that missed the hull but crossed the mast on its way past. [param from] and
-## [param to] are the ends of the flight it has left. Opens one fresh mast hole; once all three
-## are open there is nothing left to hole, but it still knocks a propped-up mast back down.
-func apply_mast_hit(from: Vector2, to: Vector2) -> bool:
+## [param to] are the ends of the flight it has left. Opens the next [param holes] fresh mast
+## holes; once all three are open there is nothing left to hole, but it still knocks a
+## propped-up mast back down. [param reach] widens the shot, for one that is not a point.
+func apply_mast_hit(from: Vector2, to: Vector2, holes := 1, reach := 0.0) -> bool:
 
 	if action_points.mast_holes.is_empty():
 		return false
 
 	var mast = action_points.mast_holes.front().global_position
 
-	if Geometry2D.get_closest_point_to_segment(mast, from, to).distance_to(mast) > MAST_RADIUS:
+	if Geometry2D.get_closest_point_to_segment(mast, from, to).distance_to(mast) > MAST_RADIUS + reach:
 		return false
 
-	for hole in action_points.mast_holes:
-		if hole.grade < hole.max_grade:
-			hole.set_grade(hole.grade + MAST_HOLE_DAMAGE)
-			return true
+	var fresh = action_points.mast_holes.filter(func(hole): return hole.grade < hole.max_grade)
 
-	return ship.mast_system.knock_loose()
+	if fresh.is_empty():
+		return ship.mast_system.knock_loose()
+
+	for hole in fresh.slice(0, holes):
+		hole.set_grade(hole.grade + MAST_HOLE_DAMAGE)
+
+	return true
 
 
 ## The hole whose footprint is nearest the impact, out of those cut into plating facing the same

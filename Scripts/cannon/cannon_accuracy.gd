@@ -27,7 +27,8 @@ static func hit_chance(
 	distance: float,
 	max_range: float,
 	own_turn_rate: float,
-	relative_speed: float
+	relative_speed: float,
+	ball_speed := 500.0 # a cannonball's
 ) -> float:
 
 	if distance <= HULL_HALF_SIZE:
@@ -39,7 +40,7 @@ static func hit_chance(
 		SIGMA_BASE * SIGMA_BASE
 		+ pow(K_RANGE * range_fraction * range_fraction, 2.0)
 		+ pow(K_SLEW * abs(own_turn_rate), 2.0)
-		+ pow(K_LEAD * relative_speed / Cannonball.SPEED, 2.0) # flight time over lead distance
+		+ pow(K_LEAD * relative_speed / ball_speed, 2.0) # flight time over lead distance
 	)
 
 	var cross_chance = _gaussian_within(atan(HULL_HALF_SIZE / distance), sigma_angle)
@@ -58,7 +59,8 @@ static func for_shot(cannon: Node2D, shooter: Node2D, target: Node2D) -> float:
 		cannon.global_position.distance_to(target.global_position),
 		cannon.max_range,
 		shooter.movement_controller.current_angular_velocity,
-		(target.velocity - shooter.velocity).length()
+		(target.velocity - shooter.velocity).length(),
+		cannon.ammo.speed
 	)
 
 

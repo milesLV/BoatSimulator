@@ -81,6 +81,21 @@ func spawn_frozen_ship(at := Vector2.ZERO) -> Sloop:
 	return ship
 
 
+## Physics frames until [param ball] is gone. Every ball either lands or runs out of range, so
+## one still flying at [param limit] fails the test.
+func frames_until_gone(ball: Node, limit := 240) -> int:
+
+	for frame in limit:
+		if not is_instance_valid(ball):
+			return frame
+
+		await physics_frame
+
+	check(false, "ball neither hit nor expired within %d frames" % limit)
+
+	return limit
+
+
 ## A cannonball placed by hand: [param from] the ship it is aimed at, flying along
 ## [param heading]. By default it sits below the hull and comes straight up through it.
 func spawn_ball(

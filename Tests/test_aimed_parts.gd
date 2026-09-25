@@ -9,7 +9,6 @@ extends "res://Tests/harness.gd"
 ## The balls come up from 120px below the ship and the crewmate stands 160px along; one lasting
 ## this long flew past them.
 const STOP_FRAMES := 25
-const FRAME_LIMIT := 240
 
 
 func _run() -> void:
@@ -20,17 +19,6 @@ func _run() -> void:
 	await _test_picking()
 
 	finish("test_aimed_parts")
-
-
-func _frames_until_gone(ball: Cannonball) -> int:
-
-	for frame in FRAME_LIMIT:
-		if not is_instance_valid(ball):
-			return frame
-
-		await physics_frame
-
-	return FRAME_LIMIT
 
 
 func _test_crew_strike() -> void:
@@ -53,7 +41,7 @@ func _test_crew_strike() -> void:
 		var ball = spawn_ball(ship, case[2])
 		ball.aimed_part = crewmate
 
-		var stopped = await _frames_until_gone(ball) < STOP_FRAMES
+		var stopped = await frames_until_gone(ball) < STOP_FRAMES
 
 		check(stopped == case[3], "%s on deck %d, hit roll %s: stopped %s" % [case[0], case[1], case[2], stopped])
 

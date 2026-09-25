@@ -21,6 +21,8 @@ var transition_to_deck := -1
 var bucket_amount := 0.0
 ## What a cannon they man aims at; set from the C menu.
 var aim_target := Cannon.AimTarget.HULL
+## What they load a cannon they man with; set from the 1 and 2 keys and their menus.
+var ammo := Ammunition.CANNONBALL
 var _idle_time := 0.0
 
 func _ready() -> void:

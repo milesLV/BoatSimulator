@@ -9,7 +9,6 @@ extends "res://Tests/harness.gd"
 # Ships are left processing here rather than disabled, so their collision stays live for the
 # Area2D. They have no sail set and no target, so they sit still.
 
-const FRAME_LIMIT := 240
 const SAMPLES := 300
 const FREQUENCY_TOLERANCE := 0.10 # ~4 standard errors at n = 300
 
@@ -29,17 +28,6 @@ func _run() -> void:
 
 
 # --- helpers ------------------------------------------------------------------------------
-
-
-func _run_until_gone(ball: Cannonball) -> void:
-
-	for i in FRAME_LIMIT:
-		if not is_instance_valid(ball):
-			return
-
-		await process_frame
-
-	check(false, "ball neither hit nor expired within %d frames" % FRAME_LIMIT)
 
 
 func _total_grade(ship: Sloop) -> int:
@@ -62,7 +50,7 @@ func _test_miss_passes_through() -> void:
 	var ball = spawn_ball(ship, false)
 	var before = Cannonball.shots_hit
 
-	await _run_until_gone(ball)
+	await frames_until_gone(ball)
 
 	Cannonball.mast_strike_chance = mast_chance
 
@@ -84,14 +72,14 @@ func _test_impact_decides_the_hole() -> void:
 
 	check(struck != far_end, "the test aimed at the hole it means to rule out")
 
-	await _run_until_gone(spawn_ball(ship, true))
+	await frames_until_gone(spawn_ball(ship, true))
 
 	check(
-		struck.grade == Cannonball.CANNONBALL_HOLE_DAMAGE,
+		struck.grade == Ammunition.CANNONBALL.hole_damage,
 		"%s took %d" % [struck.name, struck.grade]
 	)
 	check(far_end.grade == 0, "a hole the far end of the hull took the damage")
-	check(_total_grade(ship) == Cannonball.CANNONBALL_HOLE_DAMAGE)
+	check(_total_grade(ship) == Ammunition.CANNONBALL.hole_damage)
 
 	await despawn(ship)
 
@@ -101,7 +89,7 @@ func _test_a_capped_hole_absorbs_nothing() -> void:
 
 	var ship = await spawn_frozen_ship()
 
-	await _run_until_gone(spawn_ball(ship, true))
+	await frames_until_gone(spawn_ball(ship, true))
 
 	var struck = ship.action_points.hull_holes.filter(func(hole): return hole.grade > 0).front()
 
@@ -109,7 +97,7 @@ func _test_a_capped_hole_absorbs_nothing() -> void:
 
 	var before = _total_grade(ship)
 
-	await _run_until_gone(spawn_ball(ship, true))
+	await frames_until_gone(spawn_ball(ship, true))
 
 	check(_total_grade(ship) == before, "the shot spilled past %s" % struck.name)
 
@@ -130,11 +118,11 @@ func _test_far_side_hole_is_not_graded() -> void:
 
 	var ball = spawn_ball(ship, true)
 
-	await _run_until_gone(ball)
+	await frames_until_gone(ball)
 
 	check(far_side.grade == 0, "the far-side hole took the damage: grade %d" % far_side.grade)
 	check(
-		_total_grade(ship) == Cannonball.CANNONBALL_HOLE_DAMAGE,
+		_total_grade(ship) == Ammunition.CANNONBALL.hole_damage,
 		"the hit went nowhere: total grade %d" % _total_grade(ship)
 	)
 
@@ -154,7 +142,7 @@ func _test_the_shoulder_is_not_the_stem() -> void:
 
 	var ship = await spawn_frozen_ship()
 
-	await _run_until_gone(spawn_ball(ship, true, Vector2(300.0, 20.0), PI))
+	await frames_until_gone(spawn_ball(ship, true, Vector2(300.0, 20.0), PI))
 
 	check(ship.action_points.get_point(&"HoleStarb9").grade > 0, "the shoulder took nothing")
 	check(ship.action_points.get_point(&"HoleBow").grade == 0, "the stem took the shoulder's hit")
@@ -165,7 +153,7 @@ func _test_the_shoulder_is_not_the_stem() -> void:
 	for offset in [0.0, 6.0, -6.0]:
 		ship = await spawn_frozen_ship()
 
-		await _run_until_gone(spawn_ball(ship, true, Vector2(300.0, offset), PI))
+		await frames_until_gone(spawn_ball(ship, true, Vector2(300.0, offset), PI))
 
 		check(
 			ship.action_points.get_point(&"HoleBow").grade > 0,

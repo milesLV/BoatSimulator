@@ -3,7 +3,8 @@ extends Control
 
 ## Hold a bound key and a ring of options opens at screen centre; release over one (or click it)
 ## to pick it. A quick tap never opens the ring and does the key's plain action instead.
-## Holding amplify as well turns either into an order for the whole crew.
+## Holding amplify as well turns either into an order for the whole crew. A ring that sets a
+## hint can be turned over with Tab.
 
 const RADIUS := 400.0
 const DEAD_ZONE := 20.0
@@ -12,6 +13,8 @@ const LABEL_RADIUS := RADIUS * 0.6
 const HIGHLIGHT := Color("9dffb0")
 const FONT_SIZE := 32
 const MIN_FONT_SIZE := 10
+## Clear space kept between a label and its section's edges and rim.
+const LABEL_PADDING := 12.0
 const AMPLIFIED_PREFIX := "(All crewmates) "
 
 ## action -> {labels, on_pick, on_tap}
@@ -22,6 +25,11 @@ var hovered := -1
 var labels: Array[Label] = []
 ## Whether the labels on show carry the whole-crew prefix.
 var amplified := false
+## Tab presses since the ring opened, for the labels callable to page through.
+var cycle := 0
+## Shown at the ring's top-right corner when set by the labels callable; Tab only turns a ring with one.
+var hint := ""
+var _hint_label: Label = null
 
 
 func _ready() -> void:
@@ -31,22 +39,25 @@ func _ready() -> void:
 	hide()
 
 
-## [param on_pick] gets the index of the chosen label and whether the order is for the whole
-## crew; [param on_tap] runs on a quick press and gets the latter.
-func bind(action: StringName, option_labels: Array[String], on_pick: Callable, on_tap: Callable) -> void:
+## [param option_labels] gets whether the order is for the whole crew and [member cycle], and
+## returns the labels to show. [param on_pick] gets the index of the chosen label and the
+## former; [param on_tap] runs on a quick press and gets the former.
+func bind(action: StringName, option_labels: Callable, on_pick: Callable, on_tap: Callable) -> void:
 
 	bindings[action] = {"labels": option_labels, "on_pick": on_pick, "on_tap": on_tap}
 
 
-## The section under [param offset] from the centre, 0 at the top going clockwise; -1 off the ring.
+## The section under [param offset] from the centre, -1 off the ring. Section 0 ends at the top,
+## so the first option sits on the left (top-left with more of them) and the rest go clockwise.
 static func sector_at(offset: Vector2, count: int) -> int:
 
 	if offset.length() < DEAD_ZONE or offset.length() > RADIUS:
 		return -1
 
-	var from_top := wrapf(offset.angle() + PI / 2.0, 0.0, TAU)
+	var step := TAU / count
+	var from_start := wrapf(offset.angle() + PI / 2.0 + step, 0.0, TAU)
 
-	return int(from_top / (TAU / count)) % count
+	return int(from_start / step) % count
 
 
 func _process(delta: float) -> void:
@@ -63,7 +74,10 @@ func _process(delta: float) -> void:
 	if not visible and held_time >= OPEN_DELAY:
 		show()
 
-	if visible and (labels.is_empty() or Input.is_action_pressed(&"amplify") != amplified):
+	var turned = visible and hint != "" and Input.is_action_just_pressed(&"cycleAmmo")
+	cycle += int(turned)
+
+	if visible and (turned or labels.is_empty() or Input.is_action_pressed(&"amplify") != amplified):
 		_build_labels()
 
 	if visible:
@@ -101,54 +115,68 @@ func _build_labels() -> void:
 	_free_labels()
 	amplified = Input.is_action_pressed(&"amplify")
 
-	var option_labels: Array = bindings[held_action]["labels"]
+	var option_labels: Array = bindings[held_action]["labels"].call(amplified, cycle)
 	var step := TAU / option_labels.size()
 
-	# the chord across a section at the label's radius, less a margin, is all the width it has
-	var max_width := 2.0 * LABEL_RADIUS * sin(step / 2.0) * 0.9
-
 	for i in option_labels.size():
+		# middle of the section, measured clockwise from the top
+		var mid := Vector2.UP.rotated(step * (i - 0.5)) * LABEL_RADIUS
 		var label := Label.new()
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_fit(label, (AMPLIFIED_PREFIX if amplified else "") + option_labels[i], max_width)
+		_fit(label, (AMPLIFIED_PREFIX if amplified else "") + option_labels[i], mid, i, option_labels.size())
 		add_child(label)
-		# middle of the section, measured clockwise from the top
-		var mid := Vector2.UP.rotated(step * (i + 0.5)) * LABEL_RADIUS
 		label.position = size / 2.0 + mid - label.get_minimum_size() / 2.0
 		labels.append(label)
+
+	if hint != "":
+		_hint_label = Label.new()
+		_hint_label.text = hint
+		_hint_label.add_theme_font_size_override(&"font_size", MIN_FONT_SIZE * 2)
+		add_child(_hint_label)
+		_hint_label.position = size / 2.0 + Vector2(RADIUS - _hint_label.get_minimum_size().x, -RADIUS)
 
 	queue_redraw()
 
 
-## Breaks [param text] onto a new line before any word that would run past [param max_width],
-## and shrinks the font only when a word is too wide on its own or the lines are too tall.
-func _fit(label: Label, text: String, max_width: float) -> void:
+## Wraps [param text] at the widest width whose block, centred on [param mid], stays
+## [constant LABEL_PADDING] clear of section [param index]'s edges and rim, and shrinks the
+## font only when no width fits.
+func _fit(label: Label, text: String, mid: Vector2, index: int, count: int) -> void:
 
 	var font := label.get_theme_font(&"font")
-	var font_size := FONT_SIZE
-	var width := func(line: String) -> float:
-		return font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var words := text.split(" ")
 
-	while true:
-		var lines: Array[String] = []
+	for font_size in range(FONT_SIZE, MIN_FONT_SIZE - 1, -1):
+		var width := func(line: String) -> float:
+			return font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 
-		for word in text.split(" "):
-			if not lines.is_empty() and width.call(lines.back() + " " + word) <= max_width:
-				lines[-1] += " " + word
-			else:
-				lines.append(word)
+		# ponytail: tries widths 8px apart, a few hundred measurements at worst per rebuild
+		for max_width in range(int(2.0 * RADIUS), 0, -8):
+			var lines: Array[String] = []
 
-		var fits = (
-			lines.all(func(line): return width.call(line) <= max_width)
-			and lines.size() * font.get_height(font_size) <= RADIUS - DEAD_ZONE
-		)
+			for word in words:
+				if not lines.is_empty() and width.call(lines.back() + " " + word) <= max_width:
+					lines[-1] += " " + word
+				else:
+					lines.append(word)
 
-		if fits or font_size <= MIN_FONT_SIZE:
-			label.text = "\n".join(lines)
-			label.add_theme_font_size_override(&"font_size", font_size)
-			return
+			var half := Vector2(
+				lines.map(width).max(), lines.size() * font.get_height(font_size)
+			) / 2.0 + Vector2.ONE * LABEL_PADDING
 
-		font_size -= 1
+			var corners := [half, -half, Vector2(half.x, -half.y), Vector2(-half.x, half.y)]
+
+			if corners.all(func(corner): return sector_at(mid + corner, count) == index):
+				label.text = "\n".join(lines)
+				label.add_theme_font_size_override(&"font_size", font_size)
+				return
+
+			# narrower only helps while some line is still wider than a single word
+			if lines.size() == words.size():
+				break
+
+	label.text = text
+	label.add_theme_font_size_override(&"font_size", MIN_FONT_SIZE)
 
 
 ## Forgets the key too, so after a click its release does nothing.
@@ -157,6 +185,8 @@ func _close() -> void:
 	_free_labels()
 	held_action = &""
 	hovered = -1
+	cycle = 0
+	hint = ""
 	hide()
 
 
@@ -166,6 +196,10 @@ func _free_labels() -> void:
 		label.queue_free()
 
 	labels.clear()
+
+	if _hint_label != null:
+		_hint_label.queue_free()
+		_hint_label = null
 
 
 func _draw() -> void:
@@ -188,8 +222,8 @@ func _draw() -> void:
 		return
 
 	# the hovered section's whole outline: both edges and the rim between them
-	var start := Vector2.UP.rotated(step * hovered)
-	var end := Vector2.UP.rotated(step * (hovered + 1))
+	var start := Vector2.UP.rotated(step * (hovered - 1))
+	var end := Vector2.UP.rotated(step * hovered)
 	draw_line(centre, centre + start * RADIUS, HIGHLIGHT, 3.0)
 	draw_line(centre, centre + end * RADIUS, HIGHLIGHT, 3.0)
 	draw_arc(centre, RADIUS, start.angle(), start.angle() + step, 32, HIGHLIGHT, 3.0)

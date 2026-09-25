@@ -120,12 +120,12 @@ func apply_cannonball_hit(hit_position: Vector2, hole_damage: int) -> ShipHolePo
 	return health_system.apply_cannonball_hit(hit_position, hole_damage)
 
 
-func apply_mast_hit(from: Vector2, to: Vector2) -> bool:
+func apply_mast_hit(from: Vector2, to: Vector2, holes := 1, reach := 0.0) -> bool:
 
 	if is_sunk():
 		return false
 
-	return health_system.apply_mast_hit(from, to)
+	return health_system.apply_mast_hit(from, to, holes, reach)
 
 
 func is_sunk() -> bool:

@@ -94,7 +94,8 @@ static func _pick_damageable(
 
 	var score := func(candidate): return score_for(
 		candidate["hole"].grade,
-		target.health_system.get_deck_efficiency(candidate["hole"].deck)
+		target.health_system.get_deck_efficiency(candidate["hole"].deck),
+		cannon.ammo.hole_damage
 	)
 	var range_to := func(candidate): return candidate["point"].distance_to(cannon_position)
 
@@ -269,10 +270,12 @@ static func hull_footprint(hole_local: Vector2) -> Vector2:
 	return _footprints[key]
 
 
+# ponytail: defaults are a cannonball's, written out because the self-check runs before
+# Ammunition's statics exist.
 ## Flood rate bought by one ball: grade points landed, weighted by how fast that deck floods.
-static func score_for(grade: int, deck_efficiency: float) -> float:
+static func score_for(grade: int, deck_efficiency: float, damage := 3) -> float:
 
-	return mini(Cannonball.CANNONBALL_HOLE_DAMAGE, ShipHolePoint.MAX_GRADE - grade) * deck_efficiency
+	return mini(damage, ShipHolePoint.MAX_GRADE - grade) * deck_efficiency
 
 
 static func _world_position(hole_local: Vector2, ship_state: Dictionary) -> Vector2:
@@ -299,7 +302,7 @@ static func _arrival(cannon: Cannon, fire_delay: float, to_aim: Vector2) -> floa
 
 	return (
 		maxf(fire_delay, _slew_time(cannon, to_aim))
-		+ to_aim.length() / Cannonball.SPEED
+		+ to_aim.length() / cannon.ammo.speed
 	)
 
 

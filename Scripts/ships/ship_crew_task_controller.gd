@@ -105,26 +105,46 @@ func _on_mast_repaired(crewmate: Crewmate) -> void:
 	repair_duty_controller.assign_crewmate(crewmate)
 
 
-## Aims the cannon the selected crewmate mans at [param target], and only that one. Off the guns,
-## the order goes to the next crewmate who is on one; with nobody on them, or with
-## [param crew_wide] (every crewmate gets their own order), they go man one if one is free.
-func request_cannon_aim(target: Cannon.AimTarget, crew_wide := false) -> bool:
+## Who a cannon order is for: the selected crewmate if they man a gun, otherwise the next
+## crewmate who does. With nobody on the guns, or with [param crew_wide] (every crewmate gets
+## their own order), it is the selected crewmate, who goes to man one.
+func cannon_order_recipient(crew_wide := false) -> Crewmate:
 
 	var crew := crew_controller.get_crewmates()
 	var start := crew.find(crew_controller.current_crewmate)
 
 	for i in (1 if crew_wide else crew.size()):
 		var crewmate := crew[(start + i) % crew.size()]
-		var station = station_controller.get_station_operated_by(crewmate)
 
-		if station is CannonStationPoint:
-			crewmate.aim_target = target
-			station.cannon.aim_target = target
-			return true
+		if station_controller.get_station_operated_by(crewmate) is CannonStationPoint:
+			return crewmate
 
-	crew_controller.current_crewmate.aim_target = target
+	return crew_controller.current_crewmate
+
+
+## Loads the recipient's cannon with [param ammo] and aims it at [param target], and only that one.
+func request_cannon_aim(ammo: Ammunition, target: Cannon.AimTarget, crew_wide := false) -> bool:
+
+	var crewmate := cannon_order_recipient(crew_wide)
+	var station = station_controller.get_station_operated_by(crewmate)
+
+	crewmate.ammo = ammo
+	crewmate.aim_target = target
+
+	if station is CannonStationPoint:
+		station.cannon.ammo = ammo
+		station.cannon.aim_target = target
+		return true
 
 	return request_current_cannon_duty()
+
+
+## A cannon order that keeps what the recipient has loaded and goes back to its usual aim.
+func request_cannon_default_aim(crew_wide := false) -> bool:
+
+	var ammo := cannon_order_recipient(crew_wide).ammo
+
+	return request_cannon_aim(ammo, ammo.default_aim(), crew_wide)
 
 
 ## Repair duty leaves the mast alone - it lets no water in - so this is the only way it gets

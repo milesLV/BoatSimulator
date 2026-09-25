@@ -5,7 +5,15 @@ const REPAIR_OPTIONS: Array[String] = [
 	"Repair mast", "Repair whole hull", "Bail water",
 	"Repair mid deck", "Repair lower deck", "Repair whole ship",
 ]
-const AIM_OPTIONS: Array[String] = ["Fire at hull", "Fire at mast", "Fire at cannon", "Fire at wheel", "Fire at crew"]
+const AIM_LABELS := {
+	Cannon.AimTarget.HULL: "Fire at hull", Cannon.AimTarget.MAST: "Fire at mast",
+	Cannon.AimTarget.CANNON: "Fire at cannon", Cannon.AimTarget.WHEEL: "Fire at wheel",
+	Cannon.AimTarget.CREW: "Fire at crew",
+}
+const CYCLE_HINT := "Press Tab to cycle through ammunition"
+
+## The ammunition whose aims the open C ring shows.
+var _ring_ammo := Ammunition.CANNONBALL
 
 
 func _ready() -> void:
@@ -22,14 +30,47 @@ func _bind_radial_menu() -> void:
 	if menu == null:
 		return
 
-	menu.bind(&"repairShip", REPAIR_OPTIONS, _on_repair_option, func(crew_wide):
+	menu.bind(&"repairShip", func(_crew_wide, _cycle): return REPAIR_OPTIONS, _on_repair_option, func(crew_wide):
 		# just after the mast is hauled up, R goes to patch it so it stays up
 		_order(crew_wide, &"request_repair_mast" if mast_system.just_raised() else &"request_repair_ship")
 	)
-	menu.bind(&"goToCannon", AIM_OPTIONS,
-		func(i, crew_wide): _order(crew_wide, &"request_cannon_aim", [i, crew_wide]),
-		func(crew_wide): _order(crew_wide, &"request_cannon_aim", [Cannon.AimTarget.HULL, crew_wide])
+	menu.bind(&"goToCannon",
+		func(crew_wide, cycle): return _cannon_ring(menu, crew_wide, cycle),
+		func(i, crew_wide): _order_ammo(crew_wide, _ring_ammo, _ring_ammo.aim_options[i]),
+		func(crew_wide): _order(crew_wide, &"request_cannon_default_aim", [crew_wide])
 	)
+
+	# 1, 2, ...: a tap loads that ammunition at its usual aim, a hold offers its other aims
+	for ammo in Ammunition.ALL:
+		menu.bind(ammo.key_action,
+			func(_crew_wide, _cycle): return _aim_labels(ammo),
+			func(i, crew_wide): _order_ammo(crew_wide, ammo, ammo.aim_options[i]),
+			func(crew_wide): _order_ammo(crew_wide, ammo, ammo.default_aim())
+		)
+
+
+## The C ring shows the aims of whatever the order's recipient has loaded. An order for the
+## whole crew with no gunner selected has no one ammunition to go by, so it starts on the first
+## and Tab pages through the rest.
+func _cannon_ring(menu: RadialMenu, crew_wide: bool, cycle: int) -> Array:
+
+	var recipient := crew_task_controller.cannon_order_recipient(crew_wide)
+	var pages = crew_wide and station_controller.get_station_operated_by(recipient) is not CannonStationPoint
+
+	_ring_ammo = Ammunition.ALL[cycle % Ammunition.ALL.size()] if pages else recipient.ammo
+	menu.hint = CYCLE_HINT if pages else ""
+
+	return _aim_labels(_ring_ammo)
+
+
+func _aim_labels(ammo: Ammunition) -> Array:
+
+	return ammo.aim_options.map(func(target): return AIM_LABELS[target])
+
+
+func _order_ammo(crew_wide: bool, ammo: Ammunition, target: Cannon.AimTarget) -> void:
+
+	_order(crew_wide, &"request_cannon_aim", [ammo, target, crew_wide])
 
 
 func _on_repair_option(index: int, crew_wide: bool) -> void:
